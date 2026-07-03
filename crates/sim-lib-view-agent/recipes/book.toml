@@ -1,0 +1,5 @@
+book = "view/agent"
+title = "Agent Composer View"
+summary = "Topology composer and live monitor lens descriptors."
+order = 94
+chapters = ["01-basics"]

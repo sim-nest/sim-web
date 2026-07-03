@@ -1,0 +1,8 @@
+id = "text-node"
+title = "Scene text node"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 10
+tags = ["scene", "descriptor", "web"]
+requires = ["scene", "codec/lisp"]

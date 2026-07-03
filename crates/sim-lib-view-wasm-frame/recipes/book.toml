@@ -1,0 +1,5 @@
+book = "view/wasm"
+title = "Wasm View Host"
+summary = "Browser-side view host descriptors for local Scene and Intent flow."
+order = 99
+chapters = ["01-basics"]

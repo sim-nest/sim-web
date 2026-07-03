@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SIM Web-UI Shell</title>
+  <link rel="stylesheet" href="/styles/theme.css" />
+</head>
+<body>
+  <nav class="top-nav" aria-label="Primary">
+    <a href="/" aria-current="page">Shell</a>
+    <a href="/cookbook">Cookbook</a>
+    <a href="/atelier">Atelier</a>
+  </nav>
+  <main id="shell" role="main">
+    <header class="shell-header">
+      <h1>SIM Web-UI</h1>
+      <p class="tagline">The browser as a SIM Scene/Intent surface.</p>
+    </header>
+    <section class="shell-body">
+      <p>
+        This shell is served by <code>sim-web-shell</code>. It is a thin Scene
+        painter and Intent emitter over the SIM Scene/Intent contracts. Lenses
+        and the Rust web bridge exist in the runtime; the Atelier view opens
+        the generated Site, index, Radar, and Firewall caches.
+      </p>
+      <ul class="status-list">
+        <li><span class="badge ok">ok</span> shell served</li>
+        <li><span class="badge ok">ok</span> Scene painter loaded</li>
+        <li><span class="badge ok">ok</span> Intent emitter loaded</li>
+        <li><span class="badge ok">ok</span> Atelier cache view</li>
+      </ul>
+    </section>
+    <footer class="shell-footer">
+      <p>One runtime, one bus, two operators, many graphical lenses.</p>
+    </footer>
+  </main>
+  <script type="module" src="/interpreter/app.js"></script>
+</body>
+</html>

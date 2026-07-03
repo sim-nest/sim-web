@@ -1,0 +1,5 @@
+book = "view/math"
+title = "Math View"
+summary = "Plot, matrix, symbolic, and sweep lens descriptors."
+order = 96
+chapters = ["01-basics"]

@@ -1,0 +1,8 @@
+id = "descriptor-fixtures"
+title = "Descriptor Fixtures"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 30
+tags = ["view", "daw", "descriptor", "fixture", "golden"]
+requires = ["view/daw", "scene", "codec/lisp"]

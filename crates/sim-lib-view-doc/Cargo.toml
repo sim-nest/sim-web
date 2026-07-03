@@ -1,0 +1,25 @@
+[package]
+name = "sim-lib-view-doc"
+version = "0.1.0"
+edition = "2024"
+license = "MPL-2.0"
+description = "Scientific article workspace lens for the SIM Web-UI (WEBUI_4)."
+readme = "README.md"
+publish = true
+repository = "https://github.com/sim-nest/sim-web"
+homepage = "https://github.com/sim-nest/sim-web"
+
+[dependencies]
+sim-citizen = { version = "0.1.0" }
+sim-citizen-derive = { version = "0.1.0" }
+sim-kernel = { version = "0.1.0" }
+sim-lib-scene = { version = "0.1.0", path = "../sim-lib-scene" }
+sim-lib-view = { version = "0.1.0", path = "../sim-lib-view" }
+
+[dev-dependencies]
+sim-codec-json = { version = "0.1.0" }
+sim-codec-lisp = { version = "0.1.0" }
+sim-test-support = { version = "0.1.0" }
+
+[lints]
+workspace = true

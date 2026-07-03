@@ -1,0 +1,5 @@
+book = "intent"
+title = "Intent"
+summary = "Gesture and operator intent values for checked UI edits."
+order = 91
+chapters = ["01-basics"]

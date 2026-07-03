@@ -1,0 +1,1 @@
+(quote (view-daw timeline (track synth) (clip bar-1) (mixer strip-1)))

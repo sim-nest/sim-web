@@ -1,0 +1,5 @@
+book = "web/layout"
+title = "Web Layout"
+summary = "Workspace, panes, palette, and layout persistence values."
+order = 100
+chapters = ["01-basics"]

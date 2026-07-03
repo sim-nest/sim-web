@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SIM Atelier</title>
+  <link rel="stylesheet" href="/styles/theme.css" />
+  <link rel="stylesheet" href="/atelier/atelier.css" />
+</head>
+<body>
+  <nav class="top-nav" aria-label="Primary">
+    <a href="/">Shell</a>
+    <a href="/cookbook">Cookbook</a>
+    <a href="/atelier" aria-current="page">Atelier</a>
+  </nav>
+  <main id="atelier-app" class="atelier-shell" data-api-root="/api/atelier" role="main">
+    <header class="atelier-header">
+      <h1>SIM Atelier</h1>
+      <div id="atelier-status" class="atelier-status" aria-live="polite"></div>
+    </header>
+    <section class="atelier-grid" aria-label="Atelier workspace">
+      <nav id="atelier-navigation" class="atelier-panel" aria-label="Constellation navigation"></nav>
+      <section id="atelier-panels" class="atelier-panel" aria-label="Editor panels"></section>
+      <section id="atelier-radar" class="atelier-panel" aria-label="Retrieval Radar"></section>
+      <section id="atelier-firewall" class="atelier-panel" aria-label="Guideline Firewall"></section>
+    </section>
+  </main>
+  <script type="module" src="/atelier/atelier.js"></script>
+</body>
+</html>

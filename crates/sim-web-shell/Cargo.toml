@@ -1,0 +1,48 @@
+[package]
+name = "sim-web-shell"
+version = "0.1.0"
+edition = "2024"
+license = "MPL-2.0"
+description = "sim-web-shell: the binary that serves the SIM WebUI shell."
+readme = "README.md"
+publish = true
+repository = "https://github.com/sim-nest/sim-web"
+homepage = "https://github.com/sim-nest/sim-web"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+serde_json = "1"
+sim-codec-algol = { version = "0.1.0" }
+sim-codec-binary = { version = "0.1.0" }
+sim-codec-chat = { version = "0.1.0" }
+sim-codec-json = { version = "0.1.0" }
+sim-codec-lisp = { version = "0.1.0" }
+sim-kernel = { version = "0.1.0" }
+sim-lib-server = { version = "0.1.0" }
+sim-lib-stream-core = { version = "0.1.0" }
+sim-lib-view = { version = "0.1.0", path = "../sim-lib-view" }
+sim-lib-web-bridge = { version = "0.1.0", path = "../sim-lib-web-bridge" }
+
+[dev-dependencies]
+sim-value = { version = "0.1.0" }
+sim-codec = { version = "0.1.0" }
+sim-codec-algol = { version = "0.1.0" }
+sim-codec-binary = { version = "0.1.0" }
+sim-codec-json = { version = "0.1.0" }
+sim-codec-lisp = { version = "0.1.0" }
+sim-kernel = { version = "0.1.0" }
+sim-lib-daw-session = { version = "0.1.0" }
+sim-lib-intent = { version = "0.1.0", path = "../sim-lib-intent" }
+sim-lib-scene = { version = "0.1.0", path = "../sim-lib-scene" }
+sim-lib-topology = { version = "0.1.0" }
+sim-lib-view-agent = { version = "0.1.0", path = "../sim-lib-view-agent" }
+sim-lib-view-codec = { version = "0.1.0", path = "../sim-lib-view-codec" }
+sim-lib-view-daw = { version = "0.1.0", path = "../sim-lib-view-daw" }
+sim-lib-view-doc = { version = "0.1.0", path = "../sim-lib-view-doc" }
+sim-lib-view-math = { version = "0.1.0", path = "../sim-lib-view-math" }
+sim-test-support = { version = "0.1.0" }
+
+[lints]
+workspace = true

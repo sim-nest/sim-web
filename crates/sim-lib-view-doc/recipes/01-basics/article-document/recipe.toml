@@ -1,0 +1,8 @@
+id = "article-document"
+title = "Article document descriptor"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 10
+tags = ["view", "document", "article"]
+requires = ["view/doc", "codec/lisp"]

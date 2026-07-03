@@ -1,0 +1,5 @@
+book = "web/bridge"
+title = "Web Bridge"
+summary = "Session bus, transports, history, and Scene update descriptors."
+order = 101
+chapters = ["01-basics"]

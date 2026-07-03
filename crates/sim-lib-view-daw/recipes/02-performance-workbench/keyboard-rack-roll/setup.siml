@@ -1,0 +1,7 @@
+(quote
+  (recipe keyboard-rack-roll
+    (scene performance-workbench)
+    (keyboard :fixture player-chain-instrument)
+    (player-rack :players (scales-chords dual-arpeggio note-echo))
+    (piano-roll :fixture keyboard-rack-roll)
+    (golden web-recipe-performance-workbench)))

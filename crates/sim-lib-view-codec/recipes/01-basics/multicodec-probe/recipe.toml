@@ -1,0 +1,8 @@
+id = "multicodec-probe"
+title = "Multi-codec probe descriptor"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 10
+tags = ["view", "codec", "roundtrip"]
+requires = ["view/codec", "codec/lisp"]

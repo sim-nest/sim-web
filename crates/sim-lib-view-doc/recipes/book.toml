@@ -1,0 +1,5 @@
+book = "view/doc"
+title = "Document View"
+summary = "Scientific article values, source lenses, and export descriptors."
+order = 95
+chapters = ["01-basics"]

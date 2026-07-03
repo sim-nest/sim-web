@@ -1,0 +1,5 @@
+book = "view/daw"
+title = "DAW View"
+summary = "Timeline, mixer, rack, waveform, and synth lens descriptors."
+order = 98
+chapters = ["01-basics", "02-performance-workbench"]

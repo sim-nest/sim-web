@@ -1,0 +1,7 @@
+(quote
+  (recipe arranger-transform-filter
+    (scene arranger-object-roll)
+    (placement motif :stretch fit-to-duration :transpose 12 :invert C4 :retrograde true)
+    (remap scale:minor-pentatonic vector:modal-axis matrix:ps3300-map)
+    (filter lead-only)
+    (golden web-recipe-arranger)))

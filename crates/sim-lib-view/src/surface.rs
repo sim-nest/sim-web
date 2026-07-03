@@ -1,0 +1,369 @@
+//! Surface capability metadata -- the library-level "surface" output position.
+//!
+//! VIEW_4 frames a view as a codec at output position `surface`. The kernel
+//! keeps its closed [`sim_kernel::EncodePosition`] (`Eval`/`Quote`/`Data`/
+//! `Pattern`); the surface position lives here as OPEN metadata so a view/edit
+//! lens projects toward a device described purely by capability data, never a
+//! closed device enum. A surface advertises what it can show and accept; the
+//! projection ranker (see [`crate::dispatch`]) reads those capabilities.
+//!
+//! [`SurfaceCaps`] round-trips through a `surface/caps` tagged [`Expr`] map, the
+//! same shape SIM uses for [`Scene`](sim_lib_scene) and Intent values, so a
+//! surface descriptor is itself an ordinary SIM value that can cross a session.
+//!
+//! # Example
+//!
+//! ```
+//! use sim_lib_view::surface;
+//!
+//! let cli = surface::preset("cli").expect("cli is a known preset");
+//! // Capabilities round-trip losslessly through their `surface/caps` Expr form.
+//! let back = surface::SurfaceCaps::from_expr(&cli.to_expr()).unwrap();
+//! assert_eq!(cli, back);
+//! assert!(cli.input_flag("keyboard"));
+//! ```
+
+use sim_kernel::{Expr, Symbol};
+use sim_value::build;
+
+/// The metadata namespace for surface descriptors (`surface/...`).
+pub const SURFACE_NAMESPACE: &str = "surface";
+
+/// The `kind` tag of a serialized [`SurfaceCaps`] map.
+pub const CAPS_KIND: &str = "caps";
+
+/// The catalog of well-known surface presets, by unqualified name.
+///
+/// These are named capability bundles, NOT a runtime enum: a device that is not
+/// in this list still works by advertising its own [`SurfaceCaps`]. The presets
+/// exist so common surfaces have a one-line starting point.
+pub const SURFACE_PRESETS: &[&str] = &[
+    "cli", "tui", "webui", "watch", "glasses", "phone", "desktop",
+];
+
+/// A surface's advertised capabilities, as open metadata over [`Expr`].
+///
+/// The four capability maps (`display`, `input`, `transport`, `privacy`) are
+/// open: a surface may carry fields beyond the well-known ones, and the ranker
+/// reads only the fields it understands. `codecs` lists the surface codecs the
+/// client can decode (lisp/json/bin/...).
+#[derive(Clone, Debug, PartialEq)]
+pub struct SurfaceCaps {
+    /// A stable client identifier, e.g. `"tty.local.1"`.
+    pub client_id: String,
+    /// The preset name this surface is based on (`surface/<preset>`).
+    pub preset: Symbol,
+    /// Display capabilities: cells/pixels, color, density, motion, budget.
+    pub display: Expr,
+    /// Input capabilities: keyboard/pointer/touch/voice/camera/tap/...
+    pub input: Expr,
+    /// Transport capabilities: kind, round-trip, offline queue, ordering.
+    pub transport: Expr,
+    /// Privacy policy: redaction class, retention, private fields.
+    pub privacy: Expr,
+    /// Surface codecs the client can decode, in preference order.
+    pub codecs: Vec<Symbol>,
+}
+
+/// A reason a [`SurfaceCaps`] value could not be parsed from an [`Expr`].
+///
+/// Parsing fails closed: a malformed descriptor never yields partial caps.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum SurfaceError {
+    /// The value was not a `surface/caps`-tagged map.
+    NotCaps,
+    /// A required field was missing.
+    MissingField(&'static str),
+    /// A field carried the wrong value shape.
+    BadField(&'static str),
+}
+
+impl core::fmt::Display for SurfaceError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            SurfaceError::NotCaps => write!(f, "value is not a surface/caps map"),
+            SurfaceError::MissingField(name) => write!(f, "surface caps missing field: {name}"),
+            SurfaceError::BadField(name) => write!(f, "surface caps field has wrong shape: {name}"),
+        }
+    }
+}
+
+impl std::error::Error for SurfaceError {}
+
+impl SurfaceCaps {
+    /// Builds caps from a preset name plus a concrete `client_id`.
+    ///
+    /// Returns `None` when `preset_name` is not in [`SURFACE_PRESETS`].
+    pub fn from_preset(preset_name: &str, client_id: impl Into<String>) -> Option<Self> {
+        let mut caps = preset(preset_name)?;
+        caps.client_id = client_id.into();
+        Some(caps)
+    }
+
+    /// Encodes these caps as a `surface/caps` tagged [`Expr`] map.
+    pub fn to_expr(&self) -> Expr {
+        build::map(vec![
+            (
+                "kind",
+                Expr::Symbol(Symbol::qualified(SURFACE_NAMESPACE, CAPS_KIND)),
+            ),
+            ("client-id", build::text(self.client_id.clone())),
+            ("preset", Expr::Symbol(self.preset.clone())),
+            ("display", self.display.clone()),
+            ("input", self.input.clone()),
+            ("transport", self.transport.clone()),
+            ("privacy", self.privacy.clone()),
+            (
+                "codecs",
+                build::list(self.codecs.iter().cloned().map(Expr::Symbol).collect()),
+            ),
+        ])
+    }
+
+    /// Parses caps from a `surface/caps` tagged [`Expr`] map, failing closed.
+    pub fn from_expr(expr: &Expr) -> Result<Self, SurfaceError> {
+        let Expr::Map(entries) = expr else {
+            return Err(SurfaceError::NotCaps);
+        };
+        match field(entries, "kind") {
+            Some(Expr::Symbol(kind))
+                if kind.namespace.as_deref() == Some(SURFACE_NAMESPACE)
+                    && &*kind.name == CAPS_KIND => {}
+            _ => return Err(SurfaceError::NotCaps),
+        }
+        let client_id = match field(entries, "client-id") {
+            Some(Expr::String(text)) => text.clone(),
+            Some(_) => return Err(SurfaceError::BadField("client-id")),
+            None => return Err(SurfaceError::MissingField("client-id")),
+        };
+        let preset = match field(entries, "preset") {
+            Some(Expr::Symbol(symbol)) => symbol.clone(),
+            Some(_) => return Err(SurfaceError::BadField("preset")),
+            None => return Err(SurfaceError::MissingField("preset")),
+        };
+        let display = map_field(entries, "display")?;
+        let input = map_field(entries, "input")?;
+        let transport = map_field(entries, "transport")?;
+        let privacy = map_field(entries, "privacy")?;
+        let codecs = match field(entries, "codecs") {
+            Some(Expr::List(items)) => {
+                let mut out = Vec::with_capacity(items.len());
+                for item in items {
+                    let Expr::Symbol(symbol) = item else {
+                        return Err(SurfaceError::BadField("codecs"));
+                    };
+                    out.push(symbol.clone());
+                }
+                out
+            }
+            Some(_) => return Err(SurfaceError::BadField("codecs")),
+            None => return Err(SurfaceError::MissingField("codecs")),
+        };
+        Ok(SurfaceCaps {
+            client_id,
+            preset,
+            display,
+            input,
+            transport,
+            privacy,
+            codecs,
+        })
+    }
+
+    /// Returns the unqualified preset name (`cli`, `watch`, ...).
+    pub fn preset_name(&self) -> &str {
+        &self.preset.name
+    }
+
+    /// Reads a boolean `input` capability flag, defaulting to `false`.
+    pub fn input_flag(&self, name: &str) -> bool {
+        matches!(map_get(&self.input, name), Some(Expr::Bool(true)))
+    }
+
+    /// Reads the `display` density symbol (`glance`/`compact`/`regular`/`dense`).
+    pub fn display_density(&self) -> Option<Symbol> {
+        match map_get(&self.display, "density") {
+            Some(Expr::Symbol(symbol)) => Some(symbol.clone()),
+            _ => None,
+        }
+    }
+
+    /// Whether this surface can decode the named surface codec.
+    pub fn accepts_codec(&self, codec: &str) -> bool {
+        self.codecs.iter().any(|symbol| &*symbol.name == codec)
+    }
+}
+
+/// Returns the baseline [`SurfaceCaps`] for a well-known preset name.
+///
+/// The `client_id` is set to the preset name and should be overridden with a
+/// real id via [`SurfaceCaps::from_preset`]. Returns `None` for unknown presets.
+pub fn preset(name: &str) -> Option<SurfaceCaps> {
+    let (display, input, transport, privacy) = match name {
+        "cli" => (
+            display_map(&[("density", sym("dense")), ("color", sym("ansi"))]),
+            input_map(&["keyboard"]),
+            transport_map("tty", 1, false),
+            privacy_map("local", 60_000),
+        ),
+        "tui" => (
+            display_map(&[("density", sym("dense")), ("color", sym("ansi256"))]),
+            input_map(&["keyboard", "pointer"]),
+            transport_map("tty", 1, false),
+            privacy_map("local", 60_000),
+        ),
+        "webui" => (
+            display_map(&[("density", sym("regular")), ("color", sym("truecolor"))]),
+            input_map(&["keyboard", "pointer", "touch", "wheel", "file-drop"]),
+            transport_map("websocket", 40, false),
+            privacy_map("session", 600_000),
+        ),
+        "watch" => (
+            display_map(&[("density", sym("glance")), ("shape", sym("round"))]),
+            input_map(&["touch", "tap", "crown", "haptic-ack"]),
+            transport_map("relay", 250, true),
+            privacy_map("local", 60_000),
+        ),
+        "glasses" => (
+            display_map(&[("density", sym("glance")), ("lines", build::uint(2))]),
+            input_map(&["voice", "tap"]),
+            transport_map("relay", 250, true),
+            privacy_map("local", 60_000),
+        ),
+        "phone" => (
+            display_map(&[("density", sym("compact")), ("color", sym("truecolor"))]),
+            input_map(&["touch", "voice", "camera"]),
+            transport_map("relay", 120, true),
+            privacy_map("session", 300_000),
+        ),
+        "desktop" => (
+            display_map(&[("density", sym("dense")), ("color", sym("truecolor"))]),
+            input_map(&["keyboard", "pointer", "wheel", "file-drop"]),
+            transport_map("local", 1, false),
+            privacy_map("session", 600_000),
+        ),
+        _ => return None,
+    };
+    Some(SurfaceCaps {
+        client_id: name.to_owned(),
+        preset: Symbol::qualified(SURFACE_NAMESPACE, name),
+        display,
+        input,
+        transport,
+        privacy,
+        codecs: vec![
+            Symbol::qualified(SURFACE_NAMESPACE, "lisp"),
+            Symbol::qualified(SURFACE_NAMESPACE, "json"),
+        ],
+    })
+}
+
+use sim_value::build::sym;
+
+fn display_map(extra: &[(&str, Expr)]) -> Expr {
+    let mut entries: Vec<(&str, Expr)> = vec![("media", build::list(Vec::new()))];
+    entries.extend(extra.iter().map(|(k, v)| (*k, v.clone())));
+    build::map(entries)
+}
+
+fn input_map(flags: &[&str]) -> Expr {
+    build::map(flags.iter().map(|flag| (*flag, Expr::Bool(true))).collect())
+}
+
+fn transport_map(kind: &str, round_trip_ms: u64, offline_queue: bool) -> Expr {
+    build::map(vec![
+        ("kind", build::sym(kind)),
+        ("round-trip-ms", build::uint(round_trip_ms)),
+        ("offline-queue", Expr::Bool(offline_queue)),
+        ("ordered", Expr::Bool(true)),
+    ])
+}
+
+fn privacy_map(class: &str, retain_ms: u64) -> Expr {
+    build::map(vec![
+        ("class", build::sym(class)),
+        ("retain-ms", build::uint(retain_ms)),
+        ("private-fields", build::list(Vec::new())),
+    ])
+}
+
+fn field<'a>(entries: &'a [(Expr, Expr)], name: &str) -> Option<&'a Expr> {
+    entries.iter().find_map(|(key, value)| {
+        matches!(key, Expr::Symbol(symbol) if &*symbol.name == name && symbol.namespace.is_none())
+            .then_some(value)
+    })
+}
+
+fn map_field(entries: &[(Expr, Expr)], name: &'static str) -> Result<Expr, SurfaceError> {
+    match field(entries, name) {
+        Some(value @ Expr::Map(_)) => Ok(value.clone()),
+        Some(_) => Err(SurfaceError::BadField(name)),
+        None => Err(SurfaceError::MissingField(name)),
+    }
+}
+
+fn map_get<'a>(map: &'a Expr, name: &str) -> Option<&'a Expr> {
+    match map {
+        Expr::Map(entries) => field(entries, name),
+        _ => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn every_preset_round_trips() {
+        for name in SURFACE_PRESETS {
+            let caps = preset(name).expect("preset exists");
+            assert_eq!(caps.preset_name(), *name);
+            let back = SurfaceCaps::from_expr(&caps.to_expr()).expect("round-trips");
+            assert_eq!(caps, back, "{name} caps must round-trip losslessly");
+        }
+    }
+
+    #[test]
+    fn unknown_preset_is_none() {
+        assert!(preset("hologram").is_none());
+    }
+
+    #[test]
+    fn from_preset_overrides_client_id() {
+        let caps = SurfaceCaps::from_preset("cli", "tty.local.7").unwrap();
+        assert_eq!(caps.client_id, "tty.local.7");
+        assert_eq!(caps.preset_name(), "cli");
+    }
+
+    #[test]
+    fn capability_accessors_read_fields() {
+        let cli = preset("cli").unwrap();
+        assert!(cli.input_flag("keyboard"));
+        assert!(!cli.input_flag("touch"));
+        assert_eq!(cli.display_density().unwrap().name.as_ref(), "dense");
+        assert!(cli.accepts_codec("lisp"));
+        assert!(!cli.accepts_codec("algol"));
+
+        let watch = preset("watch").unwrap();
+        assert!(watch.input_flag("haptic-ack"));
+        assert_eq!(watch.display_density().unwrap().name.as_ref(), "glance");
+    }
+
+    #[test]
+    fn parse_fails_closed() {
+        assert_eq!(
+            SurfaceCaps::from_expr(&Expr::Nil),
+            Err(SurfaceError::NotCaps)
+        );
+        // A caps map missing `codecs` must not yield partial caps.
+        let mut entries = match preset("cli").unwrap().to_expr() {
+            Expr::Map(entries) => entries,
+            _ => unreachable!(),
+        };
+        entries.retain(|(key, _)| !matches!(key, Expr::Symbol(s) if &*s.name == "codecs"));
+        assert_eq!(
+            SurfaceCaps::from_expr(&Expr::Map(entries)),
+            Err(SurfaceError::MissingField("codecs"))
+        );
+    }
+}

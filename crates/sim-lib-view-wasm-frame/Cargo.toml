@@ -1,0 +1,22 @@
+[package]
+name = "sim-lib-view-wasm-frame"
+version = "0.1.0"
+edition = "2024"
+license = "MPL-2.0"
+description = "Host-side view frame facade for wasm-shaped view data (WEBUI_4)."
+readme = "README.md"
+publish = true
+repository = "https://github.com/sim-nest/sim-web"
+homepage = "https://github.com/sim-nest/sim-web"
+
+[dependencies]
+sim-kernel = { version = "0.1.0" }
+sim-lib-intent = { version = "0.1.0", path = "../sim-lib-intent" }
+sim-lib-scene = { version = "0.1.0", path = "../sim-lib-scene" }
+sim-lib-view = { version = "0.1.0", path = "../sim-lib-view" }
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+sim-value = { version = "0.1.0" }

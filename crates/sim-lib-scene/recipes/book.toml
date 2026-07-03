@@ -1,0 +1,5 @@
+book = "scene"
+title = "Scene"
+summary = "Portable scene values for browser rendering and agent inspection."
+order = 90
+chapters = ["01-basics"]

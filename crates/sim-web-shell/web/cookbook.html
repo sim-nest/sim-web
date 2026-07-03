@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SIM Cookbook</title>
+  <link rel="stylesheet" href="/styles/theme.css" />
+  <link rel="stylesheet" href="/cookbook/cookbook.css" />
+</head>
+<body>
+  <nav class="top-nav" aria-label="Primary">
+    <a href="/">Shell</a>
+    <a href="/cookbook" aria-current="page">Cookbook</a>
+  </nav>
+  <main id="cookbook-app" class="cookbook-shell" data-api-root="/api/cookbook">
+    <aside class="cookbook-rail" aria-label="Recipes">
+      <label class="search-label" for="cookbook-search">Search</label>
+      <input id="cookbook-search" type="search" autocomplete="off" />
+      <nav id="cookbook-tree" class="cookbook-tree" aria-label="Cookbook tree">
+        <p class="empty-state">Loading recipes.</p>
+      </nav>
+    </aside>
+    <section id="recipe-pane" class="recipe-pane" aria-live="polite">
+      <h1>Cookbook</h1>
+      <p class="empty-state">No recipe selected.</p>
+    </section>
+  </main>
+  <script type="module" src="/cookbook/cookbook.js"></script>
+</body>
+</html>

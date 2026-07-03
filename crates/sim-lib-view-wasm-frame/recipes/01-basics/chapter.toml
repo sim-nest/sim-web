@@ -1,0 +1,3 @@
+title = "Basics"
+order = 10
+summary = "Local view host descriptors that stay pure data."

@@ -1,0 +1,5 @@
+book = "view/codec"
+title = "Codec View"
+summary = "Multi-codec, round-trip, and Shape-aware lens descriptors."
+order = 97
+chapters = ["01-basics"]

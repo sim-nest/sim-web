@@ -1,0 +1,8 @@
+id = "keyboard-rack-roll"
+title = "Keyboard Rack Roll"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 10
+tags = ["view", "daw", "keyboard", "player-rack", "piano-roll", "golden"]
+requires = ["view/daw", "scene", "codec/lisp"]

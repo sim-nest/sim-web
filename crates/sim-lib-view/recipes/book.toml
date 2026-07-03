@@ -1,0 +1,5 @@
+book = "view"
+title = "View"
+summary = "Lens contracts, view selection, and universal scene rendering."
+order = 93
+chapters = ["01-basics"]

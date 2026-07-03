@@ -1,0 +1,8 @@
+id = "host-loop"
+title = "View host loop descriptor"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 10
+tags = ["view", "wasm", "facade"]
+requires = ["view/wasm", "codec/lisp"]
