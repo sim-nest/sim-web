@@ -20,6 +20,7 @@ sim-codec-chat = { version = "0.1.0" }
 sim-codec-json = { version = "0.1.0" }
 sim-codec-lisp = { version = "0.1.0" }
 sim-kernel = { version = "0.1.0" }
+sim-run-core = { version = "0.1.0" }
 sim-lib-server = { version = "0.1.0" }
 sim-lib-stream-core = { version = "0.1.0" }
 sim-lib-view = { version = "0.1.0", path = "../sim-lib-view" }

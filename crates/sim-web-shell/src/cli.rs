@@ -2,10 +2,15 @@
 
 use std::sync::Arc;
 
+use sim_codec_lisp::LispCodecLib;
 use sim_kernel::{
-    AbiVersion, Args, CORE_FUNCTION_CLASS_ID, Callable, ClassRef, Cx, Error, Export, Expr, Lib,
-    LibManifest, LibTarget, Linker, LoadCx, Object, ObjectCompat, Result, Symbol, Value, Version,
+    AbiVersion, Args, CORE_FUNCTION_CLASS_ID, Callable, ClassRef, CodecId, Cx, Error, Export, Expr,
+    Lib, LibManifest, LibTarget, Linker, LoadCx, Object, ObjectCompat, Result, Symbol, Value,
+    Version,
 };
+use sim_run_core::{Bootloader, cli_main_entrypoint_symbol};
+
+use crate::serve::{ServeConfig, serve_with_cx};
 
 /// Loadable lib that claims the `atelier` command-line verb.
 pub struct AtelierCliLib;
@@ -161,4 +166,118 @@ fn symbol_from_slash(text: &str) -> Symbol {
         Some((head, tail)) => Symbol::qualified(head, tail),
         None => Symbol::new(text),
     }
+}
+
+// ---------------------------------------------------------------------------
+// The loadable `serve` verb: boots the web shell through the sim-run bootloader.
+// ---------------------------------------------------------------------------
+
+/// The verb the bootloader dispatches to serve the web shell (`sim serve ...`).
+pub const WEB_SERVE_VERB: &str = "serve";
+
+/// Returns the function symbol exported for the bootloader handoff.
+pub fn web_serve_entrypoint_symbol() -> Symbol {
+    cli_main_entrypoint_symbol(WEB_SERVE_VERB)
+}
+
+/// A [`Bootloader`] pre-configured to serve the web shell: the `codec/lisp` boot
+/// codec plus the `serve` verb. The thin `sim-web-shell` binary is just
+/// `web_bootloader().run(..)`.
+pub fn web_bootloader() -> Bootloader {
+    Bootloader::standard()
+        .host_lib("codec/lisp", || {
+            Box::new(LispCodecLib::new(CodecId(1)).expect("lisp boot codec"))
+        })
+        .host_verb(WEB_SERVE_VERB, "lib/web-serve", || Box::new(WebServeLib))
+}
+
+/// Loadable library exporting the web-shell `serve` entrypoint.
+pub struct WebServeLib;
+
+impl Lib for WebServeLib {
+    fn manifest(&self) -> LibManifest {
+        LibManifest {
+            id: Symbol::qualified("lib", "web-serve"),
+            version: Version(env!("CARGO_PKG_VERSION").to_owned()),
+            abi: AbiVersion { major: 0, minor: 1 },
+            target: LibTarget::HostRegistered,
+            requires: Vec::new(),
+            capabilities: Vec::new(),
+            exports: vec![Export::Function {
+                symbol: web_serve_entrypoint_symbol(),
+                function_id: None,
+            }],
+        }
+    }
+
+    fn load(&self, cx: &mut LoadCx, linker: &mut Linker<'_>) -> Result<()> {
+        linker.function_value(
+            web_serve_entrypoint_symbol(),
+            cx.factory().opaque(Arc::new(WebServeEntrypoint))?,
+        )?;
+        Ok(())
+    }
+}
+
+#[derive(Clone)]
+struct WebServeEntrypoint;
+
+impl Object for WebServeEntrypoint {
+    fn display(&self, _cx: &mut Cx) -> Result<String> {
+        Ok("cli/main/serve".to_owned())
+    }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+}
+
+impl ObjectCompat for WebServeEntrypoint {
+    fn as_callable(&self) -> Option<&dyn Callable> {
+        Some(self)
+    }
+}
+
+impl Callable for WebServeEntrypoint {
+    fn call(&self, cx: &mut Cx, args: Args) -> Result<Value> {
+        // Parse `--addr` / `--atelier-root` from the boot envelope (skipping the
+        // `serve` verb), then run the blocking HTTP loop in the bootloader cx.
+        let config = match args.values().first() {
+            Some(envelope) => {
+                let payload = envelope_args(cx, envelope)?;
+                parse_serve_config(payload.into_iter().skip(1))
+            }
+            None => ServeConfig::default(),
+        };
+        serve_with_cx(cx, &config)
+            .map_err(|err| Error::Eval(format!("web serve failed: {err}")))?;
+        cx.factory().bool(true)
+    }
+}
+
+fn parse_serve_config(args: impl Iterator<Item = String>) -> ServeConfig {
+    let mut config = ServeConfig::default();
+    let mut iter = args;
+    while let Some(arg) = iter.next() {
+        match arg.as_str() {
+            "--addr" => {
+                if let Some(addr) = iter.next() {
+                    config.addr = addr;
+                }
+            }
+            other if other.starts_with("--addr=") => {
+                config.addr = other["--addr=".len()..].to_owned();
+            }
+            "--atelier-root" => {
+                if let Some(root) = iter.next() {
+                    config.atelier_root = root.into();
+                }
+            }
+            other if other.starts_with("--atelier-root=") => {
+                config.atelier_root = other["--atelier-root=".len()..].into();
+            }
+            _ => {}
+        }
+    }
+    config
 }

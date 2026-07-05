@@ -1,42 +1,32 @@
-//! Entry point for `sim-web-shell`.
+//! The `sim-web-shell` binary: a thin bootloader that serves the SIM WebUI shell.
 //!
-//! Usage: `sim-web-shell [--addr HOST:PORT] [--atelier-root PATH]`. Serves the
-//! embedded SIM WebUI shell, cookbook page, and Atelier cache view. Keep this
-//! file thin: argument parsing and bootstrap only; serving logic lives in
-//! `serve`.
+//! `sim-web-shell [--addr HOST:PORT] [--atelier-root PATH]` boots through
+//! [`sim_run_core::Bootloader`] (via [`sim_web_shell::web_bootloader`]) -- the same
+//! runtime the `sim` binary uses -- with the `codec/lisp` boot codec loaded, and
+//! dispatches the `cli/main/serve` entrypoint. Equivalent to `sim serve ...`. This
+//! binary constructs no `Cx`; the serve loop runs in the bootloader-provided cx.
 
 #![forbid(unsafe_code)]
+#![deny(missing_docs)]
 
-use sim_web_shell::{ServeConfig, serve};
+use std::ffi::OsString;
+use std::process::ExitCode;
 
-fn main() -> std::io::Result<()> {
-    let config = parse_args(std::env::args().skip(1));
-    serve(&config)
-}
+fn main() -> ExitCode {
+    // parse_args drops argv[0]; set the lisp boot codec and inject the `serve` verb so
+    // `sim-web-shell --addr ...` dispatches the web serve library like `sim serve ...`.
+    let mut args: Vec<OsString> = ["sim-web-shell", "--codec", "lisp", "serve"]
+        .into_iter()
+        .map(OsString::from)
+        .collect();
+    args.extend(std::env::args_os().skip(1));
 
-fn parse_args(args: impl Iterator<Item = String>) -> ServeConfig {
-    let mut config = ServeConfig::default();
-    let mut args = args.peekable();
-    while let Some(arg) = args.next() {
-        match arg.as_str() {
-            "--addr" => {
-                if let Some(addr) = args.next() {
-                    config.addr = addr;
-                }
-            }
-            other if other.starts_with("--addr=") => {
-                config.addr = other["--addr=".len()..].to_owned();
-            }
-            "--atelier-root" => {
-                if let Some(root) = args.next() {
-                    config.atelier_root = root.into();
-                }
-            }
-            other if other.starts_with("--atelier-root=") => {
-                config.atelier_root = other["--atelier-root=".len()..].into();
-            }
-            _ => {}
+    match sim_web_shell::web_bootloader().run(args) {
+        Ok(0) => ExitCode::SUCCESS,
+        Ok(code) => ExitCode::from(code as u8),
+        Err(err) => {
+            eprintln!("sim-web-shell: {err}");
+            ExitCode::from(2)
         }
     }
-    config
 }

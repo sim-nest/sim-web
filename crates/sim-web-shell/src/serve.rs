@@ -7,7 +7,6 @@
 use std::io::{BufRead, BufReader, Write};
 use std::net::{TcpListener, TcpStream, ToSocketAddrs};
 use std::path::PathBuf;
-use std::sync::Arc;
 use std::time::Duration;
 
 /// Largest request body the shell will read. A larger declared `Content-Length`
@@ -29,8 +28,7 @@ use sim_codec_algol::AlgolCodecLib;
 use sim_codec_binary::BinaryCodecLib;
 use sim_codec_chat::ChatCodecLib;
 use sim_codec_json::JsonCodecLib;
-use sim_codec_lisp::LispCodecLib;
-use sim_kernel::{Cx, DefaultFactory, EagerPolicy, Result as SimResult, read_eval_capability};
+use sim_kernel::{Cx, Result as SimResult, read_eval_capability};
 use sim_lib_server::{CookbookWebResponse, CookbookWebState};
 use sim_lib_stream_core::install_stream_core_shapes_lib;
 
@@ -51,11 +49,19 @@ impl Default for ServeConfig {
     }
 }
 
-/// Bind and serve the shell until the process is terminated.
-pub fn serve(config: &ServeConfig) -> std::io::Result<()> {
+/// Bind and serve the shell until the process is terminated, using the
+/// bootloader-provided `cx` as the cookbook eval sandbox. No `Cx::new` here: the
+/// `sim-web-shell` binary boots through `sim_run_core::Bootloader` (see `cli.rs`),
+/// which loads the `codec/lisp` boot codec and dispatches the `serve` verb into this
+/// function with a ready `cx`.
+pub fn serve_with_cx(cx: &mut Cx, config: &ServeConfig) -> std::io::Result<()> {
+    cx.grant(read_eval_capability());
+    install_codecs(cx).map_err(io_error)?;
+    install_stream_core_shapes_lib(cx).map_err(io_error)?;
+
     let listener = bind(&config.addr)?;
     let local = listener.local_addr()?;
-    let mut state = ShellState::new(config)?;
+    let mut state = ShellState::new(config, cx)?;
     println!("sim-web-shell: serving shell on http://{local}");
     for stream in listener.incoming() {
         match stream {
@@ -77,35 +83,27 @@ fn bind(addr: &str) -> std::io::Result<TcpListener> {
     TcpListener::bind(resolved)
 }
 
-struct ShellState {
+struct ShellState<'a> {
     atelier: AtelierWebState,
     cookbook: CookbookWebState,
-    cookbook_cx: Cx,
+    cookbook_cx: &'a mut Cx,
     live: LiveSession,
 }
 
-impl ShellState {
-    fn new(config: &ServeConfig) -> std::io::Result<Self> {
+impl<'a> ShellState<'a> {
+    fn new(config: &ServeConfig, cx: &'a mut Cx) -> std::io::Result<Self> {
         Ok(Self {
             atelier: AtelierWebState::load(config.atelier_root.clone()),
             cookbook: CookbookWebState::seeded().map_err(io_error)?,
-            cookbook_cx: cookbook_cx().map_err(io_error)?,
+            cookbook_cx: cx,
             live: LiveSession::new().map_err(io_error)?,
         })
     }
 }
 
-fn cookbook_cx() -> SimResult<Cx> {
-    let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
-    cx.grant(read_eval_capability());
-    install_codecs(&mut cx)?;
-    install_stream_core_shapes_lib(&mut cx)?;
-    Ok(cx)
-}
-
+/// Installs the cookbook eval codecs. `codec/lisp` is the boot codec provided by the
+/// bootloader, so it is not reinstalled here (that would double-register the symbol).
 fn install_codecs(cx: &mut Cx) -> SimResult<()> {
-    let lisp = LispCodecLib::new(cx.registry_mut().fresh_codec_id())?;
-    cx.load_lib(&lisp)?;
     let json = JsonCodecLib::new(cx.registry_mut().fresh_codec_id());
     cx.load_lib(&json)?;
     let binary = BinaryCodecLib::new(cx.registry_mut().fresh_codec_id());
@@ -121,7 +119,7 @@ fn io_error(err: impl std::fmt::Display) -> std::io::Error {
     std::io::Error::other(err.to_string())
 }
 
-fn handle(mut stream: TcpStream, state: &mut ShellState) -> std::io::Result<()> {
+fn handle(mut stream: TcpStream, state: &mut ShellState<'_>) -> std::io::Result<()> {
     // Bound how long a single read may block; a slow-loris peer cannot pin the
     // server. A failure to set the timeout is non-fatal (e.g. exotic streams).
     let _ = stream.set_read_timeout(Some(READ_TIMEOUT));
@@ -158,7 +156,7 @@ fn handle(mut stream: TcpStream, state: &mut ShellState) -> std::io::Result<()> 
         let response = state.cookbook.handle_request(
             &request.method,
             &request.target,
-            Some(&mut state.cookbook_cx),
+            Some(&mut *state.cookbook_cx),
         );
         return write_cookbook_response(&mut stream, &response);
     }
