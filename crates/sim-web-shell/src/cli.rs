@@ -180,15 +180,22 @@ pub fn web_serve_entrypoint_symbol() -> Symbol {
     cli_main_entrypoint_symbol(WEB_SERVE_VERB)
 }
 
-/// A [`Bootloader`] pre-configured to serve the web shell: the `codec/lisp` boot
-/// codec plus the `serve` verb. The thin `sim-web-shell` binary is just
-/// `web_bootloader().run(..)`.
-pub fn web_bootloader() -> Bootloader {
-    Bootloader::standard()
+/// Registers the `codec/lisp` boot codec and the web-shell `serve` verb onto an
+/// existing [`Bootloader`], returning it for further composition. A downstream binary
+/// can stack this with other serve libraries (e.g. MCP) onto one bootloader.
+pub fn configure_web_bootloader(loader: Bootloader) -> Bootloader {
+    loader
         .host_lib("codec/lisp", || {
             Box::new(LispCodecLib::new(CodecId(1)).expect("lisp boot codec"))
         })
         .host_verb(WEB_SERVE_VERB, "lib/web-serve", || Box::new(WebServeLib))
+}
+
+/// A standalone [`Bootloader`] pre-configured to serve the web shell: the `codec/lisp`
+/// boot codec plus the `serve` verb. The thin `sim-web-shell` binary is just
+/// `web_bootloader().run(..)`.
+pub fn web_bootloader() -> Bootloader {
+    configure_web_bootloader(Bootloader::standard())
 }
 
 /// Loadable library exporting the web-shell `serve` entrypoint.
@@ -275,6 +282,9 @@ fn parse_serve_config(args: impl Iterator<Item = String>) -> ServeConfig {
             }
             other if other.starts_with("--atelier-root=") => {
                 config.atelier_root = other["--atelier-root=".len()..].into();
+            }
+            "--dry-run" => {
+                config.dry_run = true;
             }
             _ => {}
         }

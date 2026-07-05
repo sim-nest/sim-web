@@ -38,6 +38,9 @@ pub struct ServeConfig {
     pub addr: String,
     /// Directory containing generated Atelier cache files.
     pub atelier_root: PathBuf,
+    /// Install codecs and shapes, then return before binding the socket. Lets a
+    /// caller confirm the serve verb dispatches and boots without holding a port.
+    pub dry_run: bool,
 }
 
 impl Default for ServeConfig {
@@ -45,6 +48,7 @@ impl Default for ServeConfig {
         Self {
             addr: "127.0.0.1:8787".to_owned(),
             atelier_root: PathBuf::from(".sim/atelier"),
+            dry_run: false,
         }
     }
 }
@@ -58,6 +62,11 @@ pub fn serve_with_cx(cx: &mut Cx, config: &ServeConfig) -> std::io::Result<()> {
     cx.grant(read_eval_capability());
     install_codecs(cx).map_err(io_error)?;
     install_stream_core_shapes_lib(cx).map_err(io_error)?;
+
+    if config.dry_run {
+        println!("sim-web-shell: dry-run OK");
+        return Ok(());
+    }
 
     let listener = bind(&config.addr)?;
     let local = listener.local_addr()?;

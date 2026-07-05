@@ -7,7 +7,7 @@ sim-web-shell: the binary that serves the SIM WebUI shell.
 ## Package Metadata
 
 - Manifest: `crates/sim-web-shell/Cargo.toml`
-- Publish: `false`
+- Publish: `true`
 - Targets: `bin, lib, test`
 
 ## Crate Documentation
