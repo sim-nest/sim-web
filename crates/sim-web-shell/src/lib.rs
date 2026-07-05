@@ -17,7 +17,9 @@ mod serve;
 
 pub use assets::{Asset, asset_for};
 pub use atelier::{AtelierWebResponse, AtelierWebState};
-pub use cli::{AtelierCliLib, BrowseCliLib, WebServeLib, web_bootloader, web_serve_entrypoint_symbol};
+pub use cli::{
+    AtelierCliLib, BrowseCliLib, WebServeLib, web_bootloader, web_serve_entrypoint_symbol,
+};
 pub use live::{
     DEFAULT_PANE, DEFAULT_RESOURCE, LiveSession, decode_intent_body, encode_patches, encode_scene,
     error_json,
