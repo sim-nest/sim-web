@@ -1,6 +1,6 @@
 [package]
 name = "sim-web-shell"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 license = "MPL-2.0"
 description = "sim-web-shell: the binary that serves the SIM WebUI shell."
@@ -20,7 +20,7 @@ sim-codec-chat = { version = "0.1.0" }
 sim-codec-json = { version = "0.1.0" }
 sim-codec-lisp = { version = "0.1.0" }
 sim-kernel = { version = "0.1.0" }
-sim-run-core = { version = "0.1.0" }
+sim-run-core = { version = "0.1.1" }
 sim-lib-server = { version = "0.1.0" }
 sim-lib-stream-core = { version = "0.1.0" }
 sim-lib-view = { version = "0.1.0", path = "../sim-lib-view" }
