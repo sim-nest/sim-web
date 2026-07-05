@@ -73,7 +73,10 @@ impl LiveSession {
         transport.set(Symbol::new(DEFAULT_RESOURCE), demo_value());
         let mut registry = LensRegistry::new();
         register_universal_default(&mut registry, false);
-        let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+        // bin-boot-exempt: the LiveSession is the realize/EvalFabric Intent/Scene
+        // bridge -- a distinct eval surface with its own transport, not the binary's
+        // boot runtime (that goes through sim_run_core::Bootloader). It owns its cx.
+        let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory)); // bin-boot-exempt
         let mut session = Session::new(transport);
         session.open(
             &mut cx,
