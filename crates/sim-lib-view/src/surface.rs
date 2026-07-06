@@ -23,8 +23,8 @@
 //! assert!(cli.input_flag("keyboard"));
 //! ```
 
-use sim_kernel::{Expr, Symbol};
-use sim_value::build;
+use sim_kernel::{Error, Expr, Symbol};
+use sim_value::{access, build};
 
 /// The metadata namespace for surface descriptors (`surface/...`).
 pub const SURFACE_NAMESPACE: &str = "surface";
@@ -76,6 +76,12 @@ pub enum SurfaceError {
     MissingField(&'static str),
     /// A field carried the wrong value shape.
     BadField(&'static str),
+    /// A shared `sim_value::access` slice reader rejected a field (e.g. a
+    /// required field was missing). Carries the reader's rendered message so the
+    /// surface decoder can lean on the shared readers without growing a variant
+    /// per field. The reader's error is the kernel `Error` type that
+    /// `sim_value::access` returns.
+    Field(String),
 }
 
 impl core::fmt::Display for SurfaceError {
@@ -84,11 +90,22 @@ impl core::fmt::Display for SurfaceError {
             SurfaceError::NotCaps => write!(f, "value is not a surface/caps map"),
             SurfaceError::MissingField(name) => write!(f, "surface caps missing field: {name}"),
             SurfaceError::BadField(name) => write!(f, "surface caps field has wrong shape: {name}"),
+            SurfaceError::Field(message) => write!(f, "surface caps field: {message}"),
         }
     }
 }
 
 impl std::error::Error for SurfaceError {}
+
+impl From<Error> for SurfaceError {
+    /// Adopts a shared `sim_value::access` reader error (the kernel `Error` those
+    /// readers return) as a surface parse failure, so [`map_field`] can defer
+    /// required-field lookup to the substrate while the surface decoder keeps
+    /// failing closed.
+    fn from(err: Error) -> Self {
+        SurfaceError::Field(err.to_string())
+    }
+}
 
 impl SurfaceCaps {
     /// Builds caps from a preset name plus a concrete `client_id`.
@@ -295,10 +312,13 @@ fn field<'a>(entries: &'a [(Expr, Expr)], name: &str) -> Option<&'a Expr> {
 }
 
 fn map_field(entries: &[(Expr, Expr)], name: &'static str) -> Result<Expr, SurfaceError> {
-    match field(entries, name) {
-        Some(value @ Expr::Map(_)) => Ok(value.clone()),
-        Some(_) => Err(SurfaceError::BadField(name)),
-        None => Err(SurfaceError::MissingField(name)),
+    // Defer the required-field lookup to the shared `sim_value::access` reader
+    // (mapping its error via `SurfaceError::from`); keep the map-shape check
+    // local, since the surface fields are whole `Expr::Map` values with no typed
+    // slice reader of their own.
+    match access::entry_required(entries, name, "surface caps").map_err(SurfaceError::from)? {
+        value @ Expr::Map(_) => Ok(value.clone()),
+        _ => Err(SurfaceError::BadField(name)),
     }
 }
 
@@ -347,6 +367,40 @@ mod tests {
         let watch = preset("watch").unwrap();
         assert!(watch.input_flag("haptic-ack"));
         assert_eq!(watch.display_density().unwrap().name.as_ref(), "glance");
+    }
+
+    #[test]
+    fn surface_map_field_wrong_shape_fails_closed() {
+        // A caps map whose `display` field is not a map must fail closed with a
+        // located `BadField`, never partial caps.
+        let mut entries = match preset("cli").unwrap().to_expr() {
+            Expr::Map(entries) => entries,
+            _ => unreachable!(),
+        };
+        for (key, value) in entries.iter_mut() {
+            if matches!(key, Expr::Symbol(symbol) if &*symbol.name == "display") {
+                *value = Expr::Bool(true);
+            }
+        }
+        assert_eq!(
+            SurfaceCaps::from_expr(&Expr::Map(entries)),
+            Err(SurfaceError::BadField("display"))
+        );
+    }
+
+    #[test]
+    fn surface_map_field_missing_flows_through_sim_value_reader() {
+        // A missing map field is reported by the shared `sim_value::access`
+        // reader, adopted as `SurfaceError::Field` via `From<sim_value::Error>`.
+        let mut entries = match preset("cli").unwrap().to_expr() {
+            Expr::Map(entries) => entries,
+            _ => unreachable!(),
+        };
+        entries.retain(|(key, _)| !matches!(key, Expr::Symbol(s) if &*s.name == "transport"));
+        match SurfaceCaps::from_expr(&Expr::Map(entries)) {
+            Err(SurfaceError::Field(message)) => assert!(message.contains("transport")),
+            other => panic!("expected a located field error, got {other:?}"),
+        }
     }
 
     #[test]

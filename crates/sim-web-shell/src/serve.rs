@@ -4,7 +4,7 @@
 //! shell cache API. Runtime transport remains the Intent/Scene bridge over
 //! `realize`/`EvalFabric`.
 
-use std::io::{BufRead, BufReader, Read, Write};
+use std::io::{BufRead, BufReader, Write};
 use std::net::{TcpListener, TcpStream, ToSocketAddrs};
 use std::path::PathBuf;
 use std::time::Duration;
@@ -39,6 +39,7 @@ use sim_codec_binary::BinaryCodecLib;
 use sim_codec_chat::ChatCodecLib;
 use sim_codec_json::JsonCodecLib;
 use sim_kernel::{Cx, Result as SimResult};
+use sim_lib_net_core::{CapOutcome, read_capped_line};
 use sim_lib_server::{CookbookWebResponse, CookbookWebState};
 use sim_lib_stream_core::install_stream_core_shapes_lib;
 
@@ -242,24 +243,6 @@ fn read_request(stream: &mut TcpStream) -> std::io::Result<ReadOutcome> {
     read_request_from(&mut reader)
 }
 
-/// Read one line into `buf` (clearing it first), reading at most `cap` bytes.
-/// Returns `Ok(None)` when the line would exceed the cap (the caller answers
-/// 413), `Ok(Some(0))` at end of input, and `Ok(Some(n))` for a line of `n`
-/// bytes otherwise. The `take(cap + 1)` ceiling means a hostile unterminated
-/// line is bounded before it can grow memory.
-fn read_capped_line(
-    reader: &mut impl BufRead,
-    buf: &mut String,
-    cap: usize,
-) -> std::io::Result<Option<usize>> {
-    buf.clear();
-    let read = Read::take(&mut *reader, cap as u64 + 1).read_line(buf)?;
-    if buf.len() > cap {
-        return Ok(None);
-    }
-    Ok(Some(read))
-}
-
 /// Parse a request from any buffered reader, bounding the body at
 /// [`MAX_BODY_BYTES`]. A declared `Content-Length` over the cap returns
 /// [`ReadOutcome::TooLarge`] before any allocation, and the body read is capped
@@ -268,9 +251,9 @@ fn read_request_from(reader: &mut impl BufRead) -> std::io::Result<ReadOutcome> 
     let mut request_line = String::new();
     match read_capped_line(reader, &mut request_line, MAX_HEAD_LINE_BYTES)? {
         // An oversized request line is refused with 413 before it can grow memory.
-        None => return Ok(ReadOutcome::TooLarge),
-        Some(0) => return Ok(ReadOutcome::Invalid),
-        Some(_) => {}
+        CapOutcome::TooLarge => return Ok(ReadOutcome::TooLarge),
+        CapOutcome::Eof => return Ok(ReadOutcome::Invalid),
+        CapOutcome::Line => {}
     }
     // Drain the rest of the header block, capturing the body length, so the peer
     // is not left mid-write. Cap each header line and the header count so a
@@ -284,11 +267,12 @@ fn read_request_from(reader: &mut impl BufRead) -> std::io::Result<ReadOutcome> 
         if header_count > MAX_HEADER_COUNT {
             return Ok(ReadOutcome::TooLarge);
         }
-        let read = match read_capped_line(reader, &mut header, MAX_HEAD_LINE_BYTES)? {
-            None => return Ok(ReadOutcome::TooLarge),
-            Some(read) => read,
-        };
-        if read == 0 || header == "\r\n" || header == "\n" {
+        match read_capped_line(reader, &mut header, MAX_HEAD_LINE_BYTES)? {
+            CapOutcome::TooLarge => return Ok(ReadOutcome::TooLarge),
+            CapOutcome::Eof => break,
+            CapOutcome::Line => {}
+        }
+        if header == "\r\n" || header == "\n" {
             break;
         }
         if let Some((name, value)) = header.split_once(':')
@@ -519,6 +503,16 @@ mod tests {
         assert!(
             matches!(parse(&raw), ReadOutcome::TooLarge),
             "an endless header block must yield TooLarge (413)"
+        );
+    }
+
+    #[test]
+    fn empty_input_is_invalid_not_a_panic() {
+        // End of input on the request line (CapOutcome::Eof) maps to a 400, so an
+        // empty connection is answered, not treated as an oversized 413.
+        assert!(
+            matches!(parse(""), ReadOutcome::Invalid),
+            "an empty request must yield Invalid (400)"
         );
     }
 

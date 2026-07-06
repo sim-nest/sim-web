@@ -17,6 +17,7 @@
 //! navigate/set/remove logic) is the shared `sim_value::path` primitive.
 
 use sim_kernel::{Error, Expr, Result, Symbol};
+use sim_value::build;
 use sim_value::path::{Path, PathError, Segment, remove_at, set_at};
 
 use crate::model::node;
@@ -178,20 +179,16 @@ fn op_to_expr(op: Op) -> Expr {
     let mut entries = Vec::new();
     match op {
         Op::Set { path, value } => {
-            entries.push(sym_entry(OP_KEY, Expr::Symbol(Symbol::new(OP_SET))));
-            entries.push(sym_entry(PATH_KEY, path.to_expr()));
-            entries.push(sym_entry(VALUE_KEY, value));
+            entries.push(build::entry(OP_KEY, Expr::Symbol(Symbol::new(OP_SET))));
+            entries.push(build::entry(PATH_KEY, path.to_expr()));
+            entries.push(build::entry(VALUE_KEY, value));
         }
         Op::Remove { path } => {
-            entries.push(sym_entry(OP_KEY, Expr::Symbol(Symbol::new(OP_REMOVE))));
-            entries.push(sym_entry(PATH_KEY, path.to_expr()));
+            entries.push(build::entry(OP_KEY, Expr::Symbol(Symbol::new(OP_REMOVE))));
+            entries.push(build::entry(PATH_KEY, path.to_expr()));
         }
     }
     Expr::Map(entries)
-}
-
-fn sym_entry(key: &str, value: Expr) -> (Expr, Expr) {
-    (Expr::Symbol(Symbol::new(key)), value)
 }
 
 fn parse_ops(patch: &Expr) -> Result<Vec<Op>> {
