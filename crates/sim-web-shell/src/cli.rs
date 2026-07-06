@@ -252,7 +252,7 @@ impl Callable for WebServeEntrypoint {
         let config = match args.values().first() {
             Some(envelope) => {
                 let payload = envelope_args(cx, envelope)?;
-                parse_serve_config(payload.into_iter().skip(1))
+                parse_serve_config(payload.into_iter().skip(1))?
             }
             None => ServeConfig::default(),
         };
@@ -262,23 +262,28 @@ impl Callable for WebServeEntrypoint {
     }
 }
 
-fn parse_serve_config(args: impl Iterator<Item = String>) -> ServeConfig {
+/// Parse the serve envelope arguments, failing closed on malformed input: a
+/// bare `--addr`/`--atelier-root` with no value, or any unknown flag/positional,
+/// is an error rather than a silently-ignored argument (so `--add 0.0.0.0:80`
+/// cannot quietly leave the shell bound to loopback).
+fn parse_serve_config(args: impl Iterator<Item = String>) -> Result<ServeConfig> {
     let mut config = ServeConfig::default();
     let mut iter = args;
     while let Some(arg) = iter.next() {
         match arg.as_str() {
             "--addr" => {
-                if let Some(addr) = iter.next() {
-                    config.addr = addr;
-                }
+                config.addr = iter
+                    .next()
+                    .ok_or_else(|| Error::Eval("--addr requires a value".to_owned()))?;
             }
             other if other.starts_with("--addr=") => {
                 config.addr = other["--addr=".len()..].to_owned();
             }
             "--atelier-root" => {
-                if let Some(root) = iter.next() {
-                    config.atelier_root = root.into();
-                }
+                config.atelier_root = iter
+                    .next()
+                    .ok_or_else(|| Error::Eval("--atelier-root requires a value".to_owned()))?
+                    .into();
             }
             other if other.starts_with("--atelier-root=") => {
                 config.atelier_root = other["--atelier-root=".len()..].into();
@@ -286,8 +291,68 @@ fn parse_serve_config(args: impl Iterator<Item = String>) -> ServeConfig {
             "--dry-run" => {
                 config.dry_run = true;
             }
-            _ => {}
+            other => {
+                return Err(Error::Eval(format!("unknown serve argument: {other}")));
+            }
         }
     }
-    config
+    Ok(config)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_serve_config;
+
+    fn parse(args: &[&str]) -> super::Result<super::ServeConfig> {
+        parse_serve_config(args.iter().map(|a| (*a).to_owned()))
+    }
+
+    #[test]
+    fn missing_addr_value_errors() {
+        let err = parse(&["--addr"]).expect_err("bare --addr must error");
+        assert!(err.to_string().contains("--addr requires a value"));
+    }
+
+    #[test]
+    fn missing_atelier_root_value_errors() {
+        let err = parse(&["--atelier-root"]).expect_err("bare --atelier-root must error");
+        assert!(err.to_string().contains("--atelier-root requires a value"));
+    }
+
+    #[test]
+    fn unknown_flag_errors() {
+        // A typo such as `--add` must fail visibly, not silently bind loopback.
+        let err = parse(&["--add", "0.0.0.0:80"]).expect_err("unknown flag must error");
+        assert!(err.to_string().contains("unknown serve argument: --add"));
+    }
+
+    #[test]
+    fn unknown_positional_errors() {
+        let err = parse(&["serve-extra"]).expect_err("stray positional must error");
+        assert!(
+            err.to_string()
+                .contains("unknown serve argument: serve-extra")
+        );
+    }
+
+    #[test]
+    fn dry_run_still_succeeds() {
+        let config = parse(&["--dry-run"]).expect("--dry-run must parse");
+        assert!(config.dry_run);
+    }
+
+    #[test]
+    fn addr_and_atelier_root_parse() {
+        let config = parse(&["--addr", "127.0.0.1:9000", "--atelier-root", "/tmp/atelier"])
+            .expect("valid args must parse");
+        assert_eq!(config.addr, "127.0.0.1:9000");
+        assert_eq!(config.atelier_root.to_str(), Some("/tmp/atelier"));
+        assert!(!config.dry_run);
+    }
+
+    #[test]
+    fn inline_addr_value_parses() {
+        let config = parse(&["--addr=127.0.0.1:9100"]).expect("inline addr must parse");
+        assert_eq!(config.addr, "127.0.0.1:9100");
+    }
 }

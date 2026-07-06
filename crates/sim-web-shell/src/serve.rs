@@ -4,7 +4,7 @@
 //! shell cache API. Runtime transport remains the Intent/Scene bridge over
 //! `realize`/`EvalFabric`.
 
-use std::io::{BufRead, BufReader, Write};
+use std::io::{BufRead, BufReader, Read, Write};
 use std::net::{TcpListener, TcpStream, ToSocketAddrs};
 use std::path::PathBuf;
 use std::time::Duration;
@@ -13,6 +13,16 @@ use std::time::Duration;
 /// is rejected with 413 before any allocation, so a hostile header cannot force
 /// an unbounded `vec![0u8; n]`.
 const MAX_BODY_BYTES: usize = 1 << 20; // 1 MiB.
+
+/// Largest single request line or header line the shell will read. Matches the
+/// 64 KiB head cap the peer HTTP readers in sim-agent-net enforce, so a hostile
+/// multi-gigabyte request line or header cannot grow memory unbounded before it
+/// is rejected with 413.
+const MAX_HEAD_LINE_BYTES: usize = 64 * 1024;
+
+/// Largest number of header lines the shell will read before rejecting the
+/// request, so an endless stream of tiny headers cannot grow memory unbounded.
+const MAX_HEADER_COUNT: usize = 256;
 
 /// Per-read timeout on a connection, so a peer that declares a body but then
 /// dribbles (or stalls) cannot block the single-threaded server forever.
@@ -33,6 +43,7 @@ use sim_lib_server::{CookbookWebResponse, CookbookWebState};
 use sim_lib_stream_core::install_stream_core_shapes_lib;
 
 /// Configuration for the shell server.
+#[derive(Debug)]
 pub struct ServeConfig {
     /// The address to bind, e.g. `127.0.0.1:8787`.
     pub addr: String,
@@ -222,22 +233,52 @@ fn read_request(stream: &mut TcpStream) -> std::io::Result<ReadOutcome> {
     read_request_from(&mut reader)
 }
 
+/// Read one line into `buf` (clearing it first), reading at most `cap` bytes.
+/// Returns `Ok(None)` when the line would exceed the cap (the caller answers
+/// 413), `Ok(Some(0))` at end of input, and `Ok(Some(n))` for a line of `n`
+/// bytes otherwise. The `take(cap + 1)` ceiling means a hostile unterminated
+/// line is bounded before it can grow memory.
+fn read_capped_line(
+    reader: &mut impl BufRead,
+    buf: &mut String,
+    cap: usize,
+) -> std::io::Result<Option<usize>> {
+    buf.clear();
+    let read = Read::take(&mut *reader, cap as u64 + 1).read_line(buf)?;
+    if buf.len() > cap {
+        return Ok(None);
+    }
+    Ok(Some(read))
+}
+
 /// Parse a request from any buffered reader, bounding the body at
 /// [`MAX_BODY_BYTES`]. A declared `Content-Length` over the cap returns
 /// [`ReadOutcome::TooLarge`] before any allocation, and the body read is capped
 /// at the same limit so a lying header cannot over-read.
 fn read_request_from(reader: &mut impl BufRead) -> std::io::Result<ReadOutcome> {
     let mut request_line = String::new();
-    if reader.read_line(&mut request_line)? == 0 {
-        return Ok(ReadOutcome::Invalid);
+    match read_capped_line(reader, &mut request_line, MAX_HEAD_LINE_BYTES)? {
+        // An oversized request line is refused with 413 before it can grow memory.
+        None => return Ok(ReadOutcome::TooLarge),
+        Some(0) => return Ok(ReadOutcome::Invalid),
+        Some(_) => {}
     }
     // Drain the rest of the header block, capturing the body length, so the peer
-    // is not left mid-write.
+    // is not left mid-write. Cap each header line and the header count so a
+    // hostile peer cannot grow memory unbounded with one huge header or an
+    // endless stream of tiny ones.
     let mut content_length = 0usize;
     let mut header = String::new();
+    let mut header_count = 0usize;
     loop {
-        header.clear();
-        let read = reader.read_line(&mut header)?;
+        header_count += 1;
+        if header_count > MAX_HEADER_COUNT {
+            return Ok(ReadOutcome::TooLarge);
+        }
+        let read = match read_capped_line(reader, &mut header, MAX_HEAD_LINE_BYTES)? {
+            None => return Ok(ReadOutcome::TooLarge),
+            Some(read) => read,
+        };
         if read == 0 || header == "\r\n" || header == "\n" {
             break;
         }
@@ -403,7 +444,9 @@ fn status_text(status: u16) -> &'static str {
 
 #[cfg(test)]
 mod tests {
-    use super::{MAX_BODY_BYTES, ReadOutcome, read_request_from};
+    use super::{
+        MAX_BODY_BYTES, MAX_HEAD_LINE_BYTES, MAX_HEADER_COUNT, ReadOutcome, read_request_from,
+    };
     use std::io::{BufReader, Cursor};
 
     fn parse(raw: &str) -> ReadOutcome {
@@ -426,6 +469,43 @@ mod tests {
         let over = MAX_BODY_BYTES + 1;
         let raw = format!("POST /x HTTP/1.1\r\nContent-Length: {over}\r\n\r\n");
         assert!(matches!(parse(&raw), ReadOutcome::TooLarge));
+    }
+
+    #[test]
+    fn an_oversized_request_line_is_rejected_before_growing_memory() {
+        // A request line past the head cap must be refused with 413, not read
+        // into an unbounded String.
+        let mut raw = String::from("GET /");
+        raw.push_str(&"a".repeat(MAX_HEAD_LINE_BYTES + 16));
+        raw.push_str(" HTTP/1.1\r\n\r\n");
+        assert!(
+            matches!(parse(&raw), ReadOutcome::TooLarge),
+            "an oversized request line must yield TooLarge (413)"
+        );
+    }
+
+    #[test]
+    fn an_oversized_header_line_is_rejected_before_growing_memory() {
+        let mut raw = String::from("GET /x HTTP/1.1\r\nX-Big: ");
+        raw.push_str(&"a".repeat(MAX_HEAD_LINE_BYTES + 16));
+        raw.push_str("\r\n\r\n");
+        assert!(
+            matches!(parse(&raw), ReadOutcome::TooLarge),
+            "an oversized header line must yield TooLarge (413)"
+        );
+    }
+
+    #[test]
+    fn too_many_header_lines_are_rejected() {
+        let mut raw = String::from("GET /x HTTP/1.1\r\n");
+        for _ in 0..(MAX_HEADER_COUNT + 8) {
+            raw.push_str("X-Pad: 1\r\n");
+        }
+        raw.push_str("\r\n");
+        assert!(
+            matches!(parse(&raw), ReadOutcome::TooLarge),
+            "an endless header block must yield TooLarge (413)"
+        );
     }
 
     #[test]
