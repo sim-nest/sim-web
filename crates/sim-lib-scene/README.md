@@ -7,7 +7,7 @@ Scene value model and codec:scene for the SIM Web-UI (WEBUI_4).
 ## Package Metadata
 
 - Manifest: `crates/sim-lib-scene/Cargo.toml`
-- Publish: `false`
+- Publish: `true`
 - Targets: `lib`
 
 ## Crate Documentation

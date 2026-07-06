@@ -7,9 +7,9 @@ DAW timeline, mixer, plugin rack, and synth lenses for the SIM Web-UI (WEBUI_4).
 ## Package Metadata
 
 - Manifest: `crates/sim-lib-view-daw/Cargo.toml`
-- Publish: `false`
+- Publish: `true`
 - Targets: `lib`
 
 ## Crate Documentation
 
-DAW timeline, mixer, plugin rack, and synth lenses for the SIM Web-UI (WEBUI_4).
+DAW timeline, mixer, plugin rack, player, piano-roll, and synth lenses for the SIM Web-UI.

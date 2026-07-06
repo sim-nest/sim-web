@@ -1,0 +1,164 @@
+{
+  "generator": "xtask crate-catalog v1",
+  "package_count": 13,
+  "packages": [
+    {
+      "description": "Intent value model, gesture algebra, and codec:intent (WEBUI_4).",
+      "generated_readme": true,
+      "manifest": "crates/sim-lib-intent/Cargo.toml",
+      "name": "sim-lib-intent",
+      "publish": "true",
+      "readme": "crates/sim-lib-intent/README.md",
+      "root": "crates/sim-lib-intent",
+      "target_kinds": [
+        "lib"
+      ]
+    },
+    {
+      "description": "Scene value model and codec:scene for the SIM Web-UI (WEBUI_4).",
+      "generated_readme": true,
+      "manifest": "crates/sim-lib-scene/Cargo.toml",
+      "name": "sim-lib-scene",
+      "publish": "true",
+      "readme": "crates/sim-lib-scene/README.md",
+      "root": "crates/sim-lib-scene",
+      "target_kinds": [
+        "lib"
+      ]
+    },
+    {
+      "description": "Agent and topology composer lens plus the live monitor for the SIM Web-UI (WEBUI_4); the flagship that proves the one-bus thesis.",
+      "generated_readme": true,
+      "manifest": "crates/sim-lib-view-agent/Cargo.toml",
+      "name": "sim-lib-view-agent",
+      "publish": "true",
+      "readme": "crates/sim-lib-view-agent/README.md",
+      "root": "crates/sim-lib-view-agent",
+      "target_kinds": [
+        "lib"
+      ]
+    },
+    {
+      "description": "Codec-aware and Shape-aware lenses for the SIM Web-UI (WEBUI_4).",
+      "generated_readme": true,
+      "manifest": "crates/sim-lib-view-codec/Cargo.toml",
+      "name": "sim-lib-view-codec",
+      "publish": "true",
+      "readme": "crates/sim-lib-view-codec/README.md",
+      "root": "crates/sim-lib-view-codec",
+      "target_kinds": [
+        "lib"
+      ]
+    },
+    {
+      "description": "DAW timeline, mixer, plugin rack, and synth lenses for the SIM Web-UI (WEBUI_4).",
+      "generated_readme": true,
+      "manifest": "crates/sim-lib-view-daw/Cargo.toml",
+      "name": "sim-lib-view-daw",
+      "publish": "true",
+      "readme": "crates/sim-lib-view-daw/README.md",
+      "root": "crates/sim-lib-view-daw",
+      "target_kinds": [
+        "lib"
+      ]
+    },
+    {
+      "description": "Scientific article workspace lens for the SIM Web-UI (WEBUI_4).",
+      "generated_readme": true,
+      "manifest": "crates/sim-lib-view-doc/Cargo.toml",
+      "name": "sim-lib-view-doc",
+      "publish": "true",
+      "readme": "crates/sim-lib-view-doc/README.md",
+      "root": "crates/sim-lib-view-doc",
+      "target_kinds": [
+        "lib"
+      ]
+    },
+    {
+      "description": "Math, plotting, tensor, and symbolic lenses for the SIM Web-UI (WEBUI_4).",
+      "generated_readme": true,
+      "manifest": "crates/sim-lib-view-math/Cargo.toml",
+      "name": "sim-lib-view-math",
+      "publish": "true",
+      "readme": "crates/sim-lib-view-math/README.md",
+      "root": "crates/sim-lib-view-math",
+      "target_kinds": [
+        "lib"
+      ]
+    },
+    {
+      "description": "Host-side view frame facade for wasm-shaped view data (WEBUI_4).",
+      "generated_readme": true,
+      "manifest": "crates/sim-lib-view-wasm-frame/Cargo.toml",
+      "name": "sim-lib-view-wasm-frame",
+      "publish": "true",
+      "readme": "crates/sim-lib-view-wasm-frame/README.md",
+      "root": "crates/sim-lib-view-wasm-frame",
+      "target_kinds": [
+        "lib"
+      ]
+    },
+    {
+      "description": "View/editor codec contracts, Shape-based lens dispatch, lens stack, and the universal default lens for the SIM Web-UI (WEBUI_4).",
+      "generated_readme": true,
+      "manifest": "crates/sim-lib-view/Cargo.toml",
+      "name": "sim-lib-view",
+      "publish": "true",
+      "readme": "crates/sim-lib-view/README.md",
+      "root": "crates/sim-lib-view",
+      "target_kinds": [
+        "lib"
+      ]
+    },
+    {
+      "description": "Session and transport bridge over realize/EvalFabric: the Intent/Scene bus for the SIM Web-UI (WEBUI_4).",
+      "generated_readme": true,
+      "manifest": "crates/sim-lib-web-bridge/Cargo.toml",
+      "name": "sim-lib-web-bridge",
+      "publish": "true",
+      "readme": "crates/sim-lib-web-bridge/README.md",
+      "root": "crates/sim-lib-web-bridge",
+      "target_kinds": [
+        "lib"
+      ]
+    },
+    {
+      "description": "Workspace value, panes/tabs/docks, and layout persistence (WEBUI_4).",
+      "generated_readme": true,
+      "manifest": "crates/sim-lib-web-layout/Cargo.toml",
+      "name": "sim-lib-web-layout",
+      "publish": "true",
+      "readme": "crates/sim-lib-web-layout/README.md",
+      "root": "crates/sim-lib-web-layout",
+      "target_kinds": [
+        "lib"
+      ]
+    },
+    {
+      "description": "sim-web-shell: the binary that serves the SIM WebUI shell.",
+      "generated_readme": true,
+      "manifest": "crates/sim-web-shell/Cargo.toml",
+      "name": "sim-web-shell",
+      "publish": "true",
+      "readme": "crates/sim-web-shell/README.md",
+      "root": "crates/sim-web-shell",
+      "target_kinds": [
+        "bin",
+        "lib",
+        "test"
+      ]
+    },
+    {
+      "description": "SIM workspace package for xtask.",
+      "generated_readme": true,
+      "manifest": "xtask/Cargo.toml",
+      "name": "xtask",
+      "publish": "false",
+      "readme": "xtask/README.md",
+      "root": "xtask",
+      "target_kinds": [
+        "bin"
+      ]
+    }
+  ]
+}

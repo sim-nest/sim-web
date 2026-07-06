@@ -7,7 +7,7 @@ Intent value model, gesture algebra, and codec:intent (WEBUI_4).
 ## Package Metadata
 
 - Manifest: `crates/sim-lib-intent/Cargo.toml`
-- Publish: `false`
+- Publish: `true`
 - Targets: `lib`
 
 ## Crate Documentation

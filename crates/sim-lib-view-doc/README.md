@@ -7,7 +7,7 @@ Scientific article workspace lens for the SIM Web-UI (WEBUI_4).
 ## Package Metadata
 
 - Manifest: `crates/sim-lib-view-doc/Cargo.toml`
-- Publish: `false`
+- Publish: `true`
 - Targets: `lib`
 
 ## Crate Documentation

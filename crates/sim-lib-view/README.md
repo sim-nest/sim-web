@@ -7,7 +7,7 @@ View/editor codec contracts, Shape-based lens dispatch, lens stack, and the univ
 ## Package Metadata
 
 - Manifest: `crates/sim-lib-view/Cargo.toml`
-- Publish: `false`
+- Publish: `true`
 - Targets: `lib`
 
 ## Crate Documentation

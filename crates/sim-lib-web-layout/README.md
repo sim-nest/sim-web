@@ -7,7 +7,7 @@ Workspace value, panes/tabs/docks, and layout persistence (WEBUI_4).
 ## Package Metadata
 
 - Manifest: `crates/sim-lib-web-layout/Cargo.toml`
-- Publish: `false`
+- Publish: `true`
 - Targets: `lib`
 
 ## Crate Documentation
