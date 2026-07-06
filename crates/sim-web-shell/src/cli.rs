@@ -6,7 +6,7 @@ use sim_codec_lisp::LispCodecLib;
 use sim_kernel::{
     AbiVersion, Args, CORE_FUNCTION_CLASS_ID, Callable, ClassRef, CodecId, Cx, Error, Export, Expr,
     Lib, LibManifest, LibTarget, Linker, LoadCx, Object, ObjectCompat, Result, Symbol, Value,
-    Version,
+    Version, read_eval_capability,
 };
 use sim_run_core::{Bootloader, cli_main_entrypoint_symbol};
 
@@ -185,6 +185,11 @@ pub fn web_serve_entrypoint_symbol() -> Symbol {
 /// can stack this with other serve libraries (e.g. MCP) onto one bootloader.
 pub fn configure_web_bootloader(loader: Bootloader) -> Bootloader {
     loader
+        // The web shell evaluates cookbook recipes, which needs read-eval. Grant it
+        // here at the trusted host boundary (the bootloader holds the boot session's
+        // GrantSeat); the serve lib no longer self-grants it. run_recipe still gates
+        // each run on read-eval, so the capability is required, not ambient behavior.
+        .with_capability(read_eval_capability())
         .host_lib("codec/lisp", || {
             Box::new(LispCodecLib::new(CodecId(1)).expect("lisp boot codec"))
         })
@@ -209,7 +214,7 @@ impl Lib for WebServeLib {
             abi: AbiVersion { major: 0, minor: 1 },
             target: LibTarget::HostRegistered,
             requires: Vec::new(),
-            capabilities: Vec::new(),
+            capabilities: vec![read_eval_capability()],
             exports: vec![Export::Function {
                 symbol: web_serve_entrypoint_symbol(),
                 function_id: None,

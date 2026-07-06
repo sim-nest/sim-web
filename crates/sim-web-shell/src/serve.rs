@@ -7,7 +7,6 @@
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::{TcpListener, TcpStream, ToSocketAddrs};
 use std::path::PathBuf;
-use std::sync::Arc;
 use std::time::Duration;
 
 /// Largest request body the shell will read. A larger declared `Content-Length`
@@ -39,9 +38,7 @@ use sim_codec_algol::AlgolCodecLib;
 use sim_codec_binary::BinaryCodecLib;
 use sim_codec_chat::ChatCodecLib;
 use sim_codec_json::JsonCodecLib;
-use sim_kernel::{
-    Cx, DefaultFactory, EagerPolicy, GrantSeat, Result as SimResult, read_eval_capability,
-};
+use sim_kernel::{Cx, Result as SimResult};
 use sim_lib_server::{CookbookWebResponse, CookbookWebState};
 use sim_lib_stream_core::install_stream_core_shapes_lib;
 
@@ -71,9 +68,10 @@ impl Default for ServeConfig {
 /// bootloader-provided `cx` as the cookbook eval sandbox. The `sim-web-shell`
 /// binary boots through `sim_run_core::Bootloader` (see `cli.rs`), which loads the
 /// `codec/lisp` boot codec and dispatches the `serve` verb into this function with
-/// a ready `cx`. Read-eval is NOT granted for the whole session: the shell holds a
-/// host [`GrantSeat`] and grants read-eval into `cx` only around the cookbook run
-/// route (REVIEW_12 F23); every other route serves without it.
+/// a ready `cx`. Read-eval is granted to that `cx` by the bootloader at the
+/// web-serve composition point (`configure_web_bootloader`, through the boot
+/// session's host GrantSeat), not self-granted here; `run_recipe` gates each run
+/// on it (REVIEW_12 F4/F23).
 pub fn serve_with_cx(cx: &mut Cx, config: &ServeConfig) -> std::io::Result<()> {
     install_codecs(cx).map_err(io_error)?;
     install_stream_core_shapes_lib(cx).map_err(io_error)?;
@@ -111,27 +109,20 @@ struct ShellState<'a> {
     atelier: AtelierWebState,
     cookbook: CookbookWebState,
     cookbook_cx: &'a mut Cx,
-    /// Host authority to grant read-eval into `cookbook_cx`. Held so the shell can
-    /// scope the grant to the cookbook run route (see [`handle`]) rather than for
-    /// the whole serve session (REVIEW_12 F23).
-    seat: GrantSeat,
     live: LiveSession,
 }
 
 impl<'a> ShellState<'a> {
     fn new(config: &ServeConfig, cx: &'a mut Cx) -> std::io::Result<Self> {
         // The cookbook eval sandbox is the bootloader-provided `cx`, which already
-        // carries the standard distribution the recipes require. That Cx cannot be
-        // re-seated here -- the bootloader holds its GrantSeat and never hands it to
-        // a loaded callable (the REVIEW_12 grant barrier) -- so the shell mints its
-        // own host seat and grants read-eval through it only around the cookbook run
-        // route, never for the whole session.
-        let (_seat_cx, seat) = Cx::new_seated(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+        // carries the standard distribution the recipes require and read-eval,
+        // granted by the bootloader at the web-serve composition point. run_recipe
+        // gates each run on read-eval, so a session that never runs a recipe never
+        // uses it.
         Ok(Self {
             atelier: AtelierWebState::load(config.atelier_root.clone()),
             cookbook: CookbookWebState::seeded().map_err(io_error)?,
             cookbook_cx: cx,
-            seat,
             live: LiveSession::new().map_err(io_error)?,
         })
     }
@@ -189,15 +180,8 @@ fn handle(mut stream: TcpStream, state: &mut ShellState<'_>) -> std::io::Result<
         return write_session_open(&mut stream, &request, &mut state.live);
     }
     if request.target.starts_with("/api/cookbook") {
-        // Scope read-eval to the cookbook RUN route only: list/search/show routes
-        // never eval a recipe, so they stay ungated. This replaces the former
-        // blanket session grant (REVIEW_12 F23); `run_recipe` also gates on
-        // read-eval at the runner (F4), so an unrouted caller stays fail-closed.
-        if is_cookbook_run_route(&request.method, &request.target) {
-            state
-                .seat
-                .grant(&mut *state.cookbook_cx, read_eval_capability());
-        }
+        // read-eval was granted to cookbook_cx by the bootloader (see cli.rs);
+        // run_recipe gates each run on it (REVIEW_12 F4/F23).
         let response = state.cookbook.handle_request(
             &request.method,
             &request.target,
@@ -389,11 +373,6 @@ fn path_of(target: &str) -> &str {
 /// evaluates a recipe, so it is the only one the shell grants read-eval for;
 /// list/search/show routes stay ungated. Mirrors the run-route match in
 /// `sim-lib-server`'s `CookbookWebState::handle_request`.
-fn is_cookbook_run_route(method: &str, target: &str) -> bool {
-    let path = path_of(target);
-    method == "POST" && path.starts_with("/api/cookbook/recipe/") && path.ends_with("/run")
-}
-
 /// The first value of a query-string key in a request target, if present. Only a
 /// plain `key=value` split is performed; values are expected to be simple
 /// identifiers (pane and resource names).
