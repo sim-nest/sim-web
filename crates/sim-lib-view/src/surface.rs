@@ -99,7 +99,7 @@ impl std::error::Error for SurfaceError {}
 
 impl From<Error> for SurfaceError {
     /// Adopts a shared `sim_value::access` reader error (the kernel `Error` those
-    /// readers return) as a surface parse failure, so [`map_field`] can defer
+    /// readers return) as a surface parse failure, so `map_field` can defer
     /// required-field lookup to the substrate while the surface decoder keeps
     /// failing closed.
     fn from(err: Error) -> Self {
