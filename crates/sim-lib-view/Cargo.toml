@@ -1,6 +1,6 @@
 [package]
 name = "sim-lib-view"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 license = "MPL-2.0"
 description = "View/editor codec contracts, Shape-based lens dispatch, lens stack, and the universal default lens for the SIM Web-UI (WEBUI_4)."

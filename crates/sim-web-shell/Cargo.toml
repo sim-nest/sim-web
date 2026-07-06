@@ -1,6 +1,6 @@
 [package]
 name = "sim-web-shell"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2024"
 license = "MPL-2.0"
 description = "sim-web-shell: the binary that serves the SIM WebUI shell."
