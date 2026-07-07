@@ -1,5 +1,22 @@
 # sim-web
 
+sim-web is SIM's browser UI: show any runtime value on a canvas, edit it, and
+commit the change back -- live. The same page holds the cookbook, the Atelier
+cache view, and the live surface.
+
+```bash
+sim webui   # open the URL it prints in a browser
+```
+
+You get a browser workspace where a human and an agent are peers on one bus:
+every value is shown through a lens, every gesture is a checked edit, and each
+committed edit broadcasts to every open surface. (`sim webui` comes from the
+`sim` command -- see [sim-run](https://github.com/sim-nest/sim-run) to install
+it; the full surface walkthrough is in
+[sim-say](https://github.com/sim-nest/sim-say).)
+
+## How it works
+
 sim-web is the SIM constellation's view and edit surface: the browser/web UI plus
 the codec layer that turns runtime values into something a device can show and
 turns gestures back into checked operations. It treats the editor as a codec
