@@ -6,7 +6,7 @@ use sim_codec_lisp::LispCodecLib;
 use sim_kernel::{
     AbiVersion, Args, CORE_FUNCTION_CLASS_ID, Callable, ClassRef, CodecId, Cx, Error, Export, Expr,
     Lib, LibManifest, LibTarget, Linker, LoadCx, Object, ObjectCompat, Result, Symbol, Value,
-    Version, read_eval_capability,
+    Version, read_construct_capability, read_eval_capability,
 };
 use sim_run_core::{Bootloader, cli_main_entrypoint_symbol};
 
@@ -190,6 +190,10 @@ pub fn configure_web_bootloader(loader: Bootloader) -> Bootloader {
         // GrantSeat); the serve lib no longer self-grants it. run_recipe still gates
         // each run on read-eval, so the capability is required, not ambient behavior.
         .with_capability(read_eval_capability())
+        // Recipes construct domain values via `#(Class ...)`; grant read-construct on the
+        // boot Cx so run_recipe's eval can build them (the read side is handled by a
+        // trusted ReadPolicy in run_recipe).
+        .with_capability(read_construct_capability())
         .host_lib("codec/lisp", || {
             Box::new(LispCodecLib::new(CodecId(1)).expect("lisp boot codec"))
         })
