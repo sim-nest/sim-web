@@ -1,4 +1,5 @@
-# Keyboard Rack Roll
+# DAW keyboard/rack/roll (descriptor)
 
-This recipe opens the performance workbench descriptor with the keyboard,
-player rack, and piano-roll scenes bound to the same player chain.
+Documents the DAW keyboard, rack, and piano-roll views; surface descriptors, not computations. The view/edit surface is the codec protocol pointed at devices; it is rendered
+and committed through the surface hub, not reduced by the cookbook sandbox eval stack, so this is
+documented rather than run.

@@ -4,5 +4,5 @@ codec = "lisp"
 setup = "setup.siml"
 purpose = "purpose.md"
 order = 10
-tags = ["web", "layout", "workspace"]
+tags = ["web", "layout", "workspace", "sandbox-descriptor"]
 requires = ["web/layout", "codec/lisp"]

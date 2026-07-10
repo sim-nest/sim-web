@@ -1,4 +1,5 @@
-# Scene text node
+# Scene text node (descriptor)
 
-This recipe keeps the browser surface as data: a stack with one text node. It
-can be decoded or inspected without opening a browser.
+Documents a scene graph holding a text node; a view scene is encoded to a device surface, not evaluated in the sandbox. The view/edit surface is the codec protocol pointed at devices; it is rendered
+and committed through the surface hub, not reduced by the cookbook sandbox eval stack, so this is
+documented rather than run.

@@ -4,5 +4,5 @@ codec = "lisp"
 setup = "setup.siml"
 purpose = "purpose.md"
 order = 20
-tags = ["view", "daw", "arranger", "transform", "filter", "golden"]
+tags = ["view", "daw", "arranger", "transform", "filter", "golden", "sandbox-descriptor"]
 requires = ["view/daw", "scene", "codec/lisp"]

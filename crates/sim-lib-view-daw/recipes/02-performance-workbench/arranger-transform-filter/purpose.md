@@ -1,4 +1,5 @@
-# Arranger Transform Filter
+# DAW arranger transform (descriptor)
 
-This recipe displays three arranger placements with stretch, T, I, R, pitch
-remap handles, target routing, seeds, diagnostics, and a custom filter.
+Documents a DAW arranger transform/filter view; a surface projection, not a computation. The view/edit surface is the codec protocol pointed at devices; it is rendered
+and committed through the surface hub, not reduced by the cookbook sandbox eval stack, so this is
+documented rather than run.

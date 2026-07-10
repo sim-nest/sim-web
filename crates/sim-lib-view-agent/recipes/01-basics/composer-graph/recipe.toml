@@ -4,5 +4,5 @@ codec = "lisp"
 setup = "setup.siml"
 purpose = "purpose.md"
 order = 10
-tags = ["view", "agent", "topology"]
+tags = ["view", "agent", "topology", "sandbox-descriptor"]
 requires = ["view/agent", "codec/lisp"]

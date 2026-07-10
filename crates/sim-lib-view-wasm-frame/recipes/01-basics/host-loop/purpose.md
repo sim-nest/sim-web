@@ -1,4 +1,5 @@
-# View host loop descriptor
+# Wasm view host loop (descriptor)
 
-This recipe names the local view loop: render a value to Scene data, fold
-gestures into Intents, and emit Scene diffs.
+Documents the wasm view host loop (render, intent, scene-diff); a surface host descriptor. The view/edit surface is the codec protocol pointed at devices; it is rendered
+and committed through the surface hub, not reduced by the cookbook sandbox eval stack, so this is
+documented rather than run.

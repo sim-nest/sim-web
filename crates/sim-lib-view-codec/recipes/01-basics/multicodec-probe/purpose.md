@@ -1,4 +1,5 @@
-# Multi-codec probe descriptor
+# View multicodec probe (descriptor)
 
-This recipe names the codec lens workflow: show one value through several
-codecs and surface round-trip information as data.
+Documents a view codec probing multiple surface codecs (lisp, json, binary); a surface-codec descriptor. The view/edit surface is the codec protocol pointed at devices; it is rendered
+and committed through the surface hub, not reduced by the cookbook sandbox eval stack, so this is
+documented rather than run.

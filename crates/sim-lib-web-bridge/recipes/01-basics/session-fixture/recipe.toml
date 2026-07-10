@@ -4,5 +4,5 @@ codec = "lisp"
 setup = "setup.siml"
 purpose = "purpose.md"
 order = 10
-tags = ["web", "bridge", "session"]
+tags = ["web", "bridge", "session", "sandbox-descriptor"]
 requires = ["web/bridge", "codec/lisp"]

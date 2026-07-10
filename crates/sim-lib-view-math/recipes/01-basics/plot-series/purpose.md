@@ -1,4 +1,5 @@
-# Plot series descriptor
+# Math plot view (descriptor)
 
-This recipe represents a plot as data: a label and two sample points. The
-runtime value remains separate from any browser rendering.
+Documents a math plot view (a series of points for y = x); a surface rendered to a device, not a computed value. The view/edit surface is the codec protocol pointed at devices; it is rendered
+and committed through the surface hub, not reduced by the cookbook sandbox eval stack, so this is
+documented rather than run.

@@ -1,4 +1,5 @@
-# Composer graph descriptor
+# View-agent composer (descriptor)
 
-This recipe shows the agent composer as graph data: one node with typed ports
-and one edge. It does not start a live topology run.
+Documents a view-agent composer graph wiring agent nodes into a surface; a composition descriptor rendered outside the sandbox. The view/edit surface is the codec protocol pointed at devices; it is rendered
+and committed through the surface hub, not reduced by the cookbook sandbox eval stack, so this is
+documented rather than run.
