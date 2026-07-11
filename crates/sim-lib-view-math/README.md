@@ -8,7 +8,7 @@ Math, plotting, tensor, and symbolic lenses for the SIM Web-UI (WEBUI_4).
 
 - Manifest: `crates/sim-lib-view-math/Cargo.toml`
 - Publish: `true`
-- Targets: `lib`
+- Targets: `custom-build, lib`
 
 ## Crate Documentation
 

@@ -36,5 +36,9 @@ pub use kinds::{SCENE_KINDS, SCENE_NAMESPACE, is_known_kind, scene_kind};
 pub use model::{SceneError, map, node, node_kind, validate_scene};
 pub use shapes::{SceneNodeShape, SceneShape, scene_shape_specs, scene_shape_symbol};
 
+/// Embedded cookbook recipe books shipped with this library.
+pub static RECIPES: sim_cookbook::EmbeddedDir =
+    include!(concat!(env!("OUT_DIR"), "/cookbook_recipes.rs"));
+
 #[cfg(test)]
 mod tests;

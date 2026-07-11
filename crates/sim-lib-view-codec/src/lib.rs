@@ -19,5 +19,9 @@ pub use multicodec::{
 };
 pub use shape::{SHAPE_LENS, shape_view};
 
+/// Embedded cookbook recipe books shipped with this library.
+pub static RECIPES: sim_cookbook::EmbeddedDir =
+    include!(concat!(env!("OUT_DIR"), "/cookbook_recipes.rs"));
+
 #[cfg(test)]
 mod tests;

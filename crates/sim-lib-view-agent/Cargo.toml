@@ -1,6 +1,6 @@
 [package]
 name = "sim-lib-view-agent"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 license = "MPL-2.0"
 description = "Agent and topology composer lens plus the live monitor for the SIM Web-UI (WEBUI_4); the flagship that proves the one-bus thesis."
@@ -10,12 +10,16 @@ repository = "https://github.com/sim-nest/sim-web"
 homepage = "https://github.com/sim-nest/sim-web"
 
 [dependencies]
+sim-cookbook = { version = "0.1.0" }
 sim-kernel = { version = "0.1.0" }
 sim-lib-intent = { version = "0.1.0", path = "../sim-lib-intent" }
 sim-lib-scene = { version = "0.1.0", path = "../sim-lib-scene" }
 sim-lib-stream-core = { version = "0.1.0" }
 sim-lib-topology = { version = "0.1.0" }
 sim-value = { version = "0.1.0" }
+
+[build-dependencies]
+sim-cookbook = { version = "0.1.0" }
 
 [dev-dependencies]
 sim-kernel = { version = "0.1.0", features = ["test-support"] }

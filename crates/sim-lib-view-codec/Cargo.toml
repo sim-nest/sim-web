@@ -1,6 +1,6 @@
 [package]
 name = "sim-lib-view-codec"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 license = "MPL-2.0"
 description = "Codec-aware and Shape-aware lenses for the SIM Web-UI (WEBUI_4)."
@@ -11,9 +11,13 @@ homepage = "https://github.com/sim-nest/sim-web"
 
 [dependencies]
 sim-codec = { version = "0.1.0" }
+sim-cookbook = { version = "0.1.0" }
 sim-kernel = { version = "0.1.0" }
 sim-lib-scene = { version = "0.1.0", path = "../sim-lib-scene" }
 sim-shape = { version = "0.1.0" }
+
+[build-dependencies]
+sim-cookbook = { version = "0.1.0" }
 
 [dev-dependencies]
 sim-codec-algol = { version = "0.1.0" }

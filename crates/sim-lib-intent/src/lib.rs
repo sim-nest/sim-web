@@ -36,5 +36,9 @@ pub use model::{
 };
 pub use shapes::{IntentKindShape, IntentShape, intent_shape_specs, intent_shape_symbol};
 
+/// Embedded cookbook recipe books shipped with this library.
+pub static RECIPES: sim_cookbook::EmbeddedDir =
+    include!(concat!(env!("OUT_DIR"), "/cookbook_recipes.rs"));
+
 #[cfg(test)]
 mod tests;

@@ -56,6 +56,10 @@ pub use replay::{replay, replay_final};
 pub use run::{NodeStatus, RunEvent, RunState};
 pub use view::{COMPOSER_LENS, composer_view};
 
+/// Embedded cookbook recipe books shipped with this library.
+pub static RECIPES: sim_cookbook::EmbeddedDir =
+    include!(concat!(env!("OUT_DIR"), "/cookbook_recipes.rs"));
+
 #[cfg(test)]
 mod change_capsule_tests;
 #[cfg(test)]

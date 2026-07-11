@@ -1,6 +1,6 @@
 [package]
 name = "sim-lib-web-layout"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 license = "MPL-2.0"
 description = "Workspace value, panes/tabs/docks, and layout persistence (WEBUI_4)."
@@ -12,10 +12,14 @@ homepage = "https://github.com/sim-nest/sim-web"
 [dependencies]
 sim-citizen = { version = "0.1.0" }
 sim-citizen-derive = { version = "0.1.0" }
+sim-cookbook = { version = "0.1.0" }
 sim-kernel = { version = "0.1.0" }
 sim-lib-intent = { version = "0.1.0", path = "../sim-lib-intent" }
 sim-lib-scene = { version = "0.1.0", path = "../sim-lib-scene" }
 sim-value = { version = "0.1.0" }
+
+[build-dependencies]
+sim-cookbook = { version = "0.1.0" }
 
 [dev-dependencies]
 sim-codec-json = { version = "0.1.0" }
