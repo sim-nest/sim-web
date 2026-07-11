@@ -198,6 +198,27 @@ fn cookbook_script_targets_required_apis() {
     assert!(js.contains("Next recipe ->"), "has next control text");
 }
 
+#[test]
+fn cookbook_script_renders_grouped_tree_with_badges() {
+    // COOK8.01: the browser renders the two-level family -> domain grouped tree
+    // (from the API `families`) with a runnable/descriptor badge on each leaf.
+    let js = asset_text("/cookbook/cookbook.js");
+    for expected in [
+        "data.families",
+        "state.families",
+        "family-title",
+        "domain-title",
+        "recipeBadge",
+        "sandbox-descriptor",
+    ] {
+        assert!(js.contains(expected), "missing {expected}");
+    }
+    let css = asset_text("/cookbook/cookbook.css");
+    for expected in [".badge.runnable", ".badge.descriptor", ".domain-title"] {
+        assert!(css.contains(expected), "css missing {expected}");
+    }
+}
+
 fn asset_text(path: &str) -> String {
     let asset = asset_for(path).unwrap_or_else(|| panic!("{path} must be served"));
     std::str::from_utf8(asset.body).unwrap().to_owned()

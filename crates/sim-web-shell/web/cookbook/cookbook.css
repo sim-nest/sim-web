@@ -37,31 +37,84 @@
   gap: 12px;
 }
 
-.book-title,
-.chapter-title {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.85rem;
-  font-weight: 700;
+/* Level 1: family (subsystem) collapsible group. */
+.family {
+  border-left: 2px solid #2c3640;
+  padding-left: 8px;
 }
 
-.chapter-title {
-  margin-top: 8px;
+.family-title {
+  color: var(--fg);
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-transform: capitalize;
+  padding: 2px 0;
+}
+
+/* Level 2: domain (book) collapsible group. */
+.domain {
+  margin: 6px 0 6px 6px;
+}
+
+.domain-title {
   color: #c7d0da;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 2px 0;
+}
+
+.chapter-label {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 600;
 }
 
 .recipe-list {
   list-style: none;
   padding: 0;
-  margin: 6px 0 0;
+  margin: 6px 0 0 6px;
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
+/* Runnable vs descriptor badge on each recipe leaf and detail header. */
+.badge {
+  display: inline-block;
+  min-width: 30px;
+  text-align: center;
+  border-radius: 4px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 5px;
+  margin-right: 7px;
+  vertical-align: middle;
+}
+
+.badge.runnable {
+  color: #0d1117;
+  background: #7ee787;
+}
+
+.badge.descriptor {
+  color: #d9e2ec;
+  background: #30404e;
+}
+
+.recipe-label {
+  vertical-align: middle;
+}
+
 .recipe-button {
   width: 100%;
   min-height: 34px;
+  display: flex;
+  align-items: center;
   border: 1px solid transparent;
   border-radius: 6px;
   background: transparent;

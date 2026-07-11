@@ -5,7 +5,7 @@ const pane = document.querySelector("#recipe-pane");
 const search = document.querySelector("#cookbook-search");
 
 const state = {
-  books: [],
+  families: [],
   recipes: [],
   selected: null,
   visibleIds: null,
@@ -13,7 +13,7 @@ const state = {
 
 async function loadCookbook() {
   const data = await fetchJson(apiRoot);
-  state.books = data.books || [];
+  state.families = familiesOf(data);
   state.recipes = data.recipes || [];
   state.visibleIds = null;
   state.selected = state.recipes[0]?.id || null;
@@ -25,6 +25,16 @@ async function loadCookbook() {
   }
 }
 
+// The index carries a two-level `families` tree (family -> domain book ->
+// chapter -> recipe). An older server without it degrades to a single unnamed
+// family over the flat `books` list, so the browser still renders every recipe.
+function familiesOf(data) {
+  if (Array.isArray(data.families) && data.families.length) {
+    return data.families;
+  }
+  return [{ family: null, books: data.books || [] }];
+}
+
 async function fetchJson(url, options = {}) {
   const response = await fetch(url, options);
   const data = await response.json().catch(() => ({}));
@@ -34,6 +44,10 @@ async function fetchJson(url, options = {}) {
   return data;
 }
 
+// Render the two-level grouped tree: family (level 1) -> domain book (level 2)
+// -> chapter -> recipe leaf. Family and domain are collapsible <details> so the
+// whole constellation browses by subsystem; each leaf is badged runnable vs
+// descriptor. A group with no visible recipe (search filtered) is skipped.
 function renderTree() {
   tree.replaceChildren();
   if (!state.recipes.length) {
@@ -42,50 +56,90 @@ function renderTree() {
   }
   const visible = state.visibleIds;
   let count = 0;
-  for (const book of state.books) {
-    const bookSection = document.createElement("section");
-    const bookTitle = document.createElement("h2");
-    bookTitle.className = "book-title";
-    bookTitle.textContent = book.title;
-    bookSection.append(bookTitle);
-    for (const chapter of book.chapters || []) {
-      const recipes = (chapter.recipes || []).filter((recipe) => {
-        return !visible || visible.has(recipe.id);
-      });
-      if (!recipes.length) {
-        continue;
-      }
-      const chapterTitle = document.createElement("h3");
-      chapterTitle.className = "chapter-title";
-      chapterTitle.textContent = chapter.title;
-      bookSection.append(chapterTitle);
-      const list = document.createElement("ul");
-      list.className = "recipe-list";
-      for (const recipe of recipes) {
-        count += 1;
-        const item = document.createElement("li");
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = "recipe-button";
-        button.textContent = recipe.title;
-        button.dataset.recipeId = recipe.id;
-        if (recipe.id === state.selected) {
-          button.classList.add("selected");
-          button.setAttribute("aria-current", "page");
-        }
-        button.addEventListener("click", () => selectRecipe(recipe.id));
-        item.append(button);
-        list.append(item);
-      }
-      bookSection.append(list);
+  for (const family of state.families) {
+    const familyEl = document.createElement("details");
+    familyEl.className = "family";
+    familyEl.open = true;
+    if (family.family) {
+      const summary = document.createElement("summary");
+      summary.className = "family-title";
+      summary.textContent = family.family;
+      familyEl.append(summary);
     }
-    if (bookSection.querySelector(".recipe-button")) {
-      tree.append(bookSection);
+    let familyCount = 0;
+    for (const book of family.books || []) {
+      const domainEl = document.createElement("details");
+      domainEl.className = "domain";
+      domainEl.open = true;
+      const domainTitle = document.createElement("summary");
+      domainTitle.className = "domain-title";
+      domainTitle.textContent = book.title;
+      domainEl.append(domainTitle);
+      let domainCount = 0;
+      for (const chapter of book.chapters || []) {
+        const recipes = (chapter.recipes || []).filter((recipe) => {
+          return !visible || visible.has(recipe.id);
+        });
+        if (!recipes.length) {
+          continue;
+        }
+        const chapterLabel = document.createElement("div");
+        chapterLabel.className = "chapter-label";
+        chapterLabel.textContent = chapter.title;
+        domainEl.append(chapterLabel);
+        const list = document.createElement("ul");
+        list.className = "recipe-list";
+        for (const recipe of recipes) {
+          count += 1;
+          familyCount += 1;
+          domainCount += 1;
+          list.append(recipeItem(recipe));
+        }
+        domainEl.append(list);
+      }
+      if (domainCount) {
+        familyEl.append(domainEl);
+      }
+    }
+    if (familyCount) {
+      tree.append(familyEl);
     }
   }
   if (!count) {
     tree.append(empty("No recipes found."));
   }
+}
+
+// A recipe leaf: a runnable/descriptor badge plus the recipe title, wired to
+// select the recipe. `runnable` defaults to true when the field is absent.
+function recipeItem(recipe) {
+  const item = document.createElement("li");
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "recipe-button";
+  button.append(recipeBadge(recipe.runnable !== false));
+  const label = document.createElement("span");
+  label.className = "recipe-label";
+  label.textContent = recipe.title;
+  button.append(label);
+  button.dataset.recipeId = recipe.id;
+  if (recipe.id === state.selected) {
+    button.classList.add("selected");
+    button.setAttribute("aria-current", "page");
+  }
+  button.addEventListener("click", () => selectRecipe(recipe.id));
+  item.append(button);
+  return item;
+}
+
+function recipeBadge(runnable) {
+  const badge = document.createElement("span");
+  badge.className = `badge ${runnable ? "runnable" : "descriptor"}`;
+  badge.textContent = runnable ? "run" : "doc";
+  badge.title = runnable
+    ? "Runnable: computes on click"
+    : "Descriptor: documented, not run in the sandbox";
+  return badge;
 }
 
 async function selectRecipe(id) {
@@ -98,7 +152,10 @@ async function selectRecipe(id) {
 function renderRecipe(recipe) {
   pane.replaceChildren();
   const title = document.createElement("h1");
-  title.textContent = recipe.title;
+  // The detail response carries `tags`, not the summary `runnable` flag; a
+  // recipe tagged `sandbox-descriptor` is a documented descriptor.
+  const runnable = !(recipe.tags || []).includes("sandbox-descriptor");
+  title.append(recipeBadge(runnable), " ", recipe.title);
   const purpose = document.createElement("div");
   purpose.className = "purpose";
   purpose.append(...renderPurpose(recipe.purpose));
