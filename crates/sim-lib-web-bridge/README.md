@@ -8,7 +8,7 @@ Session and transport bridge over realize/EvalFabric: the Intent/Scene bus for t
 
 - Manifest: `crates/sim-lib-web-bridge/Cargo.toml`
 - Publish: `true`
-- Targets: `lib`
+- Targets: `custom-build, lib`
 
 ## Crate Documentation
 

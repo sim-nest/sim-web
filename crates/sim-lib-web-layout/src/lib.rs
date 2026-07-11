@@ -27,6 +27,10 @@ pub use pane::{new_pane, pane_dock, pane_id, pane_lens, pane_resource, rect};
 pub use scene::workspace_scene;
 pub use value::{WORKSPACE_CLASS, focus, mode, new_workspace, panes};
 
+/// Embedded cookbook recipe books shipped with this library.
+pub static RECIPES: sim_cookbook::EmbeddedDir =
+    include!(concat!(env!("OUT_DIR"), "/cookbook_recipes.rs"));
+
 #[cfg(test)]
 mod palette_tests;
 #[cfg(test)]

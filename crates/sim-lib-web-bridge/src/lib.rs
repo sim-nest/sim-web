@@ -47,6 +47,10 @@ pub use transport::{
 /// Stable symbol for the session value carried on the bus.
 pub const SESSION_CLASS: &str = "web:Session";
 
+/// Embedded cookbook recipe books shipped with this library.
+pub static RECIPES: sim_cookbook::EmbeddedDir =
+    include!(concat!(env!("OUT_DIR"), "/cookbook_recipes.rs"));
+
 #[cfg(test)]
 mod history_tests;
 #[cfg(test)]

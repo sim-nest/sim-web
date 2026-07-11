@@ -31,5 +31,9 @@ pub use plot::{PLOT_LENS, multi_plot_view, plot_view, series};
 pub use sweep::Sweep;
 pub use symbolic::{SYMBOLIC_LENS, call, symbolic_tree};
 
+/// Embedded cookbook recipe books shipped with this library.
+pub static RECIPES: sim_cookbook::EmbeddedDir =
+    include!(concat!(env!("OUT_DIR"), "/cookbook_recipes.rs"));
+
 #[cfg(test)]
 mod tests;

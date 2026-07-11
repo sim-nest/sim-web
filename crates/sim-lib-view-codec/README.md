@@ -8,7 +8,7 @@ Codec-aware and Shape-aware lenses for the SIM Web-UI (WEBUI_4).
 
 - Manifest: `crates/sim-lib-view-codec/Cargo.toml`
 - Publish: `true`
-- Targets: `lib`
+- Targets: `custom-build, lib`
 
 ## Crate Documentation
 

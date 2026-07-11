@@ -8,7 +8,7 @@ Host-side view frame facade for wasm-shaped view data (WEBUI_4).
 
 - Manifest: `crates/sim-lib-view-wasm-frame/Cargo.toml`
 - Publish: `true`
-- Targets: `lib`
+- Targets: `custom-build, lib`
 
 ## Crate Documentation
 

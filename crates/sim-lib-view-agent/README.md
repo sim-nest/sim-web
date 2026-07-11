@@ -8,7 +8,7 @@ Agent and topology composer lens plus the live monitor for the SIM Web-UI (WEBUI
 
 - Manifest: `crates/sim-lib-view-agent/Cargo.toml`
 - Publish: `true`
-- Targets: `lib`
+- Targets: `custom-build, lib`
 
 ## Crate Documentation
 

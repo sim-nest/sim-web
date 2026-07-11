@@ -11,6 +11,7 @@
       "readme": "crates/sim-lib-intent/README.md",
       "root": "crates/sim-lib-intent",
       "target_kinds": [
+        "custom-build",
         "lib"
       ]
     },
@@ -23,6 +24,7 @@
       "readme": "crates/sim-lib-scene/README.md",
       "root": "crates/sim-lib-scene",
       "target_kinds": [
+        "custom-build",
         "lib"
       ]
     },
@@ -35,6 +37,7 @@
       "readme": "crates/sim-lib-view-agent/README.md",
       "root": "crates/sim-lib-view-agent",
       "target_kinds": [
+        "custom-build",
         "lib"
       ]
     },
@@ -47,6 +50,7 @@
       "readme": "crates/sim-lib-view-codec/README.md",
       "root": "crates/sim-lib-view-codec",
       "target_kinds": [
+        "custom-build",
         "lib"
       ]
     },
@@ -59,6 +63,7 @@
       "readme": "crates/sim-lib-view-daw/README.md",
       "root": "crates/sim-lib-view-daw",
       "target_kinds": [
+        "custom-build",
         "lib"
       ]
     },
@@ -71,6 +76,7 @@
       "readme": "crates/sim-lib-view-doc/README.md",
       "root": "crates/sim-lib-view-doc",
       "target_kinds": [
+        "custom-build",
         "lib"
       ]
     },
@@ -83,6 +89,7 @@
       "readme": "crates/sim-lib-view-math/README.md",
       "root": "crates/sim-lib-view-math",
       "target_kinds": [
+        "custom-build",
         "lib"
       ]
     },
@@ -95,6 +102,7 @@
       "readme": "crates/sim-lib-view-wasm-frame/README.md",
       "root": "crates/sim-lib-view-wasm-frame",
       "target_kinds": [
+        "custom-build",
         "lib"
       ]
     },
@@ -107,6 +115,7 @@
       "readme": "crates/sim-lib-view/README.md",
       "root": "crates/sim-lib-view",
       "target_kinds": [
+        "custom-build",
         "lib"
       ]
     },
@@ -119,6 +128,7 @@
       "readme": "crates/sim-lib-web-bridge/README.md",
       "root": "crates/sim-lib-web-bridge",
       "target_kinds": [
+        "custom-build",
         "lib"
       ]
     },
@@ -131,6 +141,7 @@
       "readme": "crates/sim-lib-web-layout/README.md",
       "root": "crates/sim-lib-web-layout",
       "target_kinds": [
+        "custom-build",
         "lib"
       ]
     },
