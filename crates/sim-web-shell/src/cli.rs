@@ -6,8 +6,9 @@ use sim_codec_lisp::LispCodecLib;
 use sim_kernel::{
     AbiVersion, Args, CORE_FUNCTION_CLASS_ID, Callable, ClassRef, CodecId, Cx, Error, Export, Expr,
     Lib, LibManifest, LibTarget, Linker, LoadCx, Object, ObjectCompat, Result, Symbol, Value,
-    Version, read_construct_capability, read_eval_capability,
+    Version, read_eval_capability,
 };
+use sim_lib_server::CookbookCapabilityProfile;
 use sim_run_core::{Bootloader, cli_main_entrypoint_symbol};
 
 use crate::serve::{ServeConfig, serve_with_cx};
@@ -184,16 +185,22 @@ pub fn web_serve_entrypoint_symbol() -> Symbol {
 /// existing [`Bootloader`], returning it for further composition. A downstream binary
 /// can stack this with other serve libraries (e.g. MCP) onto one bootloader.
 pub fn configure_web_bootloader(loader: Bootloader) -> Bootloader {
+    // COOK8.04: seat the cookbook eval Cx with the whole CookbookCapabilityProfile
+    // at the trusted host boundary (the bootloader holds the boot session's
+    // GrantSeat), rather than ad-hoc granting read-eval/read-construct. This makes
+    // runnability CAPABILITY-DEFINED: the profile GRANTS the pure/offline/
+    // deterministic vocabulary (read-construct, read-eval, compute, codec,
+    // offline-render, cassette-replay, model-fixture) and, by omission, DENIES the
+    // live/effectful capabilities -- so a recipe that demands a denied capability
+    // (live net, device, spawn, wall-clock, fs-write, unseeded rng) fails closed
+    // and is a Category D descriptor. run_recipe still gates each run on read-eval,
+    // so the capability is required, not ambient.
+    let loader = CookbookCapabilityProfile::granted()
+        .into_iter()
+        .fold(loader, |loader, capability| {
+            loader.with_capability(capability)
+        });
     loader
-        // The web shell evaluates cookbook recipes, which needs read-eval. Grant it
-        // here at the trusted host boundary (the bootloader holds the boot session's
-        // GrantSeat); the serve lib no longer self-grants it. run_recipe still gates
-        // each run on read-eval, so the capability is required, not ambient behavior.
-        .with_capability(read_eval_capability())
-        // Recipes construct domain values via `#(Class ...)`; grant read-construct on the
-        // boot Cx so run_recipe's eval can build them (the read side is handled by a
-        // trusted ReadPolicy in run_recipe).
-        .with_capability(read_construct_capability())
         .host_lib("codec/lisp", || {
             Box::new(LispCodecLib::new(CodecId(1)).expect("lisp boot codec"))
         })
