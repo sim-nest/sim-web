@@ -12,4 +12,4 @@ Scene value model and codec:scene for the SIM Web-UI (WEBUI_4).
 
 ## Crate Documentation
 
-Scene value model and codec:scene for the SIM Web-UI (WEBUI_4).
+Scene value model and codec:scene for the SIM Web-UI.
