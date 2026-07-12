@@ -40,7 +40,7 @@ use sim_codec_chat::ChatCodecLib;
 use sim_codec_json::JsonCodecLib;
 use sim_kernel::{Cx, Result as SimResult};
 use sim_lib_net_core::{CapOutcome, read_capped_line};
-use sim_lib_server::{CookbookWebResponse, CookbookWebState};
+use sim_lib_server::{CookbookWebResponse, CookbookWebState, EmbeddedDir};
 use sim_lib_stream_core::install_stream_core_shapes_lib;
 
 /// Configuration for the shell server.
@@ -106,6 +106,16 @@ fn bind(addr: &str) -> std::io::Result<TcpListener> {
     TcpListener::bind(resolved)
 }
 
+/// COOK8.02 facade injection: the higher-graph recipe books this host aggregates
+/// into the browsable catalog on top of the engine's seeded set. These view/scene
+/// libs sit ABOVE `sim-lib-cookbook`, so they cannot be seed-deps of the engine
+/// (a cycle); the facade -- which already depends on them -- injects their RECIPES
+/// here. They are descriptor recipes today, browsable and honestly badged.
+const FACADE_RECIPE_BOOKS: &[(&str, EmbeddedDir)] = &[
+    ("view", sim_lib_view::RECIPES),
+    ("web-bridge", sim_lib_web_bridge::RECIPES),
+];
+
 struct ShellState<'a> {
     atelier: AtelierWebState,
     cookbook: CookbookWebState,
@@ -122,7 +132,7 @@ impl<'a> ShellState<'a> {
         // uses it.
         Ok(Self {
             atelier: AtelierWebState::load(config.atelier_root.clone()),
-            cookbook: CookbookWebState::seeded().map_err(io_error)?,
+            cookbook: CookbookWebState::seeded_with_books(FACADE_RECIPE_BOOKS).map_err(io_error)?,
             cookbook_cx: cx,
             live: LiveSession::new().map_err(io_error)?,
         })
