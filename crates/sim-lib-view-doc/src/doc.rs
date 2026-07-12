@@ -14,23 +14,14 @@ pub const ARTICLE_CLASS: &str = "doc/Article";
 /// The key that tags a block with its kind.
 pub const BLOCK_KEY: &str = "block";
 
+pub use sim_value::access::field;
+
 fn key(name: &str) -> Expr {
     Expr::Symbol(Symbol::new(name))
 }
 
 fn map(entries: Vec<(&str, Expr)>) -> Expr {
     Expr::Map(entries.into_iter().map(|(k, v)| (key(k), v)).collect())
-}
-
-/// Look up a string-keyed field of a map value.
-pub fn field<'a>(value: &'a Expr, name: &str) -> Option<&'a Expr> {
-    let Expr::Map(entries) = value else {
-        return None;
-    };
-    entries.iter().find_map(|(entry_key, entry_value)| {
-        matches!(entry_key, Expr::Symbol(symbol) if &*symbol.name == name && symbol.namespace.is_none())
-            .then_some(entry_value)
-    })
 }
 
 /// Build an article document from a title and an ordered list of blocks.

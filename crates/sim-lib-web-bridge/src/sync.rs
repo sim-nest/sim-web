@@ -31,8 +31,8 @@ use sim_lib_view::{
 
 /// One re-rendered Scene pushed to a surface/pane after a canonical edit.
 ///
-/// `diff` is the Scene patch from the pane's previously cached Scene to
-/// `scene`; applying it with [`sim_lib_scene::apply`] reconstructs `scene`.
+/// `diff` is the Scene patch from the pane's cached Scene to `scene`; applying
+/// it with [`sim_lib_scene::apply`] reconstructs `scene`.
 #[derive(Clone, Debug)]
 pub struct Broadcast {
     /// The surface that receives this update.
@@ -314,20 +314,16 @@ fn apply_set_value(operation: &Expr) -> Result<Expr> {
     let Expr::Map(entries) = operation else {
         return Err(Error::HostError("operation is not a map".to_owned()));
     };
-    let is_set_value = entries.iter().any(|(key, value)| {
-        matches!(key, Expr::Symbol(symbol) if &*symbol.name == "op")
-            && matches!(value, Expr::Symbol(symbol) if &*symbol.name == "set-value")
-    });
+    let is_set_value = matches!(
+        sim_value::access::entry_field(entries, "op"),
+        Some(Expr::Symbol(symbol)) if &*symbol.name == "set-value"
+    );
     if !is_set_value {
         return Err(Error::HostError(
             "operation is not a set-value op".to_owned(),
         ));
     }
-    entries
-        .iter()
-        .find_map(|(key, value)| {
-            matches!(key, Expr::Symbol(symbol) if &*symbol.name == "value").then_some(value)
-        })
+    sim_value::access::entry_field(entries, "value")
         .cloned()
         .ok_or_else(|| Error::HostError("set-value operation is missing a 'value'".to_owned()))
 }
@@ -397,15 +393,6 @@ mod tests {
         hub
     }
 
-    fn field(map: &Expr, name: &str) -> Option<Expr> {
-        let Expr::Map(entries) = map else {
-            return None;
-        };
-        entries.iter().find_map(|(key, value)| {
-            matches!(key, Expr::Symbol(symbol) if &*symbol.name == name).then(|| value.clone())
-        })
-    }
-
     #[test]
     fn an_edit_broadcasts_to_every_surface_viewing_the_resource() {
         let mut hub = hub_with_surfaces();
@@ -439,8 +426,14 @@ mod tests {
 
         // The canonical value changed.
         let canonical = hub.canonical(&sym("doc")).unwrap();
-        assert_eq!(field(canonical, "a"), Some(number("9")));
-        assert_eq!(field(canonical, "b"), Some(number("2")));
+        assert_eq!(
+            sim_value::access::field(canonical, "a").cloned(),
+            Some(number("9"))
+        );
+        assert_eq!(
+            sim_value::access::field(canonical, "b").cloned(),
+            Some(number("2"))
+        );
     }
 
     #[test]
@@ -536,7 +529,10 @@ mod tests {
 
         // The final canonical value reflects the LAST commit.
         let canonical = hub.canonical(&sym("doc")).unwrap().clone();
-        assert_eq!(field(&canonical, "a"), Some(number("20")));
+        assert_eq!(
+            sim_value::access::field(&canonical, "a").cloned(),
+            Some(number("20"))
+        );
 
         // The ledger has two rows with the right operators and ticks, in order.
         let ledger = hub.ledger();

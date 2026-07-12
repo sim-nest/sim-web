@@ -1,9 +1,9 @@
 //! Surface capability metadata -- the library-level "surface" output position.
 //!
-//! VIEW_4 frames a view as a codec at output position `surface`. The kernel
-//! keeps its closed [`sim_kernel::EncodePosition`] (`Eval`/`Quote`/`Data`/
-//! `Pattern`); the surface position lives here as OPEN metadata so a view/edit
-//! lens projects toward a device described purely by capability data, never a
+//! A view is a codec at output position `surface`. The kernel keeps its closed
+//! [`sim_kernel::EncodePosition`] (`Eval`/`Quote`/`Data`/`Pattern`); the surface
+//! position lives here as open metadata so a view/edit lens projects toward a
+//! device described purely by capability data, never a
 //! closed device enum. A surface advertises what it can show and accept; the
 //! projection ranker (see [`crate::dispatch`]) reads those capabilities.
 //!
@@ -142,18 +142,18 @@ impl SurfaceCaps {
         let Expr::Map(entries) = expr else {
             return Err(SurfaceError::NotCaps);
         };
-        match field(entries, "kind") {
+        match access::entry_field(entries, "kind") {
             Some(Expr::Symbol(kind))
                 if kind.namespace.as_deref() == Some(SURFACE_NAMESPACE)
                     && &*kind.name == CAPS_KIND => {}
             _ => return Err(SurfaceError::NotCaps),
         }
-        let client_id = match field(entries, "client-id") {
+        let client_id = match access::entry_field(entries, "client-id") {
             Some(Expr::String(text)) => text.clone(),
             Some(_) => return Err(SurfaceError::BadField("client-id")),
             None => return Err(SurfaceError::MissingField("client-id")),
         };
-        let preset = match field(entries, "preset") {
+        let preset = match access::entry_field(entries, "preset") {
             Some(Expr::Symbol(symbol)) => symbol.clone(),
             Some(_) => return Err(SurfaceError::BadField("preset")),
             None => return Err(SurfaceError::MissingField("preset")),
@@ -162,7 +162,7 @@ impl SurfaceCaps {
         let input = map_field(entries, "input")?;
         let transport = map_field(entries, "transport")?;
         let privacy = map_field(entries, "privacy")?;
-        let codecs = match field(entries, "codecs") {
+        let codecs = match access::entry_field(entries, "codecs") {
             Some(Expr::List(items)) => {
                 let mut out = Vec::with_capacity(items.len());
                 for item in items {
@@ -194,12 +194,12 @@ impl SurfaceCaps {
 
     /// Reads a boolean `input` capability flag, defaulting to `false`.
     pub fn input_flag(&self, name: &str) -> bool {
-        matches!(map_get(&self.input, name), Some(Expr::Bool(true)))
+        matches!(access::field(&self.input, name), Some(Expr::Bool(true)))
     }
 
     /// Reads the `display` density symbol (`glance`/`compact`/`regular`/`dense`).
     pub fn display_density(&self) -> Option<Symbol> {
-        match map_get(&self.display, "density") {
+        match access::field(&self.display, "density") {
             Some(Expr::Symbol(symbol)) => Some(symbol.clone()),
             _ => None,
         }
@@ -304,13 +304,6 @@ fn privacy_map(class: &str, retain_ms: u64) -> Expr {
     ])
 }
 
-fn field<'a>(entries: &'a [(Expr, Expr)], name: &str) -> Option<&'a Expr> {
-    entries.iter().find_map(|(key, value)| {
-        matches!(key, Expr::Symbol(symbol) if &*symbol.name == name && symbol.namespace.is_none())
-            .then_some(value)
-    })
-}
-
 fn map_field(entries: &[(Expr, Expr)], name: &'static str) -> Result<Expr, SurfaceError> {
     // Defer the required-field lookup to the shared `sim_value::access` reader
     // (mapping its error via `SurfaceError::from`); keep the map-shape check
@@ -319,13 +312,6 @@ fn map_field(entries: &[(Expr, Expr)], name: &'static str) -> Result<Expr, Surfa
     match access::entry_required(entries, name, "surface caps").map_err(SurfaceError::from)? {
         value @ Expr::Map(_) => Ok(value.clone()),
         _ => Err(SurfaceError::BadField(name)),
-    }
-}
-
-fn map_get<'a>(map: &'a Expr, name: &str) -> Option<&'a Expr> {
-    match map {
-        Expr::Map(entries) => field(entries, name),
-        _ => None,
     }
 }
 
