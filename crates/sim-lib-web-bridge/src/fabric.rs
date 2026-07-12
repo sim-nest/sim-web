@@ -172,14 +172,9 @@ mod tests {
             let Expr::Map(entries) = &request.expr else {
                 return Err(Error::HostError("operation is not a map".to_owned()));
             };
-            let value_expr = entries
-                .iter()
-                .find_map(|(key, value)| {
-                    matches!(key, Expr::Symbol(symbol) if &*symbol.name == "value").then_some(value)
-                })
-                .ok_or_else(|| {
-                    Error::HostError("set-value operation is missing a 'value'".to_owned())
-                })?;
+            let value_expr = sim_value::access::entry_field(entries, "value").ok_or_else(|| {
+                Error::HostError("set-value operation is missing a 'value'".to_owned())
+            })?;
             Ok(EvalReply {
                 value: cx.factory().expr(value_expr.clone())?,
                 diagnostics: Vec::new(),
@@ -237,16 +232,6 @@ mod tests {
         ])
     }
 
-    fn field<'a>(value: &'a Expr, name: &str) -> Option<&'a Expr> {
-        let Expr::Map(entries) = value else {
-            return None;
-        };
-        entries
-            .iter()
-            .find(|(key, _)| matches!(key, Expr::Symbol(symbol) if &*symbol.name == name))
-            .map(|(_, value)| value)
-    }
-
     #[test]
     fn session_commits_an_edit_through_the_fabric_and_the_scene_diff_reconstructs() {
         let mut cx = cx();
@@ -273,7 +258,7 @@ mod tests {
 
         // The fabric-stored value changed.
         let value = session.transport_mut().read(&sym("doc")).unwrap();
-        assert_eq!(field(&value, "a"), Some(&number("9")));
+        assert_eq!(sim_value::access::field(&value, "a"), Some(&number("9")));
 
         // Pumping yields a diff that reconstructs the new Scene from the old one.
         let updates = session.pump(&mut cx, &registry).unwrap();

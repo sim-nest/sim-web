@@ -10,10 +10,13 @@
 use std::sync::Arc;
 
 use sim_kernel::{Cx, DefaultFactory, Expr, NoopEvalPolicy, ShapeMatch, Symbol};
+use sim_value::access;
 
 use crate::kinds::{
     AT_TICK_KEY, KIND_KEY, OPERATOR_KEY, ORIGIN_KEY, is_known_kind, required_fields,
 };
+
+pub use sim_value::access::field;
 
 /// Who issued an Intent. Recorded on every Intent for audit; both a human
 /// (through the browser) and an agent (through the runner) are peers on the bus.
@@ -126,27 +129,15 @@ pub fn intent(kind_name: &str, origin: Origin, fields: Vec<(&str, Expr)>) -> Exp
     Expr::Map(pairs)
 }
 
-fn entry<'a>(entries: &'a [(Expr, Expr)], name: &str) -> Option<&'a Expr> {
-    entries.iter().find_map(|(key, value)| {
-        matches!(key, Expr::Symbol(symbol) if &*symbol.name == name && symbol.namespace.is_none())
-            .then_some(value)
-    })
-}
-
 /// If `expr` is a `kind`-tagged map, return the kind symbol.
 pub fn intent_kind_of(expr: &Expr) -> Option<Symbol> {
     let Expr::Map(entries) = expr else {
         return None;
     };
-    match entry(entries, KIND_KEY) {
+    match access::entry_field(entries, KIND_KEY) {
         Some(Expr::Symbol(kind)) => Some(kind.clone()),
         _ => None,
     }
-}
-
-/// Read a top-level Intent field by name.
-pub fn field<'a>(expr: &'a Expr, name: &str) -> Option<&'a Expr> {
-    sim_value::access::field(expr, name)
 }
 
 /// Parse the origin of an Intent, if present and well-formed.
@@ -155,11 +146,11 @@ pub fn origin(expr: &Expr) -> Option<Origin> {
     let Expr::Map(entries) = origin else {
         return None;
     };
-    let operator = match entry(entries, OPERATOR_KEY) {
+    let operator = match access::entry_field(entries, OPERATOR_KEY) {
         Some(Expr::Symbol(symbol)) => Operator::from_name(&symbol.name)?,
         _ => return None,
     };
-    let at_tick = match entry(entries, AT_TICK_KEY) {
+    let at_tick = match access::entry_field(entries, AT_TICK_KEY) {
         Some(Expr::Number(number)) => number.canonical.parse::<u64>().ok()?,
         _ => return None,
     };
@@ -173,7 +164,7 @@ pub fn validate_intent(expr: &Expr) -> Result<(), IntentError> {
     let Expr::Map(entries) = expr else {
         return Err(IntentError::at(&[], "an Intent must be a map"));
     };
-    let kind = match entry(entries, KIND_KEY) {
+    let kind = match access::entry_field(entries, KIND_KEY) {
         Some(Expr::Symbol(kind)) if is_known_kind(kind) => kind.clone(),
         Some(Expr::Symbol(kind)) => {
             return Err(IntentError::at(
@@ -194,7 +185,7 @@ pub fn validate_intent(expr: &Expr) -> Result<(), IntentError> {
     }
     validate_origin(entries)?;
     for required in required_fields(&kind.name) {
-        let Some(value) = entry(entries, required) else {
+        let Some(value) = access::entry_field(entries, required) else {
             return Err(IntentError::at(
                 &[required],
                 format!("Intent '{kind}' is missing required field '{required}'"),
@@ -230,7 +221,7 @@ fn rejection_message(matched: &ShapeMatch, fallback: &str) -> String {
 }
 
 fn validate_origin(entries: &[(Expr, Expr)]) -> Result<(), IntentError> {
-    let Some(origin) = entry(entries, ORIGIN_KEY) else {
+    let Some(origin) = access::entry_field(entries, ORIGIN_KEY) else {
         return Err(IntentError::at(
             &[ORIGIN_KEY],
             "Intent is missing an 'origin'",
@@ -242,7 +233,7 @@ fn validate_origin(entries: &[(Expr, Expr)]) -> Result<(), IntentError> {
             "Intent 'origin' must be a map",
         ));
     };
-    match entry(origin_entries, OPERATOR_KEY) {
+    match access::entry_field(origin_entries, OPERATOR_KEY) {
         Some(Expr::Symbol(symbol)) if Operator::from_name(&symbol.name).is_some() => {}
         _ => {
             return Err(IntentError::at(
@@ -251,7 +242,7 @@ fn validate_origin(entries: &[(Expr, Expr)]) -> Result<(), IntentError> {
             ));
         }
     }
-    match entry(origin_entries, AT_TICK_KEY) {
+    match access::entry_field(origin_entries, AT_TICK_KEY) {
         Some(Expr::Number(_)) => Ok(()),
         _ => Err(IntentError::at(
             &[ORIGIN_KEY, AT_TICK_KEY],
@@ -307,7 +298,7 @@ pub fn referenced_targets(expr: &Expr) -> Vec<(String, Expr)> {
         "wire" => {
             for end in ["from", "to"] {
                 if let Some(Expr::Map(port)) = field(expr, end)
-                    && let Some(node) = entry(port, "node")
+                    && let Some(node) = access::entry_field(port, "node")
                 {
                     refs.push((format!("{end}.node"), node.clone()));
                 }
