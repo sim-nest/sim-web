@@ -17,7 +17,7 @@ serde_json = "1"
 sim-codec-algol = { version = "0.1.0" }
 sim-codec-binary = { version = "0.1.0" }
 sim-codec-chat = { version = "0.1.0" }
-sim-codec-json = { version = "0.1.0" }
+sim-codec-json = { version = "0.1.2" }
 sim-codec-lisp = { version = "0.1.0" }
 sim-kernel = { version = "0.1.0" }
 sim-lib-net-core = { version = "0.1.0" }
@@ -32,7 +32,7 @@ sim-value = { version = "0.1.0" }
 sim-codec = { version = "0.1.0" }
 sim-codec-algol = { version = "0.1.0" }
 sim-codec-binary = { version = "0.1.0" }
-sim-codec-json = { version = "0.1.0" }
+sim-codec-json = { version = "0.1.2" }
 sim-codec-lisp = { version = "0.1.0" }
 sim-kernel = { version = "0.1.0" }
 sim-lib-daw-session = { version = "0.1.0" }
