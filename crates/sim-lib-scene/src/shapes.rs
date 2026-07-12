@@ -1,86 +1,91 @@
 //! Shapes for scene node kinds.
 //!
 //! Each baseline scene node kind gets a Shape that matches an `Expr::Map` whose
-//! `kind` tag equals that kind. View selection (WEBUI_4 P3) is overload
-//! selection over these Shapes, so the same matcher the kernel already uses for
-//! dispatch chooses lenses; there is no separate selection ladder. An umbrella
-//! `scene/Scene` Shape matches any recognized scene node and is used as the
-//! `codec:scene` expression shape.
+//! `kind` tag equals that kind. View selection is overload selection over these
+//! Shapes, so the same matcher the kernel already uses for dispatch chooses
+//! lenses; there is no separate selection ladder. An umbrella `scene/Scene`
+//! Shape matches any recognized scene node and is used as the `codec:scene`
+//! expression shape.
+
+use std::sync::Arc;
 
 use sim_kernel::{Cx, Expr, MatchScore, Result, Shape, ShapeDoc, ShapeMatch, Symbol, Value};
+use sim_shape::{ExactExprShape, OrShape, TableExtraPolicy, TableFieldSpec, TableShape};
 
-use crate::kinds::{SCENE_KINDS, SCENE_NAMESPACE, is_known_kind, scene_kind};
-use crate::model::node_kind;
+use crate::kinds::{KIND_KEY, SCENE_KINDS, SCENE_NAMESPACE, scene_kind};
 
-/// A Shape that accepts exactly one scene node kind.
-pub struct SceneNodeShape {
-    kind: Symbol,
+struct RankedShape {
     symbol: Symbol,
+    name: String,
+    detail: String,
+    score: MatchScore,
+    inner: Arc<dyn Shape>,
 }
 
-impl SceneNodeShape {
-    /// Build the Shape for the scene node kind named `name` (e.g. `graph`).
-    pub fn new(name: &str) -> Self {
-        Self {
-            kind: scene_kind(name),
-            symbol: Symbol::qualified(SCENE_NAMESPACE, capitalize(name)),
+impl RankedShape {
+    fn ranked(&self, mut matched: ShapeMatch) -> ShapeMatch {
+        if matched.accepted {
+            matched.score = self.score;
         }
+        matched
     }
 }
 
-impl Shape for SceneNodeShape {
+impl Shape for RankedShape {
     fn symbol(&self) -> Option<Symbol> {
         Some(self.symbol.clone())
     }
 
-    fn check_value(&self, cx: &mut Cx, value: Value) -> Result<ShapeMatch> {
-        let expr = value.object().as_expr(cx)?;
-        self.check_expr(cx, &expr)
+    fn is_effectful(&self) -> bool {
+        self.inner.is_effectful()
     }
 
-    fn check_expr(&self, _cx: &mut Cx, expr: &Expr) -> Result<ShapeMatch> {
-        match node_kind(expr) {
-            Some(kind) if kind == self.kind => Ok(ShapeMatch::accept(MatchScore::exact(20))),
-            Some(kind) => Ok(ShapeMatch::reject(format!(
-                "scene node kind '{kind}' does not match '{}'",
-                self.kind
-            ))),
-            None => Ok(ShapeMatch::reject("value is not a scene node")),
-        }
+    fn is_total(&self) -> bool {
+        self.inner.is_total()
+    }
+
+    fn check_value(&self, cx: &mut Cx, value: Value) -> Result<ShapeMatch> {
+        self.inner
+            .check_value(cx, value)
+            .map(|matched| self.ranked(matched))
+    }
+
+    fn check_expr(&self, cx: &mut Cx, expr: &Expr) -> Result<ShapeMatch> {
+        self.inner
+            .check_expr(cx, expr)
+            .map(|matched| self.ranked(matched))
     }
 
     fn describe(&self, _cx: &mut Cx) -> Result<ShapeDoc> {
-        Ok(ShapeDoc::new(self.symbol.name.to_string())
-            .with_detail(format!("matches scene nodes tagged '{}'", self.kind)))
+        Ok(ShapeDoc::new(self.name.clone()).with_detail(self.detail.clone()))
     }
 }
 
-/// The umbrella Shape that accepts any recognized scene node.
-pub struct SceneShape;
+fn kind_field_shape(kind: Symbol) -> Arc<dyn Shape> {
+    Arc::new(TableShape::new(
+        vec![TableFieldSpec {
+            key: Symbol::new(KIND_KEY),
+            shape: Arc::new(ExactExprShape::new(Expr::Symbol(kind))),
+            required: true,
+        }],
+        TableExtraPolicy::Allow,
+    ))
+}
 
-impl Shape for SceneShape {
-    fn symbol(&self) -> Option<Symbol> {
-        Some(Symbol::qualified(SCENE_NAMESPACE, "Scene"))
-    }
-
-    fn check_value(&self, cx: &mut Cx, value: Value) -> Result<ShapeMatch> {
-        let expr = value.object().as_expr(cx)?;
-        self.check_expr(cx, &expr)
-    }
-
-    fn check_expr(&self, _cx: &mut Cx, expr: &Expr) -> Result<ShapeMatch> {
-        match node_kind(expr) {
-            Some(kind) if is_known_kind(&kind) => Ok(ShapeMatch::accept(MatchScore::exact(5))),
-            Some(kind) => Ok(ShapeMatch::reject(format!(
-                "unrecognized scene kind '{kind}'"
-            ))),
-            None => Ok(ShapeMatch::reject("value is not a scene node")),
-        }
-    }
-
-    fn describe(&self, _cx: &mut Cx) -> Result<ShapeDoc> {
-        Ok(ShapeDoc::new("Scene").with_detail("any recognized scene node (a kind-tagged map)"))
-    }
+fn ranked_shape(
+    symbol: Symbol,
+    name: impl Into<String>,
+    detail: impl Into<String>,
+    score: i32,
+    inner: Arc<dyn Shape>,
+) -> Arc<dyn Shape> {
+    Arc::new(RankedShape {
+        symbol,
+        name: name.into(),
+        detail: detail.into(),
+        score: MatchScore::exact(score),
+        inner,
+    })
 }
 
 /// The symbol for the umbrella `scene/Scene` Shape.
@@ -88,14 +93,39 @@ pub fn scene_shape_symbol() -> Symbol {
     Symbol::qualified(SCENE_NAMESPACE, "Scene")
 }
 
+pub(crate) fn scene_shape() -> Arc<dyn Shape> {
+    let choices = SCENE_KINDS
+        .iter()
+        .map(|name| kind_field_shape(scene_kind(name)))
+        .collect();
+    ranked_shape(
+        scene_shape_symbol(),
+        "Scene",
+        "any recognized scene node (a kind-tagged map)",
+        5,
+        Arc::new(OrShape::new(choices)),
+    )
+}
+
+fn scene_node_shape(name: &str) -> (Symbol, Arc<dyn Shape>) {
+    let symbol = Symbol::qualified(SCENE_NAMESPACE, capitalize(name));
+    let kind = scene_kind(name);
+    let shape = ranked_shape(
+        symbol.clone(),
+        symbol.name.to_string(),
+        format!("matches scene nodes tagged '{kind}'"),
+        20,
+        kind_field_shape(kind),
+    );
+    (symbol, shape)
+}
+
 /// Build `(symbol, shape)` registrations for the umbrella Shape plus every
 /// baseline scene node kind Shape.
-pub fn scene_shape_specs() -> Vec<(Symbol, std::sync::Arc<dyn Shape>)> {
-    let mut specs: Vec<(Symbol, std::sync::Arc<dyn Shape>)> =
-        vec![(scene_shape_symbol(), std::sync::Arc::new(SceneShape))];
+pub fn scene_shape_specs() -> Vec<(Symbol, Arc<dyn Shape>)> {
+    let mut specs: Vec<(Symbol, Arc<dyn Shape>)> = vec![(scene_shape_symbol(), scene_shape())];
     for name in SCENE_KINDS {
-        let shape = SceneNodeShape::new(name);
-        specs.push((shape.symbol.clone(), std::sync::Arc::new(shape)));
+        specs.push(scene_node_shape(name));
     }
     specs
 }

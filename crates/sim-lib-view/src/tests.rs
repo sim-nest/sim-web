@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use sim_kernel::{CapabilityName, Cx, Expr, Result, Symbol};
 use sim_lib_intent::Origin;
-use sim_lib_scene::shapes::{SceneNodeShape, SceneShape};
+use sim_lib_scene::{scene_shape_specs, scene_shape_symbol};
 use sim_shape::{AnyShape, shape_value};
 
 use crate::contract::{Draft, Editor, Lens, LensKind, LensMeta, Operation, View};
@@ -20,18 +20,33 @@ fn node_shape(name: &str) -> Expr {
 }
 
 fn scene_node_shape_value(name: &str) -> sim_kernel::Value {
-    shape_value(
-        Symbol::qualified("scene", name),
-        Arc::new(SceneNodeShape::new(name)),
-    )
+    let symbol = Symbol::qualified("scene", capitalize(name));
+    shape_value(symbol.clone(), shape_for_symbol(symbol))
 }
 
 fn umbrella_scene_shape_value() -> sim_kernel::Value {
-    shape_value(Symbol::qualified("scene", "Scene"), Arc::new(SceneShape))
+    let symbol = scene_shape_symbol();
+    shape_value(symbol.clone(), shape_for_symbol(symbol))
+}
+
+fn shape_for_symbol(symbol: Symbol) -> Arc<dyn sim_kernel::Shape> {
+    scene_shape_specs()
+        .into_iter()
+        .find(|(candidate, _)| candidate == &symbol)
+        .map(|(_, shape)| shape)
+        .unwrap_or_else(|| panic!("missing scene shape {symbol}"))
 }
 
 fn any_shape_value() -> sim_kernel::Value {
     shape_value(Symbol::qualified("core", "Any"), Arc::new(AnyShape))
+}
+
+fn capitalize(name: &str) -> String {
+    let mut chars = name.chars();
+    match chars.next() {
+        Some(first) => first.to_ascii_uppercase().to_string() + chars.as_str(),
+        None => String::new(),
+    }
 }
 
 fn grant_all(_: &CapabilityName) -> bool {

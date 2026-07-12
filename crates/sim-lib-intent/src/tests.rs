@@ -10,7 +10,8 @@ use crate::gesture::{
 };
 use crate::{
     INTENT_KINDS, IntentCodecLib, Origin, intent, intent_codec_symbol, intent_kind_of,
-    referenced_targets, required_fields, resolve_targets, validate_intent,
+    intent_shape_specs, intent_shape_symbol, referenced_targets, required_fields, resolve_targets,
+    validate_intent,
 };
 
 fn cx() -> Cx {
@@ -102,6 +103,28 @@ fn validation_rejects_structural_problems() {
         ],
     );
     assert!(validate_intent(&bad_path).is_err());
+}
+
+#[test]
+fn kind_shapes_reject_wrong_kind_and_keep_dispatch_scores() {
+    let mut cx = cx();
+    let wire = sample_intent("wire");
+    let move_node = sample_intent("move");
+    let wire_shape = intent_shape("Wire");
+    let umbrella = intent_shape_symbol_shape();
+
+    let wire_match = wire_shape.check_expr(&mut cx, &wire).unwrap();
+    assert!(wire_match.accepted);
+    assert_eq!(wire_match.score.value(), 20);
+
+    assert!(!wire_shape.check_expr(&mut cx, &move_node).unwrap().accepted);
+
+    let umbrella_match = umbrella.check_expr(&mut cx, &move_node).unwrap();
+    assert!(umbrella_match.accepted);
+    assert_eq!(umbrella_match.score.value(), 5);
+
+    let unknown = intent("not-a-real-kind", Origin::human(1), vec![]);
+    assert!(!umbrella.check_expr(&mut cx, &unknown).unwrap().accepted);
 }
 
 #[test]
@@ -345,4 +368,21 @@ fn down(x: f64, y: f64, hit: Hit) -> PointerEvent {
 
 fn up(x: f64, y: f64, hit: Hit) -> PointerEvent {
     event(PointerPhase::Up, x, y, hit)
+}
+
+fn intent_shape(name: &str) -> Arc<dyn sim_kernel::Shape> {
+    let symbol = Symbol::qualified("intent", name);
+    shape_by_symbol(symbol)
+}
+
+fn intent_shape_symbol_shape() -> Arc<dyn sim_kernel::Shape> {
+    shape_by_symbol(intent_shape_symbol())
+}
+
+fn shape_by_symbol(symbol: Symbol) -> Arc<dyn sim_kernel::Shape> {
+    intent_shape_specs()
+        .into_iter()
+        .find(|(candidate, _)| candidate == &symbol)
+        .map(|(_, shape)| shape)
+        .unwrap_or_else(|| panic!("missing Intent shape {symbol}"))
 }

@@ -6,7 +6,9 @@
 //! malformed scene into a structured [`SceneError`] (a path plus a message)
 //! rather than a panic.
 
-use sim_kernel::{Expr, Symbol};
+use std::sync::Arc;
+
+use sim_kernel::{Cx, DefaultFactory, Expr, NoopEvalPolicy, ShapeMatch, Symbol};
 
 use crate::kinds::{KIND_KEY, is_known_kind};
 
@@ -90,6 +92,7 @@ pub fn validate_scene(expr: &Expr) -> Result<(), SceneError> {
 }
 
 fn validate_node(expr: &Expr, path: &mut Vec<String>) -> Result<(), SceneError> {
+    let shape_error = check_scene_shape(expr, path)?;
     let Expr::Map(entries) = expr else {
         return Err(SceneError::at(
             path,
@@ -115,7 +118,27 @@ fn validate_node(expr: &Expr, path: &mut Vec<String>) -> Result<(), SceneError> 
             return Err(SceneError::at(path, "scene node 'kind' must be a symbol"));
         }
     }
+    if let Some(message) = shape_error {
+        return Err(SceneError::at(path, message));
+    }
     validate_children(entries, path)
+}
+
+fn check_scene_shape(expr: &Expr, path: &[String]) -> Result<Option<String>, SceneError> {
+    let mut cx = Cx::new(Arc::new(NoopEvalPolicy), Arc::new(DefaultFactory));
+    let matched = crate::shapes::scene_shape()
+        .check_expr(&mut cx, expr)
+        .map_err(|error| SceneError::at(path, format!("scene shape check failed: {error}")))?;
+    Ok((!matched.accepted)
+        .then(|| rejection_message(&matched, "value is not a recognized scene node")))
+}
+
+fn rejection_message(matched: &ShapeMatch, fallback: &str) -> String {
+    matched
+        .diagnostics
+        .first()
+        .map(|diagnostic| diagnostic.message.clone())
+        .unwrap_or_else(|| fallback.to_owned())
 }
 
 fn validate_children(entries: &[(Expr, Expr)], path: &mut Vec<String>) -> Result<(), SceneError> {

@@ -3,85 +3,88 @@
 //! Each baseline Intent kind gets a Shape that matches a `kind`-tagged
 //! `Expr::Map` for that kind; an umbrella `intent/Intent` Shape matches any
 //! recognized Intent and is used as the `codec:intent` expression shape. Editor
-//! dispatch (WEBUI_4 P3) selects editors by Shape match over these, reusing the
-//! kernel matcher.
+//! dispatch selects editors by Shape match over these, reusing the kernel
+//! matcher.
 
 use std::sync::Arc;
 
 use sim_kernel::{Cx, Expr, MatchScore, Result, Shape, ShapeDoc, ShapeMatch, Symbol, Value};
+use sim_shape::{ExactExprShape, OrShape, TableExtraPolicy, TableFieldSpec, TableShape};
 
-use crate::kinds::{INTENT_KINDS, INTENT_NAMESPACE, intent_kind, is_known_kind};
-use crate::model::intent_kind_of;
+use crate::kinds::{INTENT_KINDS, INTENT_NAMESPACE, KIND_KEY, intent_kind};
 
-/// A Shape that accepts exactly one Intent kind.
-pub struct IntentKindShape {
-    kind: Symbol,
+struct RankedShape {
     symbol: Symbol,
+    name: String,
+    detail: String,
+    score: MatchScore,
+    inner: Arc<dyn Shape>,
 }
 
-impl IntentKindShape {
-    /// Build the Shape for the Intent kind named `name` (e.g. `wire`).
-    pub fn new(name: &str) -> Self {
-        Self {
-            kind: intent_kind(name),
-            symbol: Symbol::qualified(INTENT_NAMESPACE, pascal_case(name)),
+impl RankedShape {
+    fn ranked(&self, mut matched: ShapeMatch) -> ShapeMatch {
+        if matched.accepted {
+            matched.score = self.score;
         }
+        matched
     }
 }
 
-impl Shape for IntentKindShape {
+impl Shape for RankedShape {
     fn symbol(&self) -> Option<Symbol> {
         Some(self.symbol.clone())
     }
 
-    fn check_value(&self, cx: &mut Cx, value: Value) -> Result<ShapeMatch> {
-        let expr = value.object().as_expr(cx)?;
-        self.check_expr(cx, &expr)
+    fn is_effectful(&self) -> bool {
+        self.inner.is_effectful()
     }
 
-    fn check_expr(&self, _cx: &mut Cx, expr: &Expr) -> Result<ShapeMatch> {
-        match intent_kind_of(expr) {
-            Some(kind) if kind == self.kind => Ok(ShapeMatch::accept(MatchScore::exact(20))),
-            Some(kind) => Ok(ShapeMatch::reject(format!(
-                "Intent kind '{kind}' does not match '{}'",
-                self.kind
-            ))),
-            None => Ok(ShapeMatch::reject("value is not an Intent")),
-        }
+    fn is_total(&self) -> bool {
+        self.inner.is_total()
+    }
+
+    fn check_value(&self, cx: &mut Cx, value: Value) -> Result<ShapeMatch> {
+        self.inner
+            .check_value(cx, value)
+            .map(|matched| self.ranked(matched))
+    }
+
+    fn check_expr(&self, cx: &mut Cx, expr: &Expr) -> Result<ShapeMatch> {
+        self.inner
+            .check_expr(cx, expr)
+            .map(|matched| self.ranked(matched))
     }
 
     fn describe(&self, _cx: &mut Cx) -> Result<ShapeDoc> {
-        Ok(ShapeDoc::new(self.symbol.name.to_string())
-            .with_detail(format!("matches Intents tagged '{}'", self.kind)))
+        Ok(ShapeDoc::new(self.name.clone()).with_detail(self.detail.clone()))
     }
 }
 
-/// The umbrella Shape that accepts any recognized Intent.
-pub struct IntentShape;
+fn kind_field_shape(kind: Symbol) -> Arc<dyn Shape> {
+    Arc::new(TableShape::new(
+        vec![TableFieldSpec {
+            key: Symbol::new(KIND_KEY),
+            shape: Arc::new(ExactExprShape::new(Expr::Symbol(kind))),
+            required: true,
+        }],
+        TableExtraPolicy::Allow,
+    ))
+}
 
-impl Shape for IntentShape {
-    fn symbol(&self) -> Option<Symbol> {
-        Some(intent_shape_symbol())
-    }
-
-    fn check_value(&self, cx: &mut Cx, value: Value) -> Result<ShapeMatch> {
-        let expr = value.object().as_expr(cx)?;
-        self.check_expr(cx, &expr)
-    }
-
-    fn check_expr(&self, _cx: &mut Cx, expr: &Expr) -> Result<ShapeMatch> {
-        match intent_kind_of(expr) {
-            Some(kind) if is_known_kind(&kind) => Ok(ShapeMatch::accept(MatchScore::exact(5))),
-            Some(kind) => Ok(ShapeMatch::reject(format!(
-                "unrecognized Intent kind '{kind}'"
-            ))),
-            None => Ok(ShapeMatch::reject("value is not an Intent")),
-        }
-    }
-
-    fn describe(&self, _cx: &mut Cx) -> Result<ShapeDoc> {
-        Ok(ShapeDoc::new("Intent").with_detail("any recognized Intent (a kind-tagged map)"))
-    }
+fn ranked_shape(
+    symbol: Symbol,
+    name: impl Into<String>,
+    detail: impl Into<String>,
+    score: i32,
+    inner: Arc<dyn Shape>,
+) -> Arc<dyn Shape> {
+    Arc::new(RankedShape {
+        symbol,
+        name: name.into(),
+        detail: detail.into(),
+        score: MatchScore::exact(score),
+        inner,
+    })
 }
 
 /// The symbol for the umbrella `intent/Intent` Shape.
@@ -89,14 +92,39 @@ pub fn intent_shape_symbol() -> Symbol {
     Symbol::qualified(INTENT_NAMESPACE, "Intent")
 }
 
+pub(crate) fn intent_shape() -> Arc<dyn Shape> {
+    let choices = INTENT_KINDS
+        .iter()
+        .map(|name| kind_field_shape(intent_kind(name)))
+        .collect();
+    ranked_shape(
+        intent_shape_symbol(),
+        "Intent",
+        "any recognized Intent (a kind-tagged map)",
+        5,
+        Arc::new(OrShape::new(choices)),
+    )
+}
+
+fn intent_kind_shape(name: &str) -> (Symbol, Arc<dyn Shape>) {
+    let symbol = Symbol::qualified(INTENT_NAMESPACE, pascal_case(name));
+    let kind = intent_kind(name);
+    let shape = ranked_shape(
+        symbol.clone(),
+        symbol.name.to_string(),
+        format!("matches Intents tagged '{kind}'"),
+        20,
+        kind_field_shape(kind),
+    );
+    (symbol, shape)
+}
+
 /// Build `(symbol, shape)` registrations for the umbrella Shape plus every
 /// baseline Intent kind Shape.
 pub fn intent_shape_specs() -> Vec<(Symbol, Arc<dyn Shape>)> {
-    let mut specs: Vec<(Symbol, Arc<dyn Shape>)> =
-        vec![(intent_shape_symbol(), Arc::new(IntentShape))];
+    let mut specs: Vec<(Symbol, Arc<dyn Shape>)> = vec![(intent_shape_symbol(), intent_shape())];
     for name in INTENT_KINDS {
-        let shape = IntentKindShape::new(name);
-        specs.push((shape.symbol.clone(), Arc::new(shape)));
+        specs.push(intent_kind_shape(name));
     }
     specs
 }
