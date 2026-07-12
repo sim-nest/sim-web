@@ -7,7 +7,10 @@ use sim_kernel::{
     Cx, DefaultFactory, EagerPolicy, EncodeOptions, Expr, NumberLiteral, ReadPolicy, Symbol,
 };
 
-use crate::{SceneCodecLib, apply, diff, map, node, scene_codec_symbol, text, validate_scene};
+use crate::{
+    SceneCodecLib, apply, diff, map, node, scene_codec_symbol, scene_shape_specs,
+    scene_shape_symbol, text, validate_scene,
+};
 
 fn cx() -> Cx {
     let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
@@ -178,6 +181,28 @@ fn validate_rejects_kindless_and_non_symbol_kinds() {
 }
 
 #[test]
+fn kind_shapes_reject_wrong_kind_and_keep_dispatch_scores() {
+    let mut cx = cx();
+    let graph = node("graph", vec![("id", sym("graph-main"))]);
+    let box_node = node("box", vec![("id", sym("box-main"))]);
+    let graph_shape = scene_shape("Graph");
+    let umbrella = scene_shape_symbol_shape();
+
+    let graph_match = graph_shape.check_expr(&mut cx, &graph).unwrap();
+    assert!(graph_match.accepted);
+    assert_eq!(graph_match.score.value(), 20);
+
+    assert!(!graph_shape.check_expr(&mut cx, &box_node).unwrap().accepted);
+
+    let umbrella_match = umbrella.check_expr(&mut cx, &box_node).unwrap();
+    assert!(umbrella_match.accepted);
+    assert_eq!(umbrella_match.score.value(), 5);
+
+    let unknown = node("not-a-real-kind", vec![]);
+    assert!(!umbrella.check_expr(&mut cx, &unknown).unwrap().accepted);
+}
+
+#[test]
 fn validates_music_editor_scene_kinds() {
     for kind in ["piano-roll", "player-rack", "object-roll"] {
         validate_scene(&node(kind, vec![("target", sym("target"))]))
@@ -320,4 +345,21 @@ fn set_top_key(scene: &mut Expr, key: &str, value: Expr) {
     } else {
         entries.push((Expr::Symbol(Symbol::new(key)), value));
     }
+}
+
+fn scene_shape(name: &str) -> std::sync::Arc<dyn sim_kernel::Shape> {
+    let symbol = Symbol::qualified("scene", name);
+    shape_by_symbol(symbol)
+}
+
+fn scene_shape_symbol_shape() -> std::sync::Arc<dyn sim_kernel::Shape> {
+    shape_by_symbol(scene_shape_symbol())
+}
+
+fn shape_by_symbol(symbol: Symbol) -> std::sync::Arc<dyn sim_kernel::Shape> {
+    scene_shape_specs()
+        .into_iter()
+        .find(|(candidate, _)| candidate == &symbol)
+        .map(|(_, shape)| shape)
+        .unwrap_or_else(|| panic!("missing scene shape {symbol}"))
 }

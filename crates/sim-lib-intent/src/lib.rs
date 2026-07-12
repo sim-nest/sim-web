@@ -1,4 +1,4 @@
-//! Intent value model, gesture algebra, and `codec:intent` (WEBUI_4).
+//! Intent value model, gesture algebra, and `codec:intent`.
 //!
 //! An Intent is a user (or agent) gesture expressed as a SIM value and decoded
 //! into a checked operation. An Intent says *what the operator wants*, in terms
@@ -34,7 +34,7 @@ pub use model::{
     IntentError, Operator, Origin, field, intent, intent_kind_of, origin, referenced_targets,
     resolve_targets, validate_intent,
 };
-pub use shapes::{IntentKindShape, IntentShape, intent_shape_specs, intent_shape_symbol};
+pub use shapes::{intent_shape_specs, intent_shape_symbol};
 
 /// Embedded cookbook recipe books shipped with this library.
 pub static RECIPES: sim_cookbook::EmbeddedDir =

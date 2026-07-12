@@ -7,7 +7,9 @@
 //! an Intent references against a caller-supplied predicate so an Intent naming
 //! an unknown target produces a diagnostic rather than a partial mutation.
 
-use sim_kernel::{Expr, Symbol};
+use std::sync::Arc;
+
+use sim_kernel::{Cx, DefaultFactory, Expr, NoopEvalPolicy, ShapeMatch, Symbol};
 
 use crate::kinds::{
     AT_TICK_KEY, KIND_KEY, OPERATOR_KEY, ORIGIN_KEY, is_known_kind, required_fields,
@@ -167,6 +169,7 @@ pub fn origin(expr: &Expr) -> Option<Origin> {
 /// Validate that `expr` is a structurally well-formed Intent, failing closed
 /// with an [`IntentError`] otherwise.
 pub fn validate_intent(expr: &Expr) -> Result<(), IntentError> {
+    let shape_error = check_intent_shape(expr)?;
     let Expr::Map(entries) = expr else {
         return Err(IntentError::at(&[], "an Intent must be a map"));
     };
@@ -186,6 +189,9 @@ pub fn validate_intent(expr: &Expr) -> Result<(), IntentError> {
         }
         None => return Err(IntentError::at(&[], "Intent is missing a 'kind' tag")),
     };
+    if let Some(message) = shape_error {
+        return Err(IntentError::at(&[], message));
+    }
     validate_origin(entries)?;
     for required in required_fields(&kind.name) {
         let Some(value) = entry(entries, required) else {
@@ -202,6 +208,25 @@ pub fn validate_intent(expr: &Expr) -> Result<(), IntentError> {
         }
     }
     Ok(())
+}
+
+fn check_intent_shape(expr: &Expr) -> Result<Option<String>, IntentError> {
+    let mut cx = Cx::new(Arc::new(NoopEvalPolicy), Arc::new(DefaultFactory));
+    let matched = crate::shapes::intent_shape()
+        .check_expr(&mut cx, expr)
+        .map_err(|error| IntentError::at(&[], format!("Intent shape check failed: {error}")))?;
+    Ok(
+        (!matched.accepted)
+            .then(|| rejection_message(&matched, "value is not a recognized Intent")),
+    )
+}
+
+fn rejection_message(matched: &ShapeMatch, fallback: &str) -> String {
+    matched
+        .diagnostics
+        .first()
+        .map(|diagnostic| diagnostic.message.clone())
+        .unwrap_or_else(|| fallback.to_owned())
 }
 
 fn validate_origin(entries: &[(Expr, Expr)]) -> Result<(), IntentError> {

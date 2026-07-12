@@ -1,4 +1,4 @@
-//! Scene value model and `codec:scene` for the SIM Web-UI (WEBUI_4).
+//! Scene value model and `codec:scene` for the SIM Web-UI.
 //!
 //! A Scene is a portable graphical intermediate representation that is itself a
 //! SIM value: a tree of scene nodes built on kernel `Value`/`Expr` using open
@@ -34,7 +34,7 @@ pub use codec::{SceneCodec, SceneCodecLib, scene_codec_symbol};
 pub use diff::{apply, diff};
 pub use kinds::{SCENE_KINDS, SCENE_NAMESPACE, is_known_kind, scene_kind};
 pub use model::{SceneError, map, node, node_kind, validate_scene};
-pub use shapes::{SceneNodeShape, SceneShape, scene_shape_specs, scene_shape_symbol};
+pub use shapes::{scene_shape_specs, scene_shape_symbol};
 
 /// Embedded cookbook recipe books shipped with this library.
 pub static RECIPES: sim_cookbook::EmbeddedDir =

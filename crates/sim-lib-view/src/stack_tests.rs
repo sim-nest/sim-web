@@ -1,10 +1,8 @@
 //! Tests for the lens stack, intent/set-lens, and scene embedding.
 
-use std::sync::Arc;
-
 use sim_kernel::{CapabilityName, Expr, Symbol};
 use sim_lib_intent::{Origin, intent};
-use sim_lib_scene::shapes::{SceneNodeShape, SceneShape};
+use sim_lib_scene::{scene_shape_specs, scene_shape_symbol};
 use sim_shape::shape_value;
 
 use crate::contract::{Lens, LensKind, LensMeta};
@@ -25,21 +23,24 @@ fn registry() -> LensRegistry {
     register_universal_default(&mut registry, false);
     registry.register(Lens::metadata_only(
         LensMeta::new(sym("view:scene-generic"), LensKind::View)
-            .claiming_shape(shape_value(
-                Symbol::qualified("scene", "Scene"),
-                Arc::new(SceneShape),
-            ))
+            .claiming_shape(scene_shape_value(scene_shape_symbol()))
             .with_quality_cost(0, 10),
     ));
     registry.register(Lens::metadata_only(
         LensMeta::new(sym("view:graph"), LensKind::View)
-            .claiming_shape(shape_value(
-                Symbol::qualified("scene", "graph"),
-                Arc::new(SceneNodeShape::new("graph")),
-            ))
+            .claiming_shape(scene_shape_value(Symbol::qualified("scene", "Graph")))
             .with_quality_cost(10, 5),
     ));
     registry
+}
+
+fn scene_shape_value(symbol: Symbol) -> sim_kernel::Value {
+    let shape = scene_shape_specs()
+        .into_iter()
+        .find(|(candidate, _)| candidate == &symbol)
+        .map(|(_, shape)| shape)
+        .unwrap_or_else(|| panic!("missing scene shape {symbol}"));
+    shape_value(symbol, shape)
 }
 
 #[test]
