@@ -12,4 +12,4 @@ Intent value model, gesture algebra, and codec:intent (WEBUI_4).
 
 ## Crate Documentation
 
-Intent value model, gesture algebra, and codec:intent (WEBUI_4).
+Intent value model, gesture algebra, and codec:intent.

@@ -11,7 +11,7 @@ Generated from Cargo metadata by `xtask crate-catalog v1`.
 | `sim-lib-view-agent` | `true` | `custom-build, lib` | Agent and topology composer lens plus the live monitor for the SIM Web-UI (WEBUI_4); the flagship that proves the one-bus thesis. |
 | `sim-lib-view-codec` | `true` | `custom-build, lib` | Codec-aware and Shape-aware lenses for the SIM Web-UI (WEBUI_4). |
 | `sim-lib-view-daw` | `true` | `custom-build, lib` | DAW timeline, mixer, plugin rack, and synth lenses for the SIM Web-UI (WEBUI_4). |
-| `sim-lib-view-doc` | `true` | `custom-build, lib` | Scientific article workspace lens for the SIM Web-UI (WEBUI_4). |
+| `sim-lib-view-doc` | `true` | `custom-build, lib` | Scientific article workspace lens for SIM Web. |
 | `sim-lib-view-math` | `true` | `custom-build, lib` | Math, plotting, tensor, and symbolic lenses for the SIM Web-UI (WEBUI_4). |
 | `sim-lib-view-wasm-frame` | `true` | `custom-build, lib` | Host-side view frame facade for wasm-shaped view data (WEBUI_4). |
 | `sim-lib-view` | `true` | `custom-build, lib` | View/editor codec contracts, Shape-based lens dispatch, lens stack, and the universal default lens for the SIM Web-UI (WEBUI_4). |
