@@ -12,4 +12,4 @@ Scientific article workspace lens for SIM Web.
 
 ## Crate Documentation
 
-Scientific article workspace lens for the SIM Web-UI (WEBUI_4).
+Scientific article workspace lens for the SIM Web UI.
