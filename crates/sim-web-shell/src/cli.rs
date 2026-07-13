@@ -185,16 +185,12 @@ pub fn web_serve_entrypoint_symbol() -> Symbol {
 /// existing [`Bootloader`], returning it for further composition. A downstream binary
 /// can stack this with other serve libraries (e.g. MCP) onto one bootloader.
 pub fn configure_web_bootloader(loader: Bootloader) -> Bootloader {
-    // COOK8.04: seat the cookbook eval Cx with the whole CookbookCapabilityProfile
-    // at the trusted host boundary (the bootloader holds the boot session's
-    // GrantSeat), rather than ad-hoc granting read-eval/read-construct. This makes
-    // runnability CAPABILITY-DEFINED: the profile GRANTS the pure/offline/
-    // deterministic vocabulary (read-construct, read-eval, compute, codec,
-    // offline-render, cassette-replay, model-fixture) and, by omission, DENIES the
-    // live/effectful capabilities -- so a recipe that demands a denied capability
-    // (live net, device, spawn, wall-clock, fs-write, unseeded rng) fails closed
-    // and is a Category D descriptor. run_recipe still gates each run on read-eval,
-    // so the capability is required, not ambient.
+    // Seat the cookbook eval Cx with the whole capability profile at the trusted
+    // host boundary, where the bootloader holds the boot session's GrantSeat.
+    // The profile grants pure/offline/deterministic vocabulary and omits live
+    // effectful capabilities, so recipes that demand a denied capability fail
+    // closed. run_recipe still gates each run on read-eval, so the capability is
+    // required, not ambient.
     let loader = CookbookCapabilityProfile::granted()
         .into_iter()
         .fold(loader, |loader, capability| {

@@ -34,13 +34,9 @@ use crate::live::{
     DEFAULT_PANE, DEFAULT_RESOURCE, LiveSession, decode_intent_body, encode_patches, encode_scene,
     error_json,
 };
-use sim_codec_algol::AlgolCodecLib;
-use sim_codec_binary::BinaryCodecLib;
-use sim_codec_chat::ChatCodecLib;
-use sim_codec_json::JsonCodecLib;
-use sim_kernel::{Cx, Result as SimResult};
+use sim_kernel::Cx;
 use sim_lib_net_core::{CapOutcome, read_capped_line};
-use sim_lib_server::{CookbookWebResponse, CookbookWebState, EmbeddedDir};
+use sim_lib_server::{CookbookWebResponse, CookbookWebState};
 use sim_lib_stream_core::install_stream_core_shapes_lib;
 
 /// Configuration for the shell server.
@@ -50,8 +46,8 @@ pub struct ServeConfig {
     pub addr: String,
     /// Directory containing generated Atelier cache files.
     pub atelier_root: PathBuf,
-    /// Install codecs and shapes, then return before binding the socket. Lets a
-    /// caller confirm the serve verb dispatches and boots without holding a port.
+    /// Install host-essential shapes, then return before binding the socket.
+    /// Lets a caller confirm the serve verb dispatches without holding a port.
     pub dry_run: bool,
 }
 
@@ -72,9 +68,8 @@ impl Default for ServeConfig {
 /// a ready `cx`. Read-eval is granted to that `cx` by the bootloader at the
 /// web-serve composition point (`configure_web_bootloader`, through the boot
 /// session's host GrantSeat), not self-granted here; `run_recipe` gates each run
-/// on it (REVIEW_12 F4/F23).
+/// on it.
 pub fn serve_with_cx(cx: &mut Cx, config: &ServeConfig) -> std::io::Result<()> {
-    install_codecs(cx).map_err(io_error)?;
     install_stream_core_shapes_lib(cx).map_err(io_error)?;
 
     if config.dry_run {
@@ -106,16 +101,6 @@ fn bind(addr: &str) -> std::io::Result<TcpListener> {
     TcpListener::bind(resolved)
 }
 
-/// COOK8.02 facade injection: the higher-graph recipe books this host aggregates
-/// into the browsable catalog on top of the engine's seeded set. These view/scene
-/// libs sit ABOVE `sim-lib-cookbook`, so they cannot be seed-deps of the engine
-/// (a cycle); the facade -- which already depends on them -- injects their RECIPES
-/// here. They are descriptor recipes today, browsable and honestly badged.
-const FACADE_RECIPE_BOOKS: &[(&str, EmbeddedDir)] = &[
-    ("view", sim_lib_view::RECIPES),
-    ("web-bridge", sim_lib_web_bridge::RECIPES),
-];
-
 struct ShellState<'a> {
     atelier: AtelierWebState,
     cookbook: CookbookWebState,
@@ -132,25 +117,11 @@ impl<'a> ShellState<'a> {
         // uses it.
         Ok(Self {
             atelier: AtelierWebState::load(config.atelier_root.clone()),
-            cookbook: CookbookWebState::seeded_with_books(FACADE_RECIPE_BOOKS).map_err(io_error)?,
+            cookbook: CookbookWebState::seeded().map_err(io_error)?,
             cookbook_cx: cx,
             live: LiveSession::new().map_err(io_error)?,
         })
     }
-}
-
-/// Installs the cookbook eval codecs. `codec/lisp` is the boot codec provided by the
-/// bootloader, so it is not reinstalled here (that would double-register the symbol).
-fn install_codecs(cx: &mut Cx) -> SimResult<()> {
-    let json = JsonCodecLib::new(cx.registry_mut().fresh_codec_id());
-    cx.load_lib(&json)?;
-    let binary = BinaryCodecLib::new(cx.registry_mut().fresh_codec_id());
-    cx.load_lib(&binary)?;
-    let chat = ChatCodecLib::new(cx.registry_mut().fresh_codec_id());
-    cx.load_lib(&chat)?;
-    let algol = AlgolCodecLib::new(cx.registry_mut().fresh_codec_id());
-    cx.load_lib(&algol)?;
-    Ok(())
 }
 
 fn io_error(err: impl std::fmt::Display) -> std::io::Error {
@@ -192,7 +163,7 @@ fn handle(mut stream: TcpStream, state: &mut ShellState<'_>) -> std::io::Result<
     }
     if request.target.starts_with("/api/cookbook") {
         // read-eval was granted to cookbook_cx by the bootloader (see cli.rs);
-        // run_recipe gates each run on it (REVIEW_12 F4/F23).
+        // run_recipe gates each run on it.
         let response = state.cookbook.handle_request(
             &request.method,
             &request.target,

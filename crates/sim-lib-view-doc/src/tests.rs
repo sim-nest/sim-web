@@ -3,12 +3,15 @@
 use std::sync::Arc;
 
 use sim_kernel::{Cx, DefaultFactory, EagerPolicy, Expr, Symbol};
+use sim_value::build::{sym, uint};
 
 use crate::doc::{
-    article, block_kind, blocks, citation, embed_block, equation, figure, prose, section, table,
+    article, article_from_markup, block_kind, blocks, citation, embed_block, equation, figure,
+    markup_from_article, prose, section, table,
 };
 use crate::lens::{
     article_formatted, article_outline, article_source, export_intermediate, export_markdown,
+    markup_edit_from_intent,
 };
 
 fn cx() -> Cx {
@@ -70,11 +73,45 @@ fn an_article_with_equation_and_embed_roundtrips_as_sim_data() {
 #[test]
 fn the_formatted_and_source_lenses_render_the_same_document() {
     let doc = sample_article();
+    let markup = markup_from_article(&doc).expect("sample article is markup-backed");
     let formatted = article_formatted(&doc);
     let source = article_source(&doc);
+    assert_eq!(article_from_markup(&markup), export_intermediate(&doc));
     sim_lib_scene::validate_scene(&formatted).expect("formatted view is a valid scene");
     sim_lib_scene::validate_scene(&source).expect("source view is a valid scene");
     sim_lib_scene::validate_scene(&article_outline(&doc)).expect("outline is a valid scene");
+}
+
+#[test]
+fn edit_intent_yields_markup_replace_block() {
+    let doc = sample_article();
+    let replacement = sim_codec_doc::MarkupBlock::Paragraph {
+        content: vec![sim_codec_doc::Inline::Text("Updated prose.".to_owned())],
+        span: None,
+    };
+    let intent = sim_lib_intent::intent(
+        "edit-field",
+        sim_lib_intent::Origin::human(1),
+        vec![
+            ("target", sym("article")),
+            (
+                "path",
+                Expr::List(vec![Expr::String("blocks".to_owned()), uint(1)]),
+            ),
+            ("value", replacement.as_expr()),
+        ],
+    );
+
+    let edit = markup_edit_from_intent(&doc, &intent).unwrap();
+
+    let sim_codec_doc::MarkupEdit::ReplaceBlock { index, old, new } = edit else {
+        panic!("expected ReplaceBlock edit");
+    };
+    assert_eq!(index, 1);
+    assert!(
+        matches!(old, sim_codec_doc::MarkupBlock::Paragraph { content, .. } if inline_text(&content) == "We study agent topologies.")
+    );
+    assert_eq!(new, replacement);
 }
 
 #[test]
@@ -111,4 +148,14 @@ fn contains_embed(scene: &Expr) -> bool {
         Expr::List(items) | Expr::Vector(items) => items.iter().any(contains_embed),
         _ => false,
     }
+}
+
+fn inline_text(items: &[sim_codec_doc::Inline]) -> String {
+    items
+        .iter()
+        .map(|item| match item {
+            sim_codec_doc::Inline::Text(text) => text.clone(),
+            other => format!("{other:?}"),
+        })
+        .collect()
 }

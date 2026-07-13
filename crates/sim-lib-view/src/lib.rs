@@ -1,5 +1,5 @@
 //! View/editor codec contracts, Shape-based lens dispatch, lens stack, and the
-//! universal default lens for the SIM Web-UI (WEBUI_4).
+//! universal default lens for SIM Web.
 //!
 //! A view is a codec object in the encode direction (`Value -> Scene`); an
 //! editor is a codec object in the decode direction

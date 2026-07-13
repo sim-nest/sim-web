@@ -1,5 +1,4 @@
-//! Agent and topology composer lens plus the live monitor for the SIM Web-UI
-//! (WEBUI_4); the flagship that proves the one-bus thesis.
+//! Agent and topology composer lens plus the live monitor for SIM Web.
 //!
 //! The composer renders a `scene/graph` of agent nodes with typed ports, edges,
 //! and nested groups, and accepts create/move/wire/unwire/delete Intents. An

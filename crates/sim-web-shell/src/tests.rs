@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use crate::{AtelierCliLib, BrowseCliLib, assets::asset_for};
+use crate::{AtelierCliLib, BrowseCliLib, ServeConfig, assets::asset_for, serve_with_cx};
 use sim_kernel::{Args, Cx, DefaultFactory, NoopEvalPolicy, Symbol, Value};
 
 #[test]
@@ -200,8 +200,8 @@ fn cookbook_script_targets_required_apis() {
 
 #[test]
 fn cookbook_script_renders_grouped_tree_with_badges() {
-    // COOK8.01: the browser renders the two-level family -> domain grouped tree
-    // (from the API `families`) with a runnable/descriptor badge on each leaf.
+    // The browser renders the two-level family -> domain grouped tree with a
+    // runnable/descriptor badge on each leaf.
     let js = asset_text("/cookbook/cookbook.js");
     for expected in [
         "data.families",
@@ -216,6 +216,86 @@ fn cookbook_script_renders_grouped_tree_with_badges() {
     let css = asset_text("/cookbook/cookbook.css");
     for expected in [".badge.runnable", ".badge.descriptor", ".domain-title"] {
         assert!(css.contains(expected), "css missing {expected}");
+    }
+}
+
+#[test]
+fn cookbook_script_renders_lifecycle_actions() {
+    let js = asset_text("/cookbook/cookbook.js");
+    for expected in [
+        "recipe.action === \"load\"",
+        "recipe.action === \"unload\"",
+        "recipe.lib",
+        "recipe.loaded",
+        "actionLabel(recipe)",
+        "runSelectedRecipe(recipe, results)",
+        "await loadCookbook({",
+        "recipe.action === \"unload\" ? \"load\" : null",
+        "dataset.recipeAction",
+        "dataset.recipeLib",
+        "dataset.recipeLoaded",
+    ] {
+        assert!(js.contains(expected), "missing {expected}");
+    }
+    let css = asset_text("/cookbook/cookbook.css");
+    for expected in [
+        ".badge.lifecycle.load",
+        ".badge.lifecycle.unload",
+        ".lifecycle-meta",
+        ".recipe-actions button.lifecycle-action.load",
+        ".recipe-actions button.lifecycle-action.unload",
+    ] {
+        assert!(css.contains(expected), "css missing {expected}");
+    }
+}
+
+#[test]
+fn web_serve_does_not_preload_demo_codecs() {
+    let serve = include_str!("serve.rs");
+    for forbidden in [
+        "JsonCodecLib",
+        "BinaryCodecLib",
+        "ChatCodecLib",
+        "AlgolCodecLib",
+        "install_codecs",
+    ] {
+        assert!(
+            !serve.contains(forbidden),
+            "serve.rs still contains {forbidden}"
+        );
+    }
+    assert!(
+        serve.contains("CookbookWebState::seeded()"),
+        "serve.rs must build cookbook state from the loadable directory"
+    );
+
+    let mut cx = cli_cx();
+    serve_with_cx(
+        &mut cx,
+        &ServeConfig {
+            dry_run: true,
+            ..ServeConfig::default()
+        },
+    )
+    .unwrap();
+    let loaded: Vec<String> = cx
+        .registry()
+        .libs()
+        .iter()
+        .map(|lib| lib.manifest.id.as_qualified_str())
+        .collect();
+    for forbidden in [
+        "codec/json",
+        "codec/binary",
+        "codec/chat",
+        "codec/algol",
+        "numbers/i64",
+        "numbers/cas",
+    ] {
+        assert!(
+            !loaded.iter().any(|id| id == forbidden),
+            "dry-run preloaded {forbidden}: {loaded:?}"
+        );
     }
 }
 
