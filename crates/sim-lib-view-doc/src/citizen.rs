@@ -43,18 +43,15 @@ pub fn doc_article_class_symbol() -> Symbol {
 pub(crate) mod article_expr {
     use sim_kernel::{Error, Expr, Result};
 
-    use crate::{blocks, title};
+    use crate::markup_from_article;
 
     pub fn encode(expr: &Expr) -> Expr {
         expr.clone()
     }
 
     pub fn decode(expr: &Expr) -> Result<Expr> {
-        title(expr).ok_or_else(|| Error::Eval("doc article is missing title".to_owned()))?;
-        let blocks = blocks(expr);
-        if blocks.is_empty() {
-            return Err(Error::Eval("doc article is missing blocks".to_owned()));
-        }
+        markup_from_article(expr)
+            .map_err(|error| Error::Eval(format!("malformed doc article: {error}")))?;
         Ok(expr.clone())
     }
 }
