@@ -1,4 +1,4 @@
-//! Scientific article workspace lens for the SIM Web UI.
+//! Markup article workspace lens for the SIM Web UI.
 //!
 //! The article lens is a real authoring surface, not a markdown textarea: a
 //! round-trippable document value with semantic blocks (section, prose,

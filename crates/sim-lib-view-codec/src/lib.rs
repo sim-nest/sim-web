@@ -1,4 +1,4 @@
-//! Codec-aware and Shape-aware lenses for the SIM Web-UI (WEBUI_4).
+//! Codec-aware and Shape-aware lenses for SIM Web.
 //!
 //! This lens family exposes SIM's strongest differentiators directly: a
 //! multi-codec lens that opens one value through several codecs at once

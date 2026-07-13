@@ -6,16 +6,16 @@ Generated from Cargo metadata by `xtask crate-catalog v1`.
 
 | Package | Publish | Targets | Description |
 | --- | --- | --- | --- |
-| `sim-lib-intent` | `true` | `custom-build, lib` | Intent value model, gesture algebra, and codec:intent (WEBUI_4). |
-| `sim-lib-scene` | `true` | `custom-build, lib` | Scene value model and codec:scene for the SIM Web-UI (WEBUI_4). |
-| `sim-lib-view-agent` | `true` | `custom-build, lib` | Agent and topology composer lens plus the live monitor for the SIM Web-UI (WEBUI_4); the flagship that proves the one-bus thesis. |
-| `sim-lib-view-codec` | `true` | `custom-build, lib` | Codec-aware and Shape-aware lenses for the SIM Web-UI (WEBUI_4). |
-| `sim-lib-view-daw` | `true` | `custom-build, lib` | DAW timeline, mixer, plugin rack, and synth lenses for the SIM Web-UI (WEBUI_4). |
-| `sim-lib-view-doc` | `true` | `custom-build, lib` | Scientific article workspace lens for SIM Web. |
-| `sim-lib-view-math` | `true` | `custom-build, lib` | Math, plotting, tensor, and symbolic lenses for the SIM Web-UI (WEBUI_4). |
-| `sim-lib-view-wasm-frame` | `true` | `custom-build, lib` | Host-side view frame facade for wasm-shaped view data (WEBUI_4). |
-| `sim-lib-view` | `true` | `custom-build, lib` | View/editor codec contracts, Shape-based lens dispatch, lens stack, and the universal default lens for the SIM Web-UI (WEBUI_4). |
-| `sim-lib-web-bridge` | `true` | `custom-build, lib` | Session and transport bridge over realize/EvalFabric: the Intent/Scene bus for the SIM Web-UI (WEBUI_4). |
-| `sim-lib-web-layout` | `true` | `custom-build, lib` | Workspace value, panes/tabs/docks, and layout persistence (WEBUI_4). |
+| `sim-lib-intent` | `true` | `custom-build, lib` | Intent value model, gesture algebra, and codec:intent. |
+| `sim-lib-scene` | `true` | `custom-build, lib` | Scene value model and codec:scene for SIM Web. |
+| `sim-lib-view-agent` | `true` | `custom-build, lib` | Agent and topology composer lens plus the live monitor for SIM Web. |
+| `sim-lib-view-codec` | `true` | `custom-build, lib` | Codec-aware and Shape-aware lenses for SIM Web. |
+| `sim-lib-view-daw` | `true` | `custom-build, lib` | DAW timeline, mixer, plugin rack, and synth lenses for SIM Web. |
+| `sim-lib-view-doc` | `true` | `custom-build, lib` | Markup article workspace lens for SIM Web. |
+| `sim-lib-view-math` | `true` | `custom-build, lib` | Math, plotting, tensor, and symbolic lenses for SIM Web. |
+| `sim-lib-view-wasm-frame` | `true` | `custom-build, lib` | Host-side view frame facade for wasm-shaped view data. |
+| `sim-lib-view` | `true` | `custom-build, lib` | View/editor codec contracts, Shape-based lens dispatch, lens stack, and the universal default lens for SIM Web. |
+| `sim-lib-web-bridge` | `true` | `custom-build, lib` | Session and transport bridge over realize/EvalFabric for the Intent/Scene bus. |
+| `sim-lib-web-layout` | `true` | `custom-build, lib` | Workspace value, panes, tabs, docks, and layout persistence. |
 | `sim-web-shell` | `true` | `bin, lib, test` | sim-web-shell: the binary that serves the SIM WebUI shell. |
 | `xtask` | `false` | `bin` | SIM workspace package for xtask. |

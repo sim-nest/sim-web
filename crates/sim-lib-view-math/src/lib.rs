@@ -1,4 +1,4 @@
-//! Math, plotting, tensor, and symbolic lenses for the SIM Web-UI (WEBUI_4).
+//! Math, plotting, tensor, and symbolic lenses for SIM Web.
 //!
 //! This lens family makes graphical math first-class: `scene/plot` series and
 //! function plots, `scene/matrix` editable tensor/matrix slices, a

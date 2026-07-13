@@ -1,4 +1,4 @@
-//! Workspace value, panes/tabs/docks, and layout persistence (WEBUI_4).
+//! Workspace value, panes, tabs, docks, and layout persistence.
 //!
 //! The workspace is one SIM value: panes, tabs, splits, docks, floating
 //! inspectors, overlays, open resources, active lens per resource, mode,

@@ -1,4 +1,4 @@
-//! Host-side view frame facade for wasm-shaped view data (WEBUI_4).
+//! Host-side view frame facade for wasm-shaped view data.
 //!
 //! This crate is ordinary Rust glue for rendering values into Scene data,
 //! folding raw gestures into Intents, and committing edits against an
@@ -8,8 +8,8 @@
 //!
 //! The [`host`] module provides [`BrowserHost`], a local render/edit helper that
 //! renders a value to a Scene, folds raw gestures into Intents, commits edits
-//! locally, and emits Scene diffs. The public type name is retained for API
-//! compatibility with the earlier facade.
+//! locally, and emits Scene diffs. The public type name is the stable host
+//! facade entry point.
 
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]

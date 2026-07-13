@@ -3,7 +3,7 @@
 //! Choosing a lens for a value is overload selection, which is exactly what the
 //! kernel `Shape` matcher already does. The dispatcher reuses that matcher and
 //! the documented resolution order; it is implemented once here and never
-//! reimplemented per domain. Resolution order (WEBUI_4 "Dispatch"):
+//! reimplemented per domain. Resolution order:
 //!
 //! 1. explicit operator choice;
 //! 2. saved workspace preference;

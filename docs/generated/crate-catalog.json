@@ -3,7 +3,7 @@
   "package_count": 13,
   "packages": [
     {
-      "description": "Intent value model, gesture algebra, and codec:intent (WEBUI_4).",
+      "description": "Intent value model, gesture algebra, and codec:intent.",
       "generated_readme": true,
       "manifest": "crates/sim-lib-intent/Cargo.toml",
       "name": "sim-lib-intent",
@@ -16,7 +16,7 @@
       ]
     },
     {
-      "description": "Scene value model and codec:scene for the SIM Web-UI (WEBUI_4).",
+      "description": "Scene value model and codec:scene for SIM Web.",
       "generated_readme": true,
       "manifest": "crates/sim-lib-scene/Cargo.toml",
       "name": "sim-lib-scene",
@@ -29,7 +29,7 @@
       ]
     },
     {
-      "description": "Agent and topology composer lens plus the live monitor for the SIM Web-UI (WEBUI_4); the flagship that proves the one-bus thesis.",
+      "description": "Agent and topology composer lens plus the live monitor for SIM Web.",
       "generated_readme": true,
       "manifest": "crates/sim-lib-view-agent/Cargo.toml",
       "name": "sim-lib-view-agent",
@@ -42,7 +42,7 @@
       ]
     },
     {
-      "description": "Codec-aware and Shape-aware lenses for the SIM Web-UI (WEBUI_4).",
+      "description": "Codec-aware and Shape-aware lenses for SIM Web.",
       "generated_readme": true,
       "manifest": "crates/sim-lib-view-codec/Cargo.toml",
       "name": "sim-lib-view-codec",
@@ -55,7 +55,7 @@
       ]
     },
     {
-      "description": "DAW timeline, mixer, plugin rack, and synth lenses for the SIM Web-UI (WEBUI_4).",
+      "description": "DAW timeline, mixer, plugin rack, and synth lenses for SIM Web.",
       "generated_readme": true,
       "manifest": "crates/sim-lib-view-daw/Cargo.toml",
       "name": "sim-lib-view-daw",
@@ -68,7 +68,7 @@
       ]
     },
     {
-      "description": "Scientific article workspace lens for SIM Web.",
+      "description": "Markup article workspace lens for SIM Web.",
       "generated_readme": true,
       "manifest": "crates/sim-lib-view-doc/Cargo.toml",
       "name": "sim-lib-view-doc",
@@ -81,7 +81,7 @@
       ]
     },
     {
-      "description": "Math, plotting, tensor, and symbolic lenses for the SIM Web-UI (WEBUI_4).",
+      "description": "Math, plotting, tensor, and symbolic lenses for SIM Web.",
       "generated_readme": true,
       "manifest": "crates/sim-lib-view-math/Cargo.toml",
       "name": "sim-lib-view-math",
@@ -94,7 +94,7 @@
       ]
     },
     {
-      "description": "Host-side view frame facade for wasm-shaped view data (WEBUI_4).",
+      "description": "Host-side view frame facade for wasm-shaped view data.",
       "generated_readme": true,
       "manifest": "crates/sim-lib-view-wasm-frame/Cargo.toml",
       "name": "sim-lib-view-wasm-frame",
@@ -107,7 +107,7 @@
       ]
     },
     {
-      "description": "View/editor codec contracts, Shape-based lens dispatch, lens stack, and the universal default lens for the SIM Web-UI (WEBUI_4).",
+      "description": "View/editor codec contracts, Shape-based lens dispatch, lens stack, and the universal default lens for SIM Web.",
       "generated_readme": true,
       "manifest": "crates/sim-lib-view/Cargo.toml",
       "name": "sim-lib-view",
@@ -120,7 +120,7 @@
       ]
     },
     {
-      "description": "Session and transport bridge over realize/EvalFabric: the Intent/Scene bus for the SIM Web-UI (WEBUI_4).",
+      "description": "Session and transport bridge over realize/EvalFabric for the Intent/Scene bus.",
       "generated_readme": true,
       "manifest": "crates/sim-lib-web-bridge/Cargo.toml",
       "name": "sim-lib-web-bridge",
@@ -133,7 +133,7 @@
       ]
     },
     {
-      "description": "Workspace value, panes/tabs/docks, and layout persistence (WEBUI_4).",
+      "description": "Workspace value, panes, tabs, docks, and layout persistence.",
       "generated_readme": true,
       "manifest": "crates/sim-lib-web-layout/Cargo.toml",
       "name": "sim-lib-web-layout",

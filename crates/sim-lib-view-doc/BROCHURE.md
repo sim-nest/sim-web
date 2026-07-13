@@ -1,10 +1,10 @@
 # sim-lib-view-doc
 
-In one line: it is a writing surface for scientific articles where equations, figures, and live results are real parts of the page.
+In one line: it is a writing surface where article structure, equations, figures, source text, and live results stay together.
 
 ## What it gives you
 
-This lens gives you a proper authoring workspace for technical writing, not a plain text box. A document is built from meaningful blocks -- sections, prose, equations, figures, tables, citations, and blocks that run live inside the page. You navigate by an outline and arrange blocks on a canvas. You can look at the same article two ways at once: the clean formatted reading view and the underlying source, side by side, each a lens on the one document. Because the document is a single stored value, an embedded live block shows a real computed result right where it belongs in your argument.
+This lens gives you a proper authoring workspace for technical writing, not a plain text box. A document is built from meaningful blocks -- sections, prose, equations, figures, tables, citations, and blocks that run live inside the page. You navigate by an outline and arrange blocks on a canvas. You can look at the same article two ways at once: the clean formatted reading view and the underlying source, side by side, each a lens on the one document. Because the document is one stored markup value, an embedded live block shows a real computed result right where it belongs in your argument.
 
 ## Why you will be glad
 

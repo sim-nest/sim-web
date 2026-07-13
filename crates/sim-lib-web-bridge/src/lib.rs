@@ -1,5 +1,5 @@
-//! Session and transport bridge over `realize`/`EvalFabric`: the Intent/Scene
-//! bus for the SIM Web-UI (WEBUI_4).
+//! Session and transport bridge over `realize`/`EvalFabric` for the
+//! Intent/Scene bus.
 //!
 //! The bridge connects the browser shell to any runtime, location-transparently,
 //! by targeting `realize_events`/`realize_final` rather than a transport-specific
