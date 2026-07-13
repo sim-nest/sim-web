@@ -11,12 +11,12 @@ const state = {
   visibleIds: null,
 };
 
-async function loadCookbook() {
+async function loadCookbook(preferred = {}) {
   const data = await fetchJson(apiRoot);
   state.families = familiesOf(data);
   state.recipes = data.recipes || [];
   state.visibleIds = null;
-  state.selected = state.recipes[0]?.id || null;
+  state.selected = initialSelection(preferred);
   renderTree();
   if (state.selected) {
     await selectRecipe(state.selected);
@@ -25,9 +25,24 @@ async function loadCookbook() {
   }
 }
 
-// The index carries a two-level `families` tree (family -> domain book ->
-// chapter -> recipe). An older server without it degrades to a single unnamed
-// family over the flat `books` list, so the browser still renders every recipe.
+function initialSelection(preferred) {
+  if (preferred.recipeId && state.recipes.some((recipe) => recipe.id === preferred.recipeId)) {
+    return preferred.recipeId;
+  }
+  if (preferred.lib) {
+    const sameLib = state.recipes.find((recipe) => {
+      if (recipe.lib !== preferred.lib) return false;
+      if (preferred.action) return recipe.action === preferred.action;
+      return recipe.action !== "unload";
+    });
+    if (sameLib) return sameLib.id;
+  }
+  return state.recipes[0]?.id || null;
+}
+
+// The index may carry a two-level `families` tree (family -> domain book ->
+// chapter -> recipe). Flat `books` data is wrapped in a single unnamed family,
+// so the browser renders every recipe from either shape.
 function familiesOf(data) {
   if (Array.isArray(data.families) && data.families.length) {
     return data.families;
@@ -117,12 +132,18 @@ function recipeItem(recipe) {
   const button = document.createElement("button");
   button.type = "button";
   button.className = "recipe-button";
-  button.append(recipeBadge(recipe.runnable !== false));
+  if (isLifecycleRecipe(recipe)) {
+    button.classList.add("lifecycle-recipe");
+  }
+  button.append(recipeBadge(recipe));
   const label = document.createElement("span");
   label.className = "recipe-label";
   label.textContent = recipe.title;
   button.append(label);
   button.dataset.recipeId = recipe.id;
+  if (recipe.action) button.dataset.recipeAction = recipe.action;
+  if (recipe.lib) button.dataset.recipeLib = recipe.lib;
+  if (recipe.loaded !== undefined) button.dataset.recipeLoaded = String(recipe.loaded);
   if (recipe.id === state.selected) {
     button.classList.add("selected");
     button.setAttribute("aria-current", "page");
@@ -132,14 +153,47 @@ function recipeItem(recipe) {
   return item;
 }
 
-function recipeBadge(runnable) {
+function recipeBadge(recipe) {
   const badge = document.createElement("span");
+  if (isLifecycleRecipe(recipe)) {
+    badge.className = `badge lifecycle ${recipe.action}`;
+    badge.textContent = recipe.action;
+    badge.title = `${actionLabel(recipe)} ${recipe.lib || "library"} (${loadedLabel(recipe)})`;
+    return badge;
+  }
+  const runnable = isRunnable(recipe);
   badge.className = `badge ${runnable ? "runnable" : "descriptor"}`;
   badge.textContent = runnable ? "run" : "doc";
   badge.title = runnable
     ? "Runnable: computes on click"
     : "Descriptor: documented, not run in the sandbox";
   return badge;
+}
+
+function isRunnable(recipe) {
+  return recipe.runnable !== false && !(recipe.tags || []).includes("sandbox-descriptor");
+}
+
+function isLifecycleRecipe(recipe) {
+  return recipe.action === "load" || recipe.action === "unload";
+}
+
+function actionLabel(recipe) {
+  if (recipe.action === "load") return "Load";
+  if (recipe.action === "unload") return "Unload";
+  return isRunnable(recipe) ? "Run" : "View";
+}
+
+function actionProgress(recipe) {
+  if (recipe.action === "load") return "Loading.";
+  if (recipe.action === "unload") return "Unloading.";
+  return "Running.";
+}
+
+function loadedLabel(recipe) {
+  if (recipe.loaded === true) return "loaded";
+  if (recipe.loaded === false) return "not loaded";
+  return "load state unknown";
 }
 
 async function selectRecipe(id) {
@@ -152,13 +206,11 @@ async function selectRecipe(id) {
 function renderRecipe(recipe) {
   pane.replaceChildren();
   const title = document.createElement("h1");
-  // The detail response carries `tags`, not the summary `runnable` flag; a
-  // recipe tagged `sandbox-descriptor` is a documented descriptor.
-  const runnable = !(recipe.tags || []).includes("sandbox-descriptor");
-  title.append(recipeBadge(runnable), " ", recipe.title);
+  title.append(recipeBadge(recipe), " ", recipe.title);
   const purpose = document.createElement("div");
   purpose.className = "purpose";
   purpose.append(...renderPurpose(recipe.purpose));
+  const lifecycle = lifecycleMeta(recipe);
   const actions = document.createElement("div");
   actions.className = "recipe-actions";
   const copy = document.createElement("button");
@@ -166,7 +218,10 @@ function renderRecipe(recipe) {
   copy.textContent = "Copy";
   const run = document.createElement("button");
   run.type = "button";
-  run.textContent = "Run";
+  run.textContent = actionLabel(recipe);
+  if (isLifecycleRecipe(recipe)) {
+    run.classList.add("lifecycle-action", recipe.action);
+  }
   actions.append(copy, run);
   const setup = document.createElement("pre");
   setup.className = "setup-block";
@@ -193,18 +248,48 @@ function renderRecipe(recipe) {
     results.textContent = "Copied.";
   });
   run.addEventListener("click", async () => {
-    results.textContent = "Running.";
     try {
-      const outcome = await fetchJson(
-        `${apiRoot}/recipe/${encodeURIComponent(recipe.id)}/run`,
-        { method: "POST" },
-      );
-      renderRunResults(results, outcome);
+      await runSelectedRecipe(recipe, results);
     } catch (error) {
       results.textContent = error.message;
     }
   });
-  pane.append(title, purpose, actions, setup, results, footer);
+  pane.append(title, purpose);
+  if (lifecycle) pane.append(lifecycle);
+  pane.append(actions, setup, results, footer);
+}
+
+function lifecycleMeta(recipe) {
+  if (!recipe.lib && recipe.loaded === undefined && !recipe.action) return null;
+  const meta = document.createElement("dl");
+  meta.className = "lifecycle-meta";
+  appendMeta(meta, "Library", recipe.lib || "unknown");
+  appendMeta(meta, "State", loadedLabel(recipe));
+  if (recipe.action) appendMeta(meta, "Action", actionLabel(recipe));
+  return meta;
+}
+
+function appendMeta(list, term, value) {
+  const dt = document.createElement("dt");
+  dt.textContent = term;
+  const dd = document.createElement("dd");
+  dd.textContent = value;
+  list.append(dt, dd);
+}
+
+async function runSelectedRecipe(recipe, results) {
+  results.textContent = actionProgress(recipe);
+  const outcome = await fetchJson(
+    `${apiRoot}/recipe/${encodeURIComponent(recipe.id)}/run`,
+    { method: "POST" },
+  );
+  renderRunResults(results, outcome);
+  if (isLifecycleRecipe(recipe) && outcome.ok) {
+    await loadCookbook({
+      lib: recipe.lib,
+      action: recipe.action === "unload" ? "load" : null,
+    });
+  }
 }
 
 function renderPurpose(markdown) {
