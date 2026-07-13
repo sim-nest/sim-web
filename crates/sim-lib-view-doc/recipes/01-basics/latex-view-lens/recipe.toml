@@ -1,0 +1,8 @@
+id = "latex-view-lens"
+title = "LaTeX view lens"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 20
+tags = ["view", "document", "latex", "lens", "sandbox-descriptor"]
+requires = ["view/doc", "codec/lisp", "codec/doc"]
