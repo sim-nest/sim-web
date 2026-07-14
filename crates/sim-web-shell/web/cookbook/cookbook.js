@@ -5,6 +5,8 @@ const pane = document.querySelector("#recipe-pane");
 const search = document.querySelector("#cookbook-search");
 
 const state = {
+  libs: [],
+  hasLibTree: false,
   families: [],
   recipes: [],
   selected: null,
@@ -13,8 +15,10 @@ const state = {
 
 async function loadCookbook(preferred = {}) {
   const data = await fetchJson(apiRoot);
+  state.hasLibTree = hasLibTree(data);
+  state.libs = libsOf(data);
   state.families = familiesOf(data);
-  state.recipes = data.recipes || [];
+  state.recipes = recipesOf(data);
   state.visibleIds = null;
   state.selected = initialSelection(preferred);
   renderTree();
@@ -40,6 +44,38 @@ function initialSelection(preferred) {
   return state.recipes[0]?.id || null;
 }
 
+function libsOf(data) {
+  return Array.isArray(data.libs) ? data.libs : [];
+}
+
+function hasLibTree(data) {
+  return Array.isArray(data.libs);
+}
+
+function recipesOf(data) {
+  if (Array.isArray(data.recipes)) {
+    return data.recipes;
+  }
+  return recipesFromLibs(libsOf(data));
+}
+
+function recipesFromLibs(libs) {
+  const recipes = [];
+  for (const lib of libs || []) {
+    recipes.push(...libRecipes(lib));
+  }
+  return recipes;
+}
+
+function libRecipes(lib) {
+  const recipes = [];
+  recipes.push(...(lib.recipes || []));
+  for (const group of lib.groups || []) {
+    recipes.push(...(group.recipes || []));
+  }
+  return recipes;
+}
+
 // The index may carry a two-level `families` tree (family -> domain book ->
 // chapter -> recipe). Flat `books` data is wrapped in a single unnamed family,
 // so the browser renders every recipe from either shape.
@@ -59,16 +95,109 @@ async function fetchJson(url, options = {}) {
   return data;
 }
 
-// Render the two-level grouped tree: family (level 1) -> domain book (level 2)
-// -> chapter -> recipe leaf. Family and domain are collapsible <details> so the
-// whole constellation browses by subsystem; each leaf is badged runnable vs
-// descriptor. A group with no visible recipe (search filtered) is skipped.
+function treeStateKey(kind, id) {
+  return `sim-cookbook:${kind}:${id}`;
+}
+
+function readTreeState(kind, id) {
+  try {
+    return localStorage.getItem(treeStateKey(kind, id));
+  } catch (_error) {
+    return null;
+  }
+}
+
+function writeTreeState(kind, id, open) {
+  try {
+    localStorage.setItem(treeStateKey(kind, id), open ? "1" : "0");
+  } catch (_error) {
+    // Keep browsing functional when storage is unavailable.
+  }
+}
+
+function setDetailsOpen(details, kind, id, defaultOpen, forceOpen = false) {
+  const saved = readTreeState(kind, id);
+  details.open = forceOpen || (saved == null ? defaultOpen : saved === "1");
+  details.addEventListener("toggle", () => {
+    if (state.visibleIds !== null) return;
+    writeTreeState(kind, id, details.open);
+  });
+}
+
+// Render the cookbook tree. The modern API provides `libs` as the top level;
+// older payloads fall back to the compatibility family -> domain -> chapter
+// shape below. A group with no visible recipe (search filtered) is skipped.
 function renderTree() {
   tree.replaceChildren();
-  if (!state.recipes.length) {
+  if (!state.recipes.length && !state.libs.length) {
     tree.append(empty("No recipes loaded."));
     return;
   }
+  if (state.hasLibTree) {
+    renderLibTree();
+  } else {
+    renderFamilyTree();
+  }
+}
+
+function renderLibTree() {
+  const visible = state.visibleIds;
+  const searching = visible !== null;
+  let count = 0;
+  for (const lib of state.libs) {
+    const libEl = document.createElement("details");
+    libEl.className = "lib";
+    setDetailsOpen(libEl, "lib", lib.id, true, searching);
+    const summary = document.createElement("summary");
+    summary.className = "lib-title";
+    summary.textContent = lib.title || lib.id;
+    libEl.append(summary);
+    let libCount = 0;
+    const directRecipes = visibleRecipes(lib.recipes || [], visible);
+    if (directRecipes.length) {
+      const list = document.createElement("ul");
+      list.className = "recipe-list lib-recipes";
+      for (const recipe of directRecipes) {
+        count += 1;
+        libCount += 1;
+        list.append(recipeItem(recipe));
+      }
+      libEl.append(list);
+    }
+    for (const group of lib.groups || []) {
+      const recipes = visibleRecipes(group.recipes || [], visible);
+      if (!recipes.length) continue;
+      const groupEl = document.createElement("details");
+      groupEl.className = "group";
+      setDetailsOpen(groupEl, "group", `${lib.id}/${group.name}`, false, searching);
+      const groupTitle = document.createElement("summary");
+      groupTitle.className = "group-title";
+      groupTitle.textContent = group.title || group.name;
+      groupEl.append(groupTitle);
+      const list = document.createElement("ul");
+      list.className = "recipe-list";
+      for (const recipe of recipes) {
+        count += 1;
+        libCount += 1;
+        list.append(recipeItem(recipe));
+      }
+      groupEl.append(list);
+      libEl.append(groupEl);
+    }
+    if (libCount) {
+      tree.append(libEl);
+    }
+  }
+  if (!count) {
+    tree.append(empty("No recipes found."));
+  }
+}
+
+function visibleRecipes(recipes, visible) {
+  return (recipes || []).filter((recipe) => !visible || visible.has(recipe.id));
+}
+
+function renderFamilyTree() {
   const visible = state.visibleIds;
   let count = 0;
   for (const family of state.families) {
@@ -92,9 +221,7 @@ function renderTree() {
       domainEl.append(domainTitle);
       let domainCount = 0;
       for (const chapter of book.chapters || []) {
-        const recipes = (chapter.recipes || []).filter((recipe) => {
-          return !visible || visible.has(recipe.id);
-        });
+        const recipes = visibleRecipes(chapter.recipes || [], visible);
         if (!recipes.length) {
           continue;
         }

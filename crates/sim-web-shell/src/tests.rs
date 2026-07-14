@@ -4,9 +4,11 @@ use std::sync::Arc;
 
 use crate::{AtelierCliLib, BrowseCliLib, ServeConfig, assets::asset_for, serve_with_cx};
 use sim_codec_lisp::LispCodecLib;
-use sim_kernel::{Args, Cx, DefaultFactory, NoopEvalPolicy, Symbol, Value, read_eval_capability};
+use sim_kernel::{
+    Args, Cx, DefaultFactory, EagerPolicy, NoopEvalPolicy, Symbol, Value, read_eval_capability,
+};
 use sim_lib_server::CookbookWebState;
-use sim_test_support::core_cx;
+use sim_test_support::register_core_classes;
 
 #[test]
 fn root_serves_the_shell_page() {
@@ -202,13 +204,21 @@ fn cookbook_script_targets_required_apis() {
 }
 
 #[test]
-fn cookbook_script_renders_grouped_tree_with_badges() {
-    // The browser renders the two-level family -> domain grouped tree with a
-    // runnable/descriptor badge on each leaf.
+fn cookbook_script_renders_lib_tree_with_badges() {
+    // The browser renders the lib-first tree when the API provides `libs`, while
+    // retaining the family fallback for older payloads.
     let js = asset_text("/cookbook/cookbook.js");
     for expected in [
+        "data.libs",
+        "state.libs",
+        "state.hasLibTree",
+        "hasLibTree(data)",
+        "renderLibTree",
+        "lib-title",
+        "group-title",
         "data.families",
         "state.families",
+        "renderFamilyTree",
         "family-title",
         "domain-title",
         "recipeBadge",
@@ -217,8 +227,32 @@ fn cookbook_script_renders_grouped_tree_with_badges() {
         assert!(js.contains(expected), "missing {expected}");
     }
     let css = asset_text("/cookbook/cookbook.css");
-    for expected in [".badge.runnable", ".badge.descriptor", ".domain-title"] {
+    for expected in [
+        ".badge.runnable",
+        ".badge.descriptor",
+        ".lib-title",
+        ".group-title",
+        ".domain-title",
+    ] {
         assert!(css.contains(expected), "css missing {expected}");
+    }
+}
+
+#[test]
+fn cookbook_script_persists_branch_state() {
+    let js = asset_text("/cookbook/cookbook.js");
+    for expected in [
+        "function treeStateKey(kind, id)",
+        "`sim-cookbook:${kind}:${id}`",
+        "localStorage.getItem(treeStateKey(kind, id))",
+        "localStorage.setItem(treeStateKey(kind, id), open ? \"1\" : \"0\")",
+        "function setDetailsOpen(details, kind, id, defaultOpen, forceOpen = false)",
+        "details.open = forceOpen || (saved == null ? defaultOpen : saved === \"1\")",
+        "state.visibleIds !== null",
+        "setDetailsOpen(libEl, \"lib\", lib.id, true, searching)",
+        "setDetailsOpen(groupEl, \"group\", `${lib.id}/${group.name}`, false, searching)",
+    ] {
+        assert!(js.contains(expected), "missing {expected}");
     }
 }
 
@@ -354,10 +388,11 @@ fn cli_cx() -> Cx {
 }
 
 fn cookbook_cx() -> Cx {
-    let mut cx = core_cx();
+    let (mut cx, seat) = Cx::new_seated(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    register_core_classes(&mut cx);
     let lisp = LispCodecLib::new(cx.registry_mut().fresh_codec_id()).unwrap();
     cx.load_lib(&lisp).unwrap();
-    cx.grant(read_eval_capability());
+    seat.grant(&mut cx, read_eval_capability());
     cx
 }
 
