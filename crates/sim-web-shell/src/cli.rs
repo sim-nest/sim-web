@@ -8,8 +8,8 @@ use sim_kernel::{
     Lib, LibManifest, LibTarget, Linker, LoadCx, Object, ObjectCompat, Result, Symbol, Value,
     Version, read_eval_capability,
 };
-use sim_lib_server::CookbookCapabilityProfile;
-use sim_run_core::{Bootloader, cli_main_entrypoint_symbol};
+use sim_lib_server::{CookbookCapabilityProfile, CookbookWebState};
+use sim_run_core::{Bootloader, RuntimeConfigState, cli_main_entrypoint_symbol};
 
 use crate::serve::{ServeConfig, serve_with_cx};
 
@@ -181,10 +181,35 @@ pub fn web_serve_entrypoint_symbol() -> Symbol {
     cli_main_entrypoint_symbol(WEB_SERVE_VERB)
 }
 
+/// Builds host-owned cookbook state from the effective boot config.
+pub type CookbookStateFactory = Arc<dyn Fn(&RuntimeConfigState) -> CookbookWebState + Send + Sync>;
+
 /// Registers the `codec/lisp` boot codec and the web-shell `serve` verb onto an
 /// existing [`Bootloader`], returning it for further composition. A downstream binary
 /// can stack this with other serve libraries (e.g. MCP) onto one bootloader.
 pub fn configure_web_bootloader(loader: Bootloader) -> Bootloader {
+    configure_web_bootloader_base(loader).host_verb(WEB_SERVE_VERB, "lib/web-serve", || {
+        Box::new(WebServeLib::new())
+    })
+}
+
+/// Registers the web-shell `serve` verb with a host-provided cookbook state
+/// factory. The supplied config library ids are read before the serve library is
+/// instantiated, so the factory sees the effective config tables it needs.
+pub fn configure_web_bootloader_with_cookbook(
+    loader: Bootloader,
+    config_libs: Vec<Symbol>,
+    cookbook: CookbookStateFactory,
+) -> Bootloader {
+    configure_web_bootloader_base(loader).host_verb_with_config(
+        WEB_SERVE_VERB,
+        "lib/web-serve",
+        config_libs,
+        move |config| Box::new(WebServeLib::with_cookbook(cookbook(config))),
+    )
+}
+
+fn configure_web_bootloader_base(loader: Bootloader) -> Bootloader {
     // Seat the cookbook eval Cx with the whole capability profile at the trusted
     // host boundary, where the bootloader holds the boot session's GrantSeat.
     // The profile grants pure/offline/deterministic vocabulary and omits live
@@ -196,11 +221,9 @@ pub fn configure_web_bootloader(loader: Bootloader) -> Bootloader {
         .fold(loader, |loader, capability| {
             loader.with_capability(capability)
         });
-    loader
-        .host_lib("codec/lisp", || {
-            Box::new(LispCodecLib::new(CodecId(1)).expect("lisp boot codec"))
-        })
-        .host_verb(WEB_SERVE_VERB, "lib/web-serve", || Box::new(WebServeLib))
+    loader.host_lib("codec/lisp", || {
+        Box::new(LispCodecLib::new(CodecId(1)).expect("lisp boot codec"))
+    })
 }
 
 /// A standalone [`Bootloader`] pre-configured to serve the web shell: the `codec/lisp`
@@ -211,7 +234,29 @@ pub fn web_bootloader() -> Bootloader {
 }
 
 /// Loadable library exporting the web-shell `serve` entrypoint.
-pub struct WebServeLib;
+pub struct WebServeLib {
+    cookbook: Option<Arc<CookbookWebState>>,
+}
+
+impl WebServeLib {
+    /// Builds the standalone web-serve library.
+    pub fn new() -> Self {
+        Self { cookbook: None }
+    }
+
+    /// Builds a web-serve library with host-provided cookbook state.
+    pub fn with_cookbook(cookbook: CookbookWebState) -> Self {
+        Self {
+            cookbook: Some(Arc::new(cookbook)),
+        }
+    }
+}
+
+impl Default for WebServeLib {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl Lib for WebServeLib {
     fn manifest(&self) -> LibManifest {
@@ -232,14 +277,18 @@ impl Lib for WebServeLib {
     fn load(&self, cx: &mut LoadCx, linker: &mut Linker<'_>) -> Result<()> {
         linker.function_value(
             web_serve_entrypoint_symbol(),
-            cx.factory().opaque(Arc::new(WebServeEntrypoint))?,
+            cx.factory().opaque(Arc::new(WebServeEntrypoint {
+                cookbook: self.cookbook.clone(),
+            }))?,
         )?;
         Ok(())
     }
 }
 
 #[derive(Clone)]
-struct WebServeEntrypoint;
+struct WebServeEntrypoint {
+    cookbook: Option<Arc<CookbookWebState>>,
+}
 
 impl Object for WebServeEntrypoint {
     fn display(&self, _cx: &mut Cx) -> Result<String> {
@@ -261,13 +310,14 @@ impl Callable for WebServeEntrypoint {
     fn call(&self, cx: &mut Cx, args: Args) -> Result<Value> {
         // Parse `--addr` / `--atelier-root` from the boot envelope (skipping the
         // `serve` verb), then run the blocking HTTP loop in the bootloader cx.
-        let config = match args.values().first() {
+        let mut config = match args.values().first() {
             Some(envelope) => {
                 let payload = envelope_args(cx, envelope)?;
                 parse_serve_config(payload.into_iter().skip(1))?
             }
             None => ServeConfig::default(),
         };
+        config.cookbook.clone_from(&self.cookbook);
         serve_with_cx(cx, &config)
             .map_err(|err| Error::Eval(format!("web serve failed: {err}")))?;
         cx.factory().bool(true)

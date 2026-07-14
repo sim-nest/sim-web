@@ -3,7 +3,10 @@
 use std::sync::Arc;
 
 use crate::{AtelierCliLib, BrowseCliLib, ServeConfig, assets::asset_for, serve_with_cx};
-use sim_kernel::{Args, Cx, DefaultFactory, NoopEvalPolicy, Symbol, Value};
+use sim_codec_lisp::LispCodecLib;
+use sim_kernel::{Args, Cx, DefaultFactory, NoopEvalPolicy, Symbol, Value, read_eval_capability};
+use sim_lib_server::CookbookWebState;
+use sim_test_support::core_cx;
 
 #[test]
 fn root_serves_the_shell_page() {
@@ -299,6 +302,48 @@ fn web_serve_does_not_preload_demo_codecs() {
     }
 }
 
+#[test]
+fn standalone_serve_config_uses_seeded_fixture_directory() {
+    let mut cx = cookbook_cx();
+    let response = crate::serve::cookbook_index_for_test(&mut cx, &ServeConfig::default()).unwrap();
+    assert_eq!(response.status, 200, "{}", response.body);
+    let json: serde_json::Value = serde_json::from_str(&response.body).unwrap();
+    let libs = json["libs"]
+        .as_array()
+        .unwrap_or_else(|| panic!("libs array in {}", response.body));
+
+    assert!(
+        libs.iter()
+            .any(|lib| lib["id"].as_str() == Some("numbers/cas")),
+        "{}",
+        response.body
+    );
+}
+
+#[test]
+fn serve_config_can_use_host_cookbook_state() {
+    let mut cx = cookbook_cx();
+    let response = crate::serve::cookbook_index_for_test(
+        &mut cx,
+        &ServeConfig {
+            cookbook: Some(Arc::new(CookbookWebState::empty())),
+            ..ServeConfig::default()
+        },
+    )
+    .unwrap();
+    assert_eq!(response.status, 200, "{}", response.body);
+    let json: serde_json::Value = serde_json::from_str(&response.body).unwrap();
+
+    assert_eq!(
+        json["libs"]
+            .as_array()
+            .unwrap_or_else(|| panic!("libs array in {}", response.body))
+            .len(),
+        0
+    );
+    assert!(!response.body.contains("numbers/cas"), "{}", response.body);
+}
+
 fn asset_text(path: &str) -> String {
     let asset = asset_for(path).unwrap_or_else(|| panic!("{path} must be served"));
     std::str::from_utf8(asset.body).unwrap().to_owned()
@@ -306,6 +351,14 @@ fn asset_text(path: &str) -> String {
 
 fn cli_cx() -> Cx {
     Cx::new(Arc::new(NoopEvalPolicy), Arc::new(DefaultFactory))
+}
+
+fn cookbook_cx() -> Cx {
+    let mut cx = core_cx();
+    let lisp = LispCodecLib::new(cx.registry_mut().fresh_codec_id()).unwrap();
+    cx.load_lib(&lisp).unwrap();
+    cx.grant(read_eval_capability());
+    cx
 }
 
 fn cli_envelope(cx: &mut Cx, verb: &str, args: &[&str]) -> Value {

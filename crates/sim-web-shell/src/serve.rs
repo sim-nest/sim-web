@@ -4,9 +4,11 @@
 //! shell cache API. Runtime transport remains the Intent/Scene bridge over
 //! `realize`/`EvalFabric`.
 
+use std::fmt;
 use std::io::{BufRead, BufReader, Write};
 use std::net::{TcpListener, TcpStream, ToSocketAddrs};
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::time::Duration;
 
 /// Largest request body the shell will read. A larger declared `Content-Length`
@@ -37,18 +39,30 @@ use crate::live::{
 use sim_kernel::Cx;
 use sim_lib_net_core::{CapOutcome, read_capped_line};
 use sim_lib_server::{CookbookWebResponse, CookbookWebState};
-use sim_lib_stream_core::install_stream_core_shapes_lib;
 
 /// Configuration for the shell server.
-#[derive(Debug)]
 pub struct ServeConfig {
     /// The address to bind, e.g. `127.0.0.1:8787`.
     pub addr: String,
     /// Directory containing generated Atelier cache files.
     pub atelier_root: PathBuf,
-    /// Install host-essential shapes, then return before binding the socket.
-    /// Lets a caller confirm the serve verb dispatches without holding a port.
+    /// Return before binding the socket. Lets a caller confirm the serve verb
+    /// dispatches without holding a port.
     pub dry_run: bool,
+    /// Host-provided cookbook state. When absent, the standalone shell uses the
+    /// small fixture directory from `sim-lib-cookbook`.
+    pub cookbook: Option<Arc<CookbookWebState>>,
+}
+
+impl fmt::Debug for ServeConfig {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ServeConfig")
+            .field("addr", &self.addr)
+            .field("atelier_root", &self.atelier_root)
+            .field("dry_run", &self.dry_run)
+            .field("cookbook", &self.cookbook.as_ref().map(|_| "<provided>"))
+            .finish()
+    }
 }
 
 impl Default for ServeConfig {
@@ -57,6 +71,7 @@ impl Default for ServeConfig {
             addr: "127.0.0.1:8787".to_owned(),
             atelier_root: PathBuf::from(".sim/atelier"),
             dry_run: false,
+            cookbook: None,
         }
     }
 }
@@ -70,8 +85,6 @@ impl Default for ServeConfig {
 /// session's host GrantSeat), not self-granted here; `run_recipe` gates each run
 /// on it.
 pub fn serve_with_cx(cx: &mut Cx, config: &ServeConfig) -> std::io::Result<()> {
-    install_stream_core_shapes_lib(cx).map_err(io_error)?;
-
     if config.dry_run {
         println!("sim-web-shell: dry-run OK");
         return Ok(());
@@ -103,7 +116,7 @@ fn bind(addr: &str) -> std::io::Result<TcpListener> {
 
 struct ShellState<'a> {
     atelier: AtelierWebState,
-    cookbook: CookbookWebState,
+    cookbook: Arc<CookbookWebState>,
     cookbook_cx: &'a mut Cx,
     live: LiveSession,
 }
@@ -117,11 +130,25 @@ impl<'a> ShellState<'a> {
         // uses it.
         Ok(Self {
             atelier: AtelierWebState::load(config.atelier_root.clone()),
-            cookbook: CookbookWebState::seeded().map_err(io_error)?,
+            cookbook: match &config.cookbook {
+                Some(cookbook) => Arc::clone(cookbook),
+                None => Arc::new(CookbookWebState::seeded().map_err(io_error)?),
+            },
             cookbook_cx: cx,
             live: LiveSession::new().map_err(io_error)?,
         })
     }
+}
+
+#[cfg(test)]
+pub(crate) fn cookbook_index_for_test(
+    cx: &mut Cx,
+    config: &ServeConfig,
+) -> std::io::Result<CookbookWebResponse> {
+    let state = ShellState::new(config, cx)?;
+    Ok(state
+        .cookbook
+        .handle_request("GET", "/api/cookbook", Some(&mut *state.cookbook_cx)))
 }
 
 fn io_error(err: impl std::fmt::Display) -> std::io::Error {

@@ -18,8 +18,8 @@ mod serve;
 pub use assets::{Asset, asset_for};
 pub use atelier::{AtelierWebResponse, AtelierWebState};
 pub use cli::{
-    AtelierCliLib, BrowseCliLib, WebServeLib, configure_web_bootloader, web_bootloader,
-    web_serve_entrypoint_symbol,
+    AtelierCliLib, BrowseCliLib, CookbookStateFactory, WebServeLib, configure_web_bootloader,
+    configure_web_bootloader_with_cookbook, web_bootloader, web_serve_entrypoint_symbol,
 };
 pub use live::{
     DEFAULT_PANE, DEFAULT_RESOURCE, LiveSession, decode_intent_body, encode_patches, encode_scene,
