@@ -19,6 +19,7 @@
 
 mod citizen;
 pub mod codec;
+pub mod cookbook;
 pub mod gesture;
 pub mod kinds;
 pub mod model;
@@ -26,6 +27,7 @@ pub mod shapes;
 
 pub use citizen::{IntentDescriptor, intent_descriptor_class_symbol};
 pub use codec::{IntentCodec, IntentCodecLib, intent_codec_symbol};
+pub use cookbook::select_intent_demo;
 pub use gesture::{
     GestureRecognizer, Hit, HitRole, PointerEvent, PointerPhase, RawGesture, intent_from_gesture,
 };

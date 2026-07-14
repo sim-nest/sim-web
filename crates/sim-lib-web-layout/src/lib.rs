@@ -14,6 +14,7 @@
 #![deny(missing_docs)]
 
 mod citizen;
+pub mod cookbook;
 pub mod layout;
 pub mod palette;
 pub mod pane;
@@ -21,6 +22,7 @@ pub mod scene;
 pub mod value;
 
 pub use citizen::{WorkspaceDescriptor, workspace_descriptor_class_symbol};
+pub use cookbook::workspace_pane_demo;
 pub use layout::{LayoutOp, apply_layout_op, layout_op_from_intent};
 pub use palette::{EntryKind, Palette, PaletteEntry, card_target, open_card};
 pub use pane::{new_pane, pane_dock, pane_id, pane_lens, pane_resource, rect};

@@ -1,1 +1,1 @@
-(quote (view-wasm host render intent scene-diff local-commit))
+(view/wasm-host-loop-demo)

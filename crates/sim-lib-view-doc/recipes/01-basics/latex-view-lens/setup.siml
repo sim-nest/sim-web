@@ -1,5 +1,1 @@
-(quote
-  (view-doc
-    (import "codec:markup/latex" "article.tex")
-    (open "view:doc-article")
-    (open "view:doc-source")))
+(view/doc-latex-lens-demo)

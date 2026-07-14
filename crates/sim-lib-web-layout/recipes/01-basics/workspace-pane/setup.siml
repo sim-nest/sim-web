@@ -1,1 +1,1 @@
-(quote (web-layout workspace builder (pane main resource nil lens universal)))
+(web/layout-workspace-pane-demo)

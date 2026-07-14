@@ -31,6 +31,7 @@
 mod citizen;
 pub mod codec;
 pub mod contract;
+pub mod cookbook;
 pub mod dispatch;
 pub mod embed;
 pub mod mode;
@@ -47,6 +48,7 @@ pub mod universal_view;
 pub use citizen::{ViewLensDescriptor, view_lens_descriptor_class_symbol};
 pub use codec::{PairCodec, SurfaceCodec, roundtrip_holds};
 pub use contract::{Draft, Editor, Lens, LensKind, LensMeta, Operation, View};
+pub use cookbook::universal_lens_demo;
 pub use dispatch::{DispatchContext, DispatchOutcome, DispatchReason, LensRegistry};
 pub use embed::embed_scene;
 pub use mode::{Exposure, Mode, action_exposure, denied_scene, readonly_scene, universal_scene};

@@ -15,6 +15,7 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
+pub mod cookbook;
 pub mod fabric;
 pub mod fixture;
 pub mod history;
@@ -25,6 +26,7 @@ pub mod session;
 pub mod sync;
 pub mod transport;
 
+pub use cookbook::session_fixture_demo;
 pub use fabric::{FabricTransport, operation_to_request};
 pub use fixture::FixtureTransport;
 pub use history::{History, SessionLog, Snapshots, annotate};

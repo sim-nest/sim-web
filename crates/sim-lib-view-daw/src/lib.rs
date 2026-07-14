@@ -16,6 +16,7 @@
 
 pub mod arranger;
 pub mod component;
+pub mod cookbook;
 pub mod daw;
 pub mod dx7;
 mod instrument;
@@ -45,6 +46,10 @@ pub use component::{
     COMPONENT_EDITOR_NO_PARAM_FIXTURE, COMPONENT_EDITOR_TRACE_ONLY_FIXTURE,
     COMPONENT_EDITOR_VIEW_ID, component_editor_fixture, component_editor_fixture_names,
     component_editor_snapshot, component_editor_view,
+};
+pub use cookbook::{
+    arranger_transform_filter_demo, descriptor_fixtures_demo, keyboard_rack_roll_demo,
+    timeline_descriptor_demo,
 };
 pub use daw::{DAW_LENS, daw_view};
 pub use dx7::{

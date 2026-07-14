@@ -1,1 +1,1 @@
-(quote (view-agent composer graph (node agent input output) (edge input output)))
+(view/agent-composer-demo)
