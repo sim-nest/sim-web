@@ -8,6 +8,8 @@
 // Run: node crates/sim-web-shell/web/tests/e2e.test.mjs
 
 import assert from "node:assert";
+import { readFile } from "node:fs/promises";
+import vm from "node:vm";
 import { renderScene } from "../interpreter/scene.js";
 import { applyPatch } from "../interpreter/diff.js";
 import { intentFromEmit } from "../interpreter/intent.js";
@@ -407,4 +409,214 @@ const afterClose = applyPatch(workspace, {
 const repainted = paints(afterClose);
 assert.equal(repainted.children.length, 1, "after closing a pane, one remains");
 
-console.log("e2e.test.mjs: all domain demos and pane operations passed");
+function makeCookbookHarness() {
+  function makeEl(tag) {
+    const node = {
+      tagName: tag,
+      className: "",
+      dataset: {},
+      attributes: {},
+      children: [],
+      textContent: "",
+      value: "",
+      open: false,
+      type: "",
+      firstChild: null,
+      _listeners: {},
+      append(...items) {
+        for (const item of items) {
+          if (typeof item === "string") {
+            this.children.push(item);
+            this.textContent += item;
+          } else {
+            this.children.push(item);
+          }
+        }
+        this.firstChild = this.children[0] || null;
+      },
+      appendChild(child) {
+        this.children.push(child);
+        this.firstChild = this.children[0] || null;
+        return child;
+      },
+      replaceChildren(...items) {
+        this.children = [];
+        this.textContent = "";
+        this.firstChild = null;
+        this.append(...items);
+      },
+      addEventListener(type, fn) {
+        this._listeners[type] = fn;
+      },
+      setAttribute(name, value) {
+        this.attributes[name] = String(value);
+      },
+      getAttribute(name) {
+        return this.attributes[name];
+      },
+    };
+    node.classList = {
+      add(...names) {
+        const current = new Set(node.className.split(/\s+/).filter(Boolean));
+        for (const name of names) current.add(name);
+        node.className = [...current].join(" ");
+      },
+    };
+    return node;
+  }
+
+  const storage = new Map();
+  const app = makeEl("div");
+  app.dataset.apiRoot = "/api/cookbook";
+  const tree = makeEl("nav");
+  const pane = makeEl("section");
+  const search = makeEl("input");
+  const recipeSummary = {
+    id: "demo/lib/01-basics/run-demo",
+    title: "Run demo",
+    book: "demo/lib",
+    chapter: "01-basics",
+    runnable: true,
+    action: null,
+    lib: "demo/lib",
+    loaded: true,
+  };
+  const recipeDetail = {
+    ...recipeSummary,
+    purpose: "# Demo\nRun a deterministic browser fixture.",
+    setup: "(demo/run)",
+    next: null,
+    requires: [],
+    tags: [],
+  };
+  let runCount = 0;
+  const document = {
+    createElement: makeEl,
+    querySelector(selector) {
+      return {
+        "#cookbook-app": app,
+        "#cookbook-tree": tree,
+        "#recipe-pane": pane,
+        "#cookbook-search": search,
+      }[selector] || null;
+    },
+  };
+  const localStorage = {
+    getItem(key) {
+      return storage.has(key) ? storage.get(key) : null;
+    },
+    setItem(key, value) {
+      storage.set(key, String(value));
+    },
+  };
+  async function fetch(url, options = {}) {
+    const method = options.method || "GET";
+    if (url === "/api/cookbook" && method === "GET") {
+      return jsonResponse({
+        libs: [
+          {
+            id: "demo/lib",
+            title: "Demo Lib",
+            loaded: true,
+            groups: [
+              {
+                name: "01-basics",
+                title: "Basics",
+                recipes: [recipeSummary],
+              },
+            ],
+          },
+        ],
+        recipes: [recipeSummary],
+        families: [],
+        books: [],
+      });
+    }
+    if (
+      url === "/api/cookbook/recipe/demo%2Flib%2F01-basics%2Frun-demo" &&
+      method === "GET"
+    ) {
+      return jsonResponse(recipeDetail);
+    }
+    if (
+      url === "/api/cookbook/recipe/demo%2Flib%2F01-basics%2Frun-demo/run" &&
+      method === "POST"
+    ) {
+      runCount += 1;
+      return jsonResponse({ recipe: recipeSummary.id, ok: true, forms: 1, results: ["ok"], checks: [] });
+    }
+    return jsonResponse({ error: `unexpected ${method} ${url}` }, false, 404);
+  }
+  return { document, fetch, localStorage, pane, storage, tree, runCount: () => runCount };
+}
+
+function jsonResponse(data, ok = true, status = 200) {
+  return {
+    ok,
+    status,
+    async json() {
+      return data;
+    },
+  };
+}
+
+async function settleCookbook() {
+  for (let i = 0; i < 8; i += 1) {
+    await Promise.resolve();
+  }
+}
+
+async function cookbookKeepsClosedGroupThroughSelectAndRun() {
+  const harness = makeCookbookHarness();
+  const context = vm.createContext({
+    document: harness.document,
+    fetch: harness.fetch,
+    localStorage: harness.localStorage,
+    navigator: { clipboard: { async writeText() {} } },
+    console,
+    encodeURIComponent,
+    Error,
+    Set,
+  });
+  const script = await readFile(new URL("../cookbook/cookbook.js", import.meta.url), "utf8");
+  vm.runInContext(script, context, { filename: "cookbook.js" });
+  await settleCookbook();
+
+  let group = find(harness.tree, (node) => node && node.className === "group");
+  assert.ok(group, "cookbook group renders");
+  group.open = true;
+  group._listeners.toggle();
+  group.open = false;
+  group._listeners.toggle();
+  assert.equal(
+    harness.storage.get("sim-cookbook:group:demo/lib/01-basics"),
+    "0",
+    "closed group state is stored",
+  );
+
+  const recipe = find(
+    harness.tree,
+    (node) => node && String(node.className).includes("recipe-button") && node.dataset.recipeId === "demo/lib/01-basics/run-demo",
+  );
+  assert.ok(recipe, "recipe button renders");
+  await recipe._listeners.click();
+  await settleCookbook();
+  group = find(harness.tree, (node) => node && node.className === "group");
+  assert.equal(group.open, false, "selecting a recipe preserves the closed group");
+
+  const run = find(
+    harness.pane,
+    (node) => node && node.tagName === "button" && node.textContent === "Run",
+  );
+  assert.ok(run, "run button renders");
+  await run._listeners.click();
+  await settleCookbook();
+  group = find(harness.tree, (node) => node && node.className === "group");
+  assert.equal(group.open, false, "running an ordinary recipe preserves the closed group");
+  assert.equal(harness.runCount(), 1, "ordinary recipe was run through the API");
+}
+
+await cookbookKeepsClosedGroupThroughSelectAndRun();
+
+console.log("cookbook-verify: tree state OK");
+console.log("e2e.test.mjs: all domain demos, pane operations, and cookbook tree memory passed");
