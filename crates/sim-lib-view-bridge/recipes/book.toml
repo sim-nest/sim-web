@@ -1,0 +1,5 @@
+book = "view/bridge"
+title = "BRIDGE Packet Review"
+summary = "Packet review scenes and collaboration edits."
+order = 96
+chapters = ["01-basics"]

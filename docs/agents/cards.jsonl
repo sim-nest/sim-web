@@ -13,6 +13,11 @@
 {"kind":"recipe","path":"crates/sim-lib-view-agent/recipes/01-basics/composer-graph/recipe.toml"}
 {"kind":"recipe","path":"crates/sim-lib-view-agent/recipes/01-basics/composer-graph/setup.siml"}
 {"kind":"recipe","path":"crates/sim-lib-view-agent/recipes/book.toml"}
+{"kind":"recipe","path":"crates/sim-lib-view-bridge/recipes/01-basics/chapter.toml"}
+{"kind":"recipe","path":"crates/sim-lib-view-bridge/recipes/01-basics/packet-review/purpose.md"}
+{"kind":"recipe","path":"crates/sim-lib-view-bridge/recipes/01-basics/packet-review/recipe.toml"}
+{"kind":"recipe","path":"crates/sim-lib-view-bridge/recipes/01-basics/packet-review/setup.siml"}
+{"kind":"recipe","path":"crates/sim-lib-view-bridge/recipes/book.toml"}
 {"kind":"recipe","path":"crates/sim-lib-view-codec/recipes/01-basics/chapter.toml"}
 {"kind":"recipe","path":"crates/sim-lib-view-codec/recipes/01-basics/multicodec-probe/purpose.md"}
 {"kind":"recipe","path":"crates/sim-lib-view-codec/recipes/01-basics/multicodec-probe/recipe.toml"}

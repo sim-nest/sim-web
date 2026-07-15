@@ -5,6 +5,7 @@ members = [
   "crates/sim-lib-intent",
   "crates/sim-lib-scene",
   "crates/sim-lib-view",
+  "crates/sim-lib-view-bridge",
   "crates/sim-lib-view-agent",
   "crates/sim-lib-view-codec",
   "crates/sim-lib-view-daw",
