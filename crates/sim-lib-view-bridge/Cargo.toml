@@ -5,12 +5,12 @@ edition = "2024"
 license = "MPL-2.0"
 description = "Reversible BRIDGE packet review surface for SIM Web."
 readme = "README.md"
-publish = false
+publish = true
 repository = "https://github.com/sim-nest/sim-web"
 homepage = "https://github.com/sim-nest/sim-web"
 
 [dependencies]
-sim-codec-bridge = { git = "https://github.com/sim-nest/sim-codecs", rev = "cd52b62a59138771f7d8c3865ce17b4f425357c6", package = "sim-codec-bridge" }
+sim-codec-bridge = { version = "0.1.0" }
 sim-cookbook = { version = "0.1.0" }
 sim-kernel = { version = "0.1.0" }
 sim-lib-intent = { version = "0.1.0", path = "../sim-lib-intent" }
