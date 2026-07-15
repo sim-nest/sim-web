@@ -1,6 +1,6 @@
 {
   "generator": "xtask crate-catalog v1",
-  "package_count": 13,
+  "package_count": 14,
   "packages": [
     {
       "description": "Intent value model, gesture algebra, and codec:intent.",
@@ -36,6 +36,19 @@
       "publish": "true",
       "readme": "crates/sim-lib-view-agent/README.md",
       "root": "crates/sim-lib-view-agent",
+      "target_kinds": [
+        "custom-build",
+        "lib"
+      ]
+    },
+    {
+      "description": "Reversible BRIDGE packet review surface for SIM Web.",
+      "generated_readme": false,
+      "manifest": "crates/sim-lib-view-bridge/Cargo.toml",
+      "name": "sim-lib-view-bridge",
+      "publish": "true",
+      "readme": "crates/sim-lib-view-bridge/README.md",
+      "root": "crates/sim-lib-view-bridge",
       "target_kinds": [
         "custom-build",
         "lib"

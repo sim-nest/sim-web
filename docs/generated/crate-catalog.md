@@ -9,6 +9,7 @@ Generated from Cargo metadata by `xtask crate-catalog v1`.
 | `sim-lib-intent` | `true` | `custom-build, lib` | Intent value model, gesture algebra, and codec:intent. |
 | `sim-lib-scene` | `true` | `custom-build, lib` | Scene value model and codec:scene for SIM Web. |
 | `sim-lib-view-agent` | `true` | `custom-build, lib` | Agent and topology composer lens plus the live monitor for SIM Web. |
+| `sim-lib-view-bridge` | `true` | `custom-build, lib` | Reversible BRIDGE packet review surface for SIM Web. |
 | `sim-lib-view-codec` | `true` | `custom-build, lib` | Codec-aware and Shape-aware lenses for SIM Web. |
 | `sim-lib-view-daw` | `true` | `custom-build, lib` | DAW timeline, mixer, plugin rack, and synth lenses for SIM Web. |
 | `sim-lib-view-doc` | `true` | `custom-build, lib` | Markup article workspace lens for SIM Web. |
