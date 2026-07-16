@@ -10,6 +10,29 @@ use sim_kernel::{
 use sim_lib_server::CookbookWebState;
 use sim_test_support::register_core_classes;
 
+trait GrantOutcome {
+    fn expect_granted(self);
+}
+
+impl GrantOutcome for () {
+    fn expect_granted(self) {}
+}
+
+impl GrantOutcome for sim_kernel::Result<()> {
+    fn expect_granted(self) {
+        self.unwrap();
+    }
+}
+
+macro_rules! expect_granted {
+    ($grant:expr) => {{
+        #[allow(clippy::let_unit_value)]
+        let grant_result = $grant;
+        #[allow(clippy::unit_arg)]
+        grant_result.expect_granted();
+    }};
+}
+
 #[test]
 fn root_serves_the_shell_page() {
     let asset = asset_for("/").expect("root must resolve to the shell");
@@ -392,7 +415,7 @@ fn cookbook_cx() -> Cx {
     register_core_classes(&mut cx);
     let lisp = LispCodecLib::new(cx.registry_mut().fresh_codec_id()).unwrap();
     cx.load_lib(&lisp).unwrap();
-    seat.grant(&mut cx, read_eval_capability());
+    expect_granted!(seat.grant(&mut cx, read_eval_capability()));
     cx
 }
 
