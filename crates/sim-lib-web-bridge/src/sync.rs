@@ -336,9 +336,12 @@ fn origin_of(intent: &Expr) -> (Symbol, u64) {
         .and_then(|origin| sim_value::access::field_sym(origin, "operator"))
         .unwrap_or_else(|| Symbol::new("unknown"));
     let tick = origin
-        .and_then(|origin| sim_value::access::field_i64(origin, "at-tick"))
-        .unwrap_or(0)
-        .max(0) as u64;
+        .and_then(|origin| sim_value::access::field_any(origin, "at-tick"))
+        .and_then(|tick| match tick {
+            Expr::Number(number) => number.canonical.parse::<u64>().ok(),
+            _ => None,
+        })
+        .unwrap_or(0);
     (operator, tick)
 }
 
