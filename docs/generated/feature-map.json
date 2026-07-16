@@ -1,5 +1,75 @@
 {
-  "schema": "sim.feature-map.v1",
-  "repo": "sim-web",
-  "packages": []
+  "generator": "xtask repo-contract v1",
+  "packages": [
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-lib-intent"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-lib-scene"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-lib-view"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-lib-view-agent"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-lib-view-bridge"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-lib-view-codec"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-lib-view-daw"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-lib-view-doc"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-lib-view-math"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-lib-view-wasm-frame"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-lib-web-bridge"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-lib-web-layout"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-web-shell"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "xtask"
+    }
+  ]
 }

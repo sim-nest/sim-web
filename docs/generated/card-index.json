@@ -1,80 +1,90 @@
 {
-  "schema": "sim.card-index.v1",
+  "card_count": 14,
   "cards": [
-    "crates/sim-lib-intent/recipes/01-basics/chapter.toml",
-    "crates/sim-lib-intent/recipes/01-basics/select-intent/purpose.md",
-    "crates/sim-lib-intent/recipes/01-basics/select-intent/recipe.toml",
-    "crates/sim-lib-intent/recipes/01-basics/select-intent/setup.siml",
-    "crates/sim-lib-intent/recipes/book.toml",
-    "crates/sim-lib-scene/recipes/01-basics/chapter.toml",
-    "crates/sim-lib-scene/recipes/01-basics/text-node/purpose.md",
-    "crates/sim-lib-scene/recipes/01-basics/text-node/recipe.toml",
-    "crates/sim-lib-scene/recipes/01-basics/text-node/setup.siml",
-    "crates/sim-lib-scene/recipes/book.toml",
-    "crates/sim-lib-view-agent/recipes/01-basics/chapter.toml",
-    "crates/sim-lib-view-agent/recipes/01-basics/composer-graph/purpose.md",
-    "crates/sim-lib-view-agent/recipes/01-basics/composer-graph/recipe.toml",
-    "crates/sim-lib-view-agent/recipes/01-basics/composer-graph/setup.siml",
-    "crates/sim-lib-view-agent/recipes/book.toml",
-    "crates/sim-lib-view-bridge/recipes/01-basics/chapter.toml",
-    "crates/sim-lib-view-bridge/recipes/01-basics/packet-review/purpose.md",
-    "crates/sim-lib-view-bridge/recipes/01-basics/packet-review/recipe.toml",
-    "crates/sim-lib-view-bridge/recipes/01-basics/packet-review/setup.siml",
-    "crates/sim-lib-view-bridge/recipes/book.toml",
-    "crates/sim-lib-view-codec/recipes/01-basics/chapter.toml",
-    "crates/sim-lib-view-codec/recipes/01-basics/multicodec-probe/purpose.md",
-    "crates/sim-lib-view-codec/recipes/01-basics/multicodec-probe/recipe.toml",
-    "crates/sim-lib-view-codec/recipes/01-basics/multicodec-probe/setup.siml",
-    "crates/sim-lib-view-codec/recipes/book.toml",
-    "crates/sim-lib-view-daw/recipes/01-basics/chapter.toml",
-    "crates/sim-lib-view-daw/recipes/01-basics/timeline-descriptor/purpose.md",
-    "crates/sim-lib-view-daw/recipes/01-basics/timeline-descriptor/recipe.toml",
-    "crates/sim-lib-view-daw/recipes/01-basics/timeline-descriptor/setup.siml",
-    "crates/sim-lib-view-daw/recipes/02-performance-workbench/arranger-transform-filter/purpose.md",
-    "crates/sim-lib-view-daw/recipes/02-performance-workbench/arranger-transform-filter/recipe.toml",
-    "crates/sim-lib-view-daw/recipes/02-performance-workbench/arranger-transform-filter/setup.siml",
-    "crates/sim-lib-view-daw/recipes/02-performance-workbench/chapter.toml",
-    "crates/sim-lib-view-daw/recipes/02-performance-workbench/descriptor-fixtures/purpose.md",
-    "crates/sim-lib-view-daw/recipes/02-performance-workbench/descriptor-fixtures/recipe.toml",
-    "crates/sim-lib-view-daw/recipes/02-performance-workbench/descriptor-fixtures/setup.siml",
-    "crates/sim-lib-view-daw/recipes/02-performance-workbench/keyboard-rack-roll/purpose.md",
-    "crates/sim-lib-view-daw/recipes/02-performance-workbench/keyboard-rack-roll/recipe.toml",
-    "crates/sim-lib-view-daw/recipes/02-performance-workbench/keyboard-rack-roll/setup.siml",
-    "crates/sim-lib-view-daw/recipes/book.toml",
-    "crates/sim-lib-view-doc/recipes/01-basics/article-document/purpose.md",
-    "crates/sim-lib-view-doc/recipes/01-basics/article-document/recipe.toml",
-    "crates/sim-lib-view-doc/recipes/01-basics/article-document/setup.siml",
-    "crates/sim-lib-view-doc/recipes/01-basics/chapter.toml",
-    "crates/sim-lib-view-doc/recipes/01-basics/latex-view-lens/purpose.md",
-    "crates/sim-lib-view-doc/recipes/01-basics/latex-view-lens/recipe.toml",
-    "crates/sim-lib-view-doc/recipes/01-basics/latex-view-lens/setup.siml",
-    "crates/sim-lib-view-doc/recipes/book.toml",
-    "crates/sim-lib-view-math/recipes/01-basics/chapter.toml",
-    "crates/sim-lib-view-math/recipes/01-basics/plot-series/purpose.md",
-    "crates/sim-lib-view-math/recipes/01-basics/plot-series/recipe.toml",
-    "crates/sim-lib-view-math/recipes/01-basics/plot-series/setup.siml",
-    "crates/sim-lib-view-math/recipes/book.toml",
-    "crates/sim-lib-view-wasm-frame/recipes/01-basics/chapter.toml",
-    "crates/sim-lib-view-wasm-frame/recipes/01-basics/host-loop/purpose.md",
-    "crates/sim-lib-view-wasm-frame/recipes/01-basics/host-loop/recipe.toml",
-    "crates/sim-lib-view-wasm-frame/recipes/01-basics/host-loop/setup.siml",
-    "crates/sim-lib-view-wasm-frame/recipes/book.toml",
-    "crates/sim-lib-view/recipes/01-basics/chapter.toml",
-    "crates/sim-lib-view/recipes/01-basics/universal-lens/purpose.md",
-    "crates/sim-lib-view/recipes/01-basics/universal-lens/recipe.toml",
-    "crates/sim-lib-view/recipes/01-basics/universal-lens/setup.siml",
-    "crates/sim-lib-view/recipes/book.toml",
-    "crates/sim-lib-web-bridge/recipes/01-basics/chapter.toml",
-    "crates/sim-lib-web-bridge/recipes/01-basics/session-fixture/purpose.md",
-    "crates/sim-lib-web-bridge/recipes/01-basics/session-fixture/recipe.toml",
-    "crates/sim-lib-web-bridge/recipes/01-basics/session-fixture/setup.siml",
-    "crates/sim-lib-web-bridge/recipes/book.toml",
-    "crates/sim-lib-web-layout/recipes/01-basics/chapter.toml",
-    "crates/sim-lib-web-layout/recipes/01-basics/workspace-pane/purpose.md",
-    "crates/sim-lib-web-layout/recipes/01-basics/workspace-pane/recipe.toml",
-    "crates/sim-lib-web-layout/recipes/01-basics/workspace-pane/setup.siml",
-    "crates/sim-lib-web-layout/recipes/book.toml",
-    "recipes/edit-field-scene-patch.md",
-    "recipes/two-surfaces-share-one-resource.md"
-  ]
+    {
+      "id": "browse/catalog",
+      "kind": "browse-root",
+      "owner": "workspace",
+      "summary": "root browse catalog"
+    },
+    {
+      "id": "cookbook/intent",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-intent",
+      "summary": "Gesture and operator intent values for checked UI edits."
+    },
+    {
+      "id": "cookbook/scene",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-scene",
+      "summary": "Portable scene values for browser rendering and agent inspection."
+    },
+    {
+      "id": "cookbook/view",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-view",
+      "summary": "Lens contracts, view selection, and universal scene rendering."
+    },
+    {
+      "id": "cookbook/view/agent",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-view-agent",
+      "summary": "Topology composer and live monitor lens descriptors."
+    },
+    {
+      "id": "cookbook/view/bridge",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-view-bridge",
+      "summary": "Packet review scenes and collaboration edits."
+    },
+    {
+      "id": "cookbook/view/codec",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-view-codec",
+      "summary": "Multi-codec, round-trip, and Shape-aware lens descriptors."
+    },
+    {
+      "id": "cookbook/view/daw",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-view-daw",
+      "summary": "Timeline, mixer, rack, waveform, and synth lens descriptors."
+    },
+    {
+      "id": "cookbook/view/doc",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-view-doc",
+      "summary": "Scientific article values, source lenses, and export descriptors."
+    },
+    {
+      "id": "cookbook/view/math",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-view-math",
+      "summary": "Plot, matrix, symbolic, and sweep lens descriptors."
+    },
+    {
+      "id": "cookbook/view/wasm",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-view-wasm-frame",
+      "summary": "Browser-side view host descriptors for local Scene and Intent flow."
+    },
+    {
+      "id": "cookbook/web/bridge",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-web-bridge",
+      "summary": "Session bus, transports, history, and Scene update descriptors."
+    },
+    {
+      "id": "cookbook/web/layout",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-web-layout",
+      "summary": "Workspace, panes, palette, and layout persistence values."
+    },
+    {
+      "id": "registry/catalog",
+      "kind": "browse-registry",
+      "owner": "workspace",
+      "summary": "registry catalog browse card"
+    }
+  ],
+  "generator": "xtask repo-contract v1"
 }
