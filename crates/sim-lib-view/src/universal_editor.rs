@@ -140,7 +140,7 @@ pub fn render_draft(draft: &Draft, mode: &str) -> Result<Expr> {
                     sim_lib_scene::node(
                         "field",
                         vec![
-                            ("kind", Expr::Symbol(Symbol::new("text"))),
+                            ("input-kind", Expr::Symbol(Symbol::new("text"))),
                             ("value", Expr::String(body)),
                             ("readonly", Expr::Bool(false)),
                         ],

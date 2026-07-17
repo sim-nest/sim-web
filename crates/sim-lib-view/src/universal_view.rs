@@ -184,7 +184,7 @@ fn editable_leaf(root: &Expr, path: Expr, leaf: &Expr) -> Expr {
     node(
         "field",
         vec![
-            ("kind", sym("text")),
+            ("input-kind", sym("text")),
             ("value", Expr::String(render_value(leaf))),
             ("target", root.clone()),
             ("path", path),
