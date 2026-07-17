@@ -1,8 +1,8 @@
 //! Cookbook fixtures for the BRIDGE packet review surface.
 
 use sim_codec_bridge::{
-    BridgeFramePayload, BridgeHeader, BridgePacket, BridgePart, BridgeProvenance,
-    BridgeReceiptPayload, stamp_packet_cid,
+    BridgeHeader, BridgePacket, BridgePart, BridgeProvenance, BridgeReceiptPayload,
+    stamp_packet_cid,
 };
 use sim_kernel::{Cx, DefaultFactory, EagerPolicy, Expr, Symbol};
 use sim_lib_view::surface::SurfaceCaps;
@@ -24,29 +24,22 @@ fn sample_packet() -> BridgePacket {
             from: "model:judge".to_owned(),
             to: vec!["human:reviewer".to_owned(), "model:drafter".to_owned()],
             role: Symbol::new("judge"),
-            parents: vec!["core/sha256-bridge-v1:merged".to_owned()],
-            task: Symbol::new("T1"),
+            parents: vec!["core/sha256-bridge-v1:merged#move=reply".to_owned()],
+            task: Symbol::new("Rc1"),
             output: Symbol::new("Rc1"),
             ceiling: Vec::new(),
             context: Vec::new(),
             provenance: BridgeProvenance::default(),
         },
-        body: vec![
-            BridgePart {
-                id: Symbol::new("T1"),
-                kind: Symbol::qualified("bridge", "Frame"),
-                payload: BridgeFramePayload::new(Symbol::qualified("bridge", "answer")).to_expr(),
-            },
-            BridgePart {
-                id: Symbol::new("Rc1"),
-                kind: Symbol::qualified("bridge", "Receipt"),
-                payload: BridgeReceiptPayload::new(
-                    Symbol::new("accepted"),
-                    vec!["body/O2/payload".to_owned()],
-                )
-                .to_expr(),
-            },
-        ],
+        body: vec![BridgePart {
+            id: Symbol::new("Rc1"),
+            kind: Symbol::qualified("bridge", "Receipt"),
+            payload: BridgeReceiptPayload::new(
+                Symbol::new("accepted"),
+                vec!["body/O2/payload".to_owned()],
+            )
+            .to_expr(),
+        }],
         warrant: None,
     })
     .expect("sample packet stamps")
