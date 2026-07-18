@@ -12,9 +12,15 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
       - run: cargo fmt --all --check
       - run: cargo clippy --workspace --all-targets -- -D warnings
       - run: cargo test --workspace
+      - run: node crates/sim-web-shell/web/tests/interpreter.test.mjs
+      - run: node crates/sim-web-shell/web/tests/session.test.mjs
+      - run: node crates/sim-web-shell/web/tests/e2e.test.mjs
       - run: cargo doc --workspace --no-deps
         env:
           RUSTDOCFLAGS: -D warnings

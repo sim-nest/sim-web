@@ -70,11 +70,23 @@ fn interpreter_modules_are_served_as_javascript() {
         "/interpreter/scene.js",
         "/interpreter/diff.js",
         "/interpreter/intent.js",
+        "/interpreter/keymap.js",
     ] {
         let asset = asset_for(path).unwrap_or_else(|| panic!("{path} must be served"));
         assert_eq!(asset.content_type, "text/javascript; charset=utf-8");
         assert!(!asset.body.is_empty(), "{path} must have a body");
     }
+}
+
+#[test]
+fn interpreter_module_import_graph_is_served() {
+    let mut seen = std::collections::BTreeSet::new();
+    assert_served_import_graph("/interpreter/app.js", &mut seen);
+
+    assert!(
+        seen.contains("/interpreter/keymap.js"),
+        "scene.js imports keymap.js and the router must serve it"
+    );
 }
 
 #[test]
@@ -404,6 +416,46 @@ fn serve_config_can_use_host_cookbook_state() {
 fn asset_text(path: &str) -> String {
     let asset = asset_for(path).unwrap_or_else(|| panic!("{path} must be served"));
     std::str::from_utf8(asset.body).unwrap().to_owned()
+}
+
+fn assert_served_import_graph(path: &str, seen: &mut std::collections::BTreeSet<String>) {
+    if !seen.insert(path.to_owned()) {
+        return;
+    }
+
+    let source = asset_text(path);
+    for import in relative_module_imports(&source) {
+        let next = resolve_relative_module_path(path, &import)
+            .unwrap_or_else(|| panic!("could not resolve import {import:?} from {path}"));
+        let asset = asset_for(&next).unwrap_or_else(|| panic!("{path} imports unrouted {next}"));
+        assert_eq!(
+            asset.content_type, "text/javascript; charset=utf-8",
+            "{next} must be served as JavaScript"
+        );
+        assert_served_import_graph(&next, seen);
+    }
+}
+
+fn relative_module_imports(source: &str) -> Vec<String> {
+    source
+        .lines()
+        .filter_map(|line| {
+            let line = line.trim();
+            if !line.starts_with("import ") {
+                return None;
+            }
+            let quoted = line.split('"').nth(1).or_else(|| line.split('\'').nth(1))?;
+            quoted.starts_with('.').then(|| quoted.to_owned())
+        })
+        .collect()
+}
+
+fn resolve_relative_module_path(from: &str, import: &str) -> Option<String> {
+    if !import.starts_with("./") {
+        return None;
+    }
+    let dir = from.rsplit_once('/')?.0;
+    Some(format!("{dir}/{}", import.trim_start_matches("./")))
 }
 
 fn cli_cx() -> Cx {
