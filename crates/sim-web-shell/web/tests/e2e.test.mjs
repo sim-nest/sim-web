@@ -74,22 +74,33 @@ function paints(scene) {
   return root;
 }
 
+function assertNoUnsupported(root, label) {
+  const unsupported = find(root, (node) => node.className === "scene-unknown");
+  assert.equal(unsupported, null, `${label} must not render through scene-unknown`);
+}
+
+function paintsSupported(scene, label) {
+  const root = paints(scene);
+  assertNoUnsupported(root, label);
+  return root;
+}
+
 // One demo per domain lens (signature kinds the painter must handle).
-paints({
+paintsSupported({
   kind: "scene/graph",
   nodes: [{ kind: "scene/node", id: "n1", title: "Planner" }],
   edges: [{ kind: "scene/edge", from: ["n1", "out"], to: ["n2", "in"] }],
-});
+}, "scene/graph");
 paints({
   kind: "scene/stack",
   children: [{ kind: "scene/embed", scene: { kind: "scene/text", text: "live block" } }],
 });
-paints({ kind: "scene/plot", series: [{ name: "y", points: [[0, 0]] }] });
-paints({ kind: "scene/matrix", rows: [[1, 2]], editable: true });
-paints({
+paintsSupported({ kind: "scene/plot", series: [{ name: "y", points: [[0, 0]] }] }, "scene/plot");
+paintsSupported({ kind: "scene/matrix", rows: [[1, 2]], editable: true }, "scene/matrix");
+paintsSupported({
   kind: "scene/timeline",
   lanes: [{ track: "lead", clips: [{ id: "c1", at: 0, len: 100 }] }],
-});
+}, "scene/timeline");
 paints({ kind: "scene/knob", param: "cutoff", value: 0.5, min: 0, max: 1 });
 
 let pianoRollEmit = null;

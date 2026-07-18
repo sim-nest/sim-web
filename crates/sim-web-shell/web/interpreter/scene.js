@@ -262,6 +262,101 @@ function noteIntent(kind, node, key, velocity) {
   };
 }
 
+function endpointLabel(value) {
+  if (Array.isArray(value)) return value.map((part) => String(part)).join(".");
+  return String(value || "");
+}
+
+function renderGraphEdge(doc, edge) {
+  const edgeEl = el(doc, "div", "scene-edge");
+  const from = endpointLabel(edge.from);
+  const to = endpointLabel(edge.to);
+  edgeEl.dataset.from = from;
+  edgeEl.dataset.to = to;
+  edgeEl.textContent = `${from || "?"} -> ${to || "?"}`;
+  return edgeEl;
+}
+
+function renderGraph(doc, node, emit) {
+  const graph = el(doc, "div", "scene-graph");
+  graph.setAttribute("role", "group");
+  labelled(graph, node);
+
+  const nodes = el(doc, "div", "scene-graph-nodes");
+  for (const graphNode of asArray(node.nodes)) {
+    nodes.appendChild(renderScene(doc, graphNode, emit));
+  }
+  graph.appendChild(nodes);
+
+  const edges = el(doc, "div", "scene-graph-edges");
+  for (const edge of asArray(node.edges)) {
+    edges.appendChild(renderGraphEdge(doc, edge));
+  }
+  graph.appendChild(edges);
+  return graph;
+}
+
+function renderPlot(doc, node) {
+  const plot = el(doc, "div", "scene-plot");
+  plot.setAttribute("role", "img");
+  labelled(plot, node);
+  const title = el(doc, "div", "scene-plot-title");
+  title.textContent = String(node.title || node.label || "plot");
+  plot.appendChild(title);
+
+  for (const series of asArray(node.series)) {
+    const seriesEl = el(doc, "div", "scene-plot-series");
+    const points = asArray(series.points);
+    seriesEl.dataset.name = String(series.name || "");
+    seriesEl.dataset.points = String(points.length);
+    seriesEl.textContent = `${String(series.name || "series")}: ${points.length} point${points.length === 1 ? "" : "s"}`;
+    plot.appendChild(seriesEl);
+  }
+  return plot;
+}
+
+function renderMatrix(doc, node) {
+  const table = el(doc, "table", "scene-matrix");
+  table.setAttribute("role", "grid");
+  labelled(table, node);
+  table.dataset.editable = String(Boolean(node.editable));
+  for (const row of asArray(node.rows)) {
+    const tr = el(doc, "tr", "scene-matrix-row");
+    for (const cell of asArray(row)) {
+      const td = el(doc, "td", "scene-matrix-cell");
+      td.textContent = String(cell);
+      tr.appendChild(td);
+    }
+    table.appendChild(tr);
+  }
+  return table;
+}
+
+function renderTimeline(doc, node) {
+  const timeline = el(doc, "div", "scene-timeline");
+  timeline.setAttribute("role", "group");
+  labelled(timeline, node);
+  for (const lane of asArray(node.lanes)) {
+    const laneEl = el(doc, "div", "scene-timeline-lane");
+    laneEl.dataset.track = String(lane.track || lane.id || "");
+    const label = el(doc, "div", "scene-timeline-lane-label");
+    label.textContent = String(lane.label || lane.track || lane.id || "");
+    laneEl.appendChild(label);
+    const clips = el(doc, "div", "scene-timeline-clips");
+    for (const clip of asArray(lane.clips)) {
+      const clipEl = el(doc, "div", "scene-timeline-clip");
+      clipEl.dataset.clip = String(clip.id || "");
+      clipEl.dataset.at = String(clip.at || 0);
+      clipEl.dataset.len = String(clip.len || clip.duration || 0);
+      clipEl.textContent = String(clip.label || clip.id || "");
+      clips.appendChild(clipEl);
+    }
+    laneEl.appendChild(clips);
+    timeline.appendChild(laneEl);
+  }
+  return timeline;
+}
+
 function appendActionButtons(doc, root, className, actions, onAction) {
   const bar = el(doc, "div", `${className}-actions`);
   for (const action of asArray(actions)) {
@@ -608,6 +703,16 @@ export function renderScene(doc, node, emit) {
       box.appendChild(title);
       return box;
     }
+    case "scene/edge":
+      return renderGraphEdge(doc, node);
+    case "scene/graph":
+      return renderGraph(doc, node, emit);
+    case "scene/plot":
+      return renderPlot(doc, node);
+    case "scene/matrix":
+      return renderMatrix(doc, node);
+    case "scene/timeline":
+      return renderTimeline(doc, node);
     case "scene/knob":
     case "scene/slider": {
       const control = el(doc, "div", "scene-" + kind.split("/")[1]);

@@ -33,6 +33,14 @@ const BOOTSTRAP_SCENE = {
   ],
 };
 
+export function renderSessionError(doc, message) {
+  const error = doc.createElement("div");
+  error.className = "session-error";
+  error.setAttribute("role", "alert");
+  error.textContent = String(message || "session error");
+  return error;
+}
+
 // Reduced-motion is owned by the interpreter, not each lens: reflect the OS
 // setting (and any explicit override) onto the body so theme.css disables motion
 // globally.
@@ -67,6 +75,7 @@ function boot() {
   applyReducedMotion();
   installKeyboardSpine(mount);
   let scene = window.__SIM_SCENE__ || BOOTSTRAP_SCENE;
+  let sessionError = null;
   let tick = 0;
 
   const emit = (event) => {
@@ -79,7 +88,12 @@ function boot() {
     }
   };
 
-  const repaint = () => paint(document, mount, scene, emit);
+  const repaint = () => {
+    paint(document, mount, scene, emit);
+    if (sessionError) {
+      mount.appendChild(renderSessionError(document, sessionError));
+    }
+  };
   repaint();
 
   // When the bridge streams a patch, apply it and repaint.
@@ -89,18 +103,34 @@ function boot() {
   });
 
   // Forward every emitted Intent to the live session bridge and dispatch the
-  // returned patch(es). A failed fetch leaves the scene unchanged (offline-safe).
+  // returned patch(es). A failed fetch leaves the scene unchanged and visible.
   document.addEventListener("sim-intent", async (e) => {
-    const patches = await postIntent(e.detail);
-    for (const patch of patches) {
+    const result = await postIntent(e.detail);
+    if (!result.ok) {
+      sessionError = result.error;
+      repaint();
+      return;
+    }
+    sessionError = null;
+    if (result.patches.length === 0) {
+      repaint();
+      return;
+    }
+    for (const patch of result.patches) {
       document.dispatchEvent(new CustomEvent("sim-scene-patch", { detail: patch }));
     }
   });
 
   // On load, prefer the server's initial Scene; fall back to the bootstrap.
-  openSession(SESSION_RESOURCE, SESSION_PANE).then((opened) => {
-    if (opened) {
-      scene = opened;
+  openSession(SESSION_RESOURCE, SESSION_PANE).then((result) => {
+    if (result.ok && result.scene) {
+      scene = result.scene;
+      sessionError = null;
+      repaint();
+      return;
+    }
+    if (!result.ok) {
+      sessionError = result.error;
       repaint();
     }
   });

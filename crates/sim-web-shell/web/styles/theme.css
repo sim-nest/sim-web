@@ -109,6 +109,14 @@ body {
 
 .status-list { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 
+.session-error {
+  border: 1px solid var(--error);
+  border-radius: var(--radius);
+  background: #2a1717;
+  color: #ffd8d8;
+  padding: 10px 12px;
+}
+
 .badge {
   display: inline-block;
   min-width: 64px;
@@ -185,11 +193,48 @@ body {
 
 .scene-piano-roll,
 .scene-player-rack,
-.scene-object-roll {
+.scene-object-roll,
+.scene-graph,
+.scene-plot,
+.scene-timeline {
   display: flex;
   flex-direction: column;
   gap: 8px;
   width: min(100%, 760px);
+}
+
+.scene-graph-nodes,
+.scene-graph-edges,
+.scene-plot-series,
+.scene-timeline-lane,
+.scene-timeline-clips {
+  display: grid;
+  gap: 6px;
+}
+
+.scene-graph-nodes {
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+}
+
+.scene-edge,
+.scene-plot-series,
+.scene-timeline-clip {
+  border: 1px solid #2c3640;
+  border-radius: 4px;
+  background: #17212c;
+  color: var(--fg);
+  padding: 6px;
+}
+
+.scene-matrix {
+  border-collapse: collapse;
+  width: min(100%, 760px);
+}
+
+.scene-matrix-cell {
+  border: 1px solid #2c3640;
+  padding: 6px 8px;
+  text-align: right;
 }
 
 .scene-piano-roll-actions,
