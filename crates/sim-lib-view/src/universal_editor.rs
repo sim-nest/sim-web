@@ -11,8 +11,11 @@
 //! only the two distinct projections below are advertised, so the mode list
 //! matches what is actually implemented.
 
-use sim_kernel::{Cx, Diagnostic, Error, Expr, NumberLiteral, Result, Symbol};
+use std::sync::Arc;
+
+use sim_kernel::{Cx, Diagnostic, Error, Expr, ExprKind, NumberLiteral, Result, ShapeRef, Symbol};
 use sim_lib_intent::{field, intent_kind_of};
+use sim_shape::{ExprKindShape, shape_value};
 use sim_value::path::{Path, PathError, get, set_at};
 
 use crate::contract::{Draft, Editor, Operation};
@@ -65,16 +68,42 @@ impl Editor for UniversalEditor {
             ));
         }
         // The operation realizes by setting the resource to the proposed value.
-        Ok(Operation {
-            form: Expr::Map(vec![
-                (
-                    Expr::Symbol(Symbol::new("op")),
-                    Expr::Symbol(Symbol::new("set-value")),
-                ),
-                (Expr::Symbol(Symbol::new("value")), draft.proposed.clone()),
-            ]),
-        })
+        Ok(Operation::new(Expr::Map(vec![
+            (
+                Expr::Symbol(Symbol::new("op")),
+                Expr::Symbol(Symbol::new("set-value")),
+            ),
+            (Expr::Symbol(Symbol::new("value")), draft.proposed.clone()),
+        ]))
+        .with_result_shape(expr_kind_shape(&draft.base)))
     }
+}
+
+fn expr_kind_shape(expr: &Expr) -> ShapeRef {
+    let kind = match expr {
+        Expr::Nil => ExprKind::Nil,
+        Expr::Bool(_) => ExprKind::Bool,
+        Expr::Number(_) => ExprKind::Number,
+        Expr::Symbol(_) | Expr::Local(_) => ExprKind::Symbol,
+        Expr::String(_) => ExprKind::String,
+        Expr::Bytes(_) => ExprKind::Bytes,
+        Expr::List(_) => ExprKind::List,
+        Expr::Vector(_) => ExprKind::Vector,
+        Expr::Map(_) => ExprKind::Map,
+        Expr::Set(_) => ExprKind::Set,
+        Expr::Call { .. } => ExprKind::Call,
+        Expr::Infix { .. } => ExprKind::Infix,
+        Expr::Prefix { .. } => ExprKind::Prefix,
+        Expr::Postfix { .. } => ExprKind::Postfix,
+        Expr::Block(_) => ExprKind::Block,
+        Expr::Quote { .. } => ExprKind::Quote,
+        Expr::Annotated { .. } => ExprKind::Annotated,
+        Expr::Extension { .. } => ExprKind::Extension,
+    };
+    shape_value(
+        Symbol::qualified("core", format!("{kind:?}")),
+        Arc::new(ExprKindShape::new(kind)),
+    )
 }
 
 impl UniversalEditor {

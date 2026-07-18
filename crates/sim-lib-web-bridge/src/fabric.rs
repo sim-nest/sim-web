@@ -20,6 +20,7 @@ use sim_kernel::{
     Expr, Result, Symbol,
 };
 use sim_lib_stream_core::{PushResult, StreamEnvelope, StreamItem, StreamStats};
+use sim_lib_view::Operation;
 
 use crate::transport::{
     ChangeEvent, SessionStatus, StreamInspectorRecord, Transport, TransportKind,
@@ -85,10 +86,11 @@ impl Transport for FabricTransport {
             })
     }
 
-    fn realize(&mut self, resource: &Symbol, operation: &Expr) -> Result<Expr> {
+    fn realize_operation(&mut self, resource: &Symbol, operation: &Operation) -> Result<Expr> {
         let request = operation_to_request(operation);
         let reply = self.fabric.realize(&mut self.cx, request)?;
         let new_value = reply.value.object().as_expr(&mut self.cx)?;
+        validate_reply_shape(&mut self.cx, operation, &new_value)?;
         self.store.insert(resource.clone(), new_value.clone());
         self.events.push(ChangeEvent {
             resource: resource.clone(),
@@ -129,16 +131,18 @@ impl Transport for FabricTransport {
     }
 }
 
-/// Build a default [`EvalRequest`] carrying `operation` as its expression.
+/// Build a default [`EvalRequest`] carrying `operation` and its authority
+/// metadata.
 ///
-/// The request uses [`Consistency::LocalFirst`] and [`EvalMode::Eval`] with no
-/// shape, capabilities, deadline, streaming, or trace. The fabric interprets the
-/// operation and returns the resource's new value as the reply value.
-pub fn operation_to_request(operation: &Expr) -> EvalRequest {
+/// The request uses [`Consistency::LocalFirst`] and [`EvalMode::Eval`], carries
+/// the operation's expected result shape and required capabilities, and leaves
+/// deadline, streaming, and trace unset. The fabric interprets the operation and
+/// returns the resource's new value as the reply value.
+pub fn operation_to_request(operation: &Operation) -> EvalRequest {
     EvalRequest {
-        expr: operation.clone(),
-        result_shape: None,
-        required_capabilities: Vec::new(),
+        expr: operation.form.clone(),
+        result_shape: operation.result_shape.clone(),
+        required_capabilities: operation.required_capabilities.clone(),
         deadline: None,
         consistency: Consistency::LocalFirst,
         mode: EvalMode::Eval,
@@ -149,17 +153,40 @@ pub fn operation_to_request(operation: &Expr) -> EvalRequest {
     }
 }
 
+fn validate_reply_shape(cx: &mut Cx, operation: &Operation, value: &Expr) -> Result<()> {
+    let Some(shape_value) = &operation.result_shape else {
+        return Ok(());
+    };
+    let Some(shape) = shape_value.object().as_shape() else {
+        return Err(Error::HostError(
+            "operation result_shape is not a Shape".to_owned(),
+        ));
+    };
+    let matched = shape.check_expr(cx, value)?;
+    if matched.accepted {
+        Ok(())
+    } else {
+        Err(Error::HostError(
+            "fabric reply failed operation result_shape".to_owned(),
+        ))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::sync::Arc;
 
-    use sim_kernel::{Cx, Error, EvalFabric, EvalReply, EvalRequest, Expr, NumberLiteral, Result};
+    use sim_kernel::{
+        CapabilityName, Cx, Error, EvalFabric, EvalReply, EvalRequest, Expr, ExprKind,
+        NumberLiteral, Result, Symbol,
+    };
     use sim_lib_intent::{Origin, intent};
     use sim_lib_view::{
-        LensRegistry, UNIVERSAL_EDITOR_ID, UNIVERSAL_VIEW_ID, register_universal_default,
+        LensRegistry, Operation, UNIVERSAL_EDITOR_ID, UNIVERSAL_VIEW_ID, register_universal_default,
     };
+    use sim_shape::{ExprKindShape, shape_value};
 
-    use super::FabricTransport;
+    use super::{FabricTransport, operation_to_request};
     use crate::session::Session;
     use crate::transport::{Transport, TransportKind};
 
@@ -177,6 +204,18 @@ mod tests {
             })?;
             Ok(EvalReply {
                 value: cx.factory().expr(value_expr.clone())?,
+                diagnostics: Vec::new(),
+                trace: None,
+            })
+        }
+    }
+
+    struct StringReplyFabric;
+
+    impl EvalFabric for StringReplyFabric {
+        fn realize(&self, cx: &mut Cx, _request: EvalRequest) -> Result<EvalReply> {
+            Ok(EvalReply {
+                value: cx.factory().expr(Expr::String("wrong shape".to_owned()))?,
                 diagnostics: Vec::new(),
                 trace: None,
             })
@@ -232,6 +271,13 @@ mod tests {
         ])
     }
 
+    fn number_shape() -> sim_kernel::ShapeRef {
+        shape_value(
+            Symbol::qualified("core", "Number"),
+            Arc::new(ExprKindShape::new(ExprKind::Number)),
+        )
+    }
+
     #[test]
     fn session_commits_an_edit_through_the_fabric_and_the_scene_diff_reconstructs() {
         let mut cx = cx();
@@ -284,6 +330,45 @@ mod tests {
         let events = transport.drain_events();
         assert_eq!(events.len(), 1);
         assert_eq!(events[0].resource, sym("x"));
+        assert!(transport.drain_events().is_empty());
+    }
+
+    #[test]
+    fn operation_to_request_preserves_shape_and_capability_requirements() {
+        let operation = Operation::new(set_value_op(number("42")))
+            .with_result_shape(number_shape())
+            .requiring(CapabilityName::new("web.write"));
+
+        let request = operation_to_request(&operation);
+
+        assert_eq!(request.expr, operation.form);
+        assert!(request.result_shape.is_some());
+        assert_eq!(
+            request
+                .required_capabilities
+                .iter()
+                .map(|capability| capability.as_str())
+                .collect::<Vec<_>>(),
+            vec!["web.write"]
+        );
+    }
+
+    #[test]
+    fn fabric_reply_must_match_the_operation_result_shape_before_storage_changes() {
+        let mut transport =
+            FabricTransport::new(Arc::new(StringReplyFabric)).with(sym("doc"), number("1"));
+        let operation = Operation::new(set_value_op(number("2"))).with_result_shape(number_shape());
+
+        let err = transport
+            .realize_operation(&sym("doc"), &operation)
+            .unwrap_err();
+
+        assert!(
+            err.to_string()
+                .contains("fabric reply failed operation result_shape"),
+            "unexpected error: {err}"
+        );
+        assert_eq!(transport.read(&sym("doc")).unwrap(), number("1"));
         assert!(transport.drain_events().is_empty());
     }
 }

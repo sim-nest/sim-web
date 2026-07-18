@@ -18,6 +18,7 @@ use sim_lib_stream_fabric::{
     stream_control_cancel_symbol, stream_control_next_symbol, stream_control_open_symbol,
     stream_control_push_symbol, stream_control_stats_symbol,
 };
+use sim_lib_view::Operation;
 
 /// The visible state of a session's connection.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -227,10 +228,19 @@ pub trait Transport {
     /// Read the current value of a resource.
     fn read(&self, resource: &Symbol) -> Result<Expr>;
 
+    /// Realize a checked operation expression against a resource.
+    ///
+    /// This compatibility path wraps `operation` without authority metadata.
+    /// Session commits should call [`Transport::realize_operation`] so required
+    /// capabilities and result shapes are preserved.
+    fn realize(&mut self, resource: &Symbol, operation: &Expr) -> Result<Expr> {
+        self.realize_operation(resource, &Operation::new(operation.clone()))
+    }
+
     /// Realize a checked operation against a resource, returning the new value
     /// (the `realize_final` surface). Implementations also record a
     /// [`ChangeEvent`] for the resource.
-    fn realize(&mut self, resource: &Symbol, operation: &Expr) -> Result<Expr>;
+    fn realize_operation(&mut self, resource: &Symbol, operation: &Operation) -> Result<Expr>;
 
     /// Drain the pending change events (the `realize_events` surface).
     fn drain_events(&mut self) -> Vec<ChangeEvent>;

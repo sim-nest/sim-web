@@ -59,15 +59,13 @@ impl SurfaceCodec for BridgePacketSurfaceCodec {
     }
 
     fn commit(&self, _cx: &mut Cx, draft: &Draft) -> Result<Operation> {
-        Ok(Operation {
-            form: map(vec![
-                (
-                    "op",
-                    Expr::Symbol(Symbol::qualified("bridge", "surface-edit")),
-                ),
-                ("value", draft.proposed.clone()),
-            ]),
-        })
+        Ok(Operation::new(map(vec![
+            (
+                "op",
+                Expr::Symbol(Symbol::qualified("bridge", "surface-edit")),
+            ),
+            ("value", draft.proposed.clone()),
+        ])))
     }
 }
 

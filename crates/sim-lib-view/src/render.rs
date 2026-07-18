@@ -50,7 +50,24 @@ impl LensRegistry {
                 draft.diagnostics.len()
             )));
         }
-        self.editor_of(lens_id)?.commit(cx, draft)
+        let lens = self
+            .get(lens_id)
+            .ok_or_else(|| Error::HostError(format!("unknown lens {lens_id}")))?;
+        let editor = lens
+            .editor
+            .as_ref()
+            .ok_or_else(|| Error::HostError(format!("lens {lens_id} is not an editor")))?;
+        let mut operation = editor.commit(cx, draft)?;
+        for capability in &lens.meta.required_capabilities {
+            if !operation
+                .required_capabilities
+                .iter()
+                .any(|required| required == capability)
+            {
+                operation.required_capabilities.push(capability.clone());
+            }
+        }
+        Ok(operation)
     }
 
     fn editor_of(&self, lens_id: &Symbol) -> Result<std::sync::Arc<dyn crate::contract::Editor>> {

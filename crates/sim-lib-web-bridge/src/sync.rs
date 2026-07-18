@@ -158,6 +158,8 @@ impl SurfaceHub {
         pane: &Symbol,
         intent: &Expr,
     ) -> Result<Vec<Broadcast>> {
+        let caps = self.caps_of(surface)?;
+        require_surface_input(&caps, intent)?;
         let resource = self
             .bindings
             .iter()
@@ -308,6 +310,47 @@ fn render_for_surface(
     Ok(reduce_for_caps(&scene, caps))
 }
 
+fn require_surface_input(caps: &SurfaceCaps, intent: &Expr) -> Result<()> {
+    let required = input_capabilities_for_intent(intent)?;
+    if required
+        .iter()
+        .any(|capability| caps.input_flag(capability))
+    {
+        return Ok(());
+    }
+    Err(Error::HostError(format!(
+        "surface '{}' does not accept any required input for this Intent: {}",
+        caps.client_id,
+        required.join(", ")
+    )))
+}
+
+fn input_capabilities_for_intent(intent: &Expr) -> Result<&'static [&'static str]> {
+    let kind = match sim_value::access::field(intent, "kind") {
+        Some(Expr::Symbol(kind)) if kind.namespace.as_deref() == Some("intent") => {
+            kind.name.as_ref()
+        }
+        Some(Expr::Symbol(_)) => {
+            return Err(Error::HostError(
+                "Intent kind must be in the intent namespace".to_owned(),
+            ));
+        }
+        _ => return Err(Error::HostError("submit input is not an Intent".to_owned())),
+    };
+    match kind {
+        "tap" | "commit" | "cancel" | "approve" | "reject" | "pause-agent" | "rerun-validation"
+        | "replay-cassette" => Ok(&["tap", "pointer", "touch", "keyboard"]),
+        "select" | "move" | "wire" | "unwire" | "create" | "delete" | "invoke" | "scrub"
+        | "piano-roll-edit" | "player-rack-edit" | "arranger-edit" => Ok(&["pointer", "touch"]),
+        "edit-field" | "set-param" | "set-lens" | "set-mode" | "open" | "ask" | "split-mission"
+        | "open-source" => Ok(&["keyboard", "touch", "voice"]),
+        "performance-event" => Ok(&["keyboard", "touch", "camera"]),
+        other => Err(Error::HostError(format!(
+            "no surface input capability mapping for intent/{other}"
+        ))),
+    }
+}
+
 /// Interpret the universal `{op: set-value, value: <v>}` operation, returning
 /// `<v>`. Any other shape fails closed.
 fn apply_set_value(operation: &Expr) -> Result<Expr> {
@@ -394,6 +437,34 @@ mod tests {
         hub.register_surface(sym("web"), surface::preset("webui").unwrap());
         hub.register_surface(sym("watch"), surface::preset("watch").unwrap());
         hub
+    }
+
+    #[test]
+    fn submit_rejects_a_surface_without_the_required_input_capability() {
+        let mut hub = SurfaceHub::new();
+        let mut caps = surface::preset("webui").unwrap();
+        caps.client_id = "no-input".to_owned();
+        caps.input = Expr::Map(Vec::new());
+        hub.register_surface(sym("no-input"), caps);
+        hub.seed(sym("doc"), doc());
+        hub.open(&sym("no-input"), sym("pane"), sym("doc")).unwrap();
+        let before = hub.canonical(&sym("doc")).cloned();
+
+        let err = hub
+            .submit(
+                &sym("no-input"),
+                &sym("pane"),
+                &edit(Origin::human(1), "a", number("9")),
+            )
+            .unwrap_err();
+
+        assert!(
+            err.to_string()
+                .contains("does not accept any required input"),
+            "unexpected error: {err}"
+        );
+        assert_eq!(hub.canonical(&sym("doc")).cloned(), before);
+        assert!(hub.ledger().is_empty());
     }
 
     #[test]

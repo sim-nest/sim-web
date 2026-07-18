@@ -235,7 +235,7 @@ fn transports_are_interchangeable_behind_one_trait() {
     assert_eq!(fixture.kind(), TransportKind::Fixture);
     assert_eq!(fixture.status(), SessionStatus::Connected);
 
-    for transport in [
+    for mut transport in [
         RemoteTransport::wasm(),
         RemoteTransport::local_server("http://localhost:8787"),
         RemoteTransport::remote_server("https://sim.example"),
@@ -243,6 +243,13 @@ fn transports_are_interchangeable_behind_one_trait() {
         // Network transports report Disconnected and fail closed until wired.
         assert_eq!(transport.status(), SessionStatus::Disconnected);
         assert!(transport.read(&sym("doc")).is_err());
+        transport.connect();
+        assert_eq!(
+            transport.status(),
+            SessionStatus::Disconnected,
+            "placeholder remote transports must not report live until data operations exist"
+        );
+        assert!(transport.realize(&sym("doc"), &Expr::Nil).is_err());
     }
 }
 

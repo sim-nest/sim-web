@@ -194,7 +194,7 @@ impl<T: Transport> Session<T> {
         let value = self.transport.read(&resource)?;
         let draft = registry.propose(cx, &editor, &value, intent)?;
         let operation = registry.commit(cx, &editor, &draft)?;
-        self.transport.realize(&resource, &operation.form)?;
+        self.transport.realize_operation(&resource, &operation)?;
         Ok(())
     }
 

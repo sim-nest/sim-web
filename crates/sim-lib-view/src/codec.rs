@@ -259,9 +259,7 @@ mod tests {
             Ok(Draft::clean(value.clone(), value.clone()))
         }
         fn commit(&self, _cx: &mut Cx, draft: &Draft) -> Result<Operation> {
-            Ok(Operation {
-                form: draft.proposed.clone(),
-            })
+            Ok(Operation::new(draft.proposed.clone()))
         }
     }
 

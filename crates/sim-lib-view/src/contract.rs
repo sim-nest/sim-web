@@ -161,11 +161,38 @@ impl Draft {
 }
 
 /// A checked operation produced by an editor commit, ready to be submitted
-/// through `realize` (P7). For now it carries the operation in `Expr` form.
+/// through `realize`.
 #[derive(Clone, Debug)]
 pub struct Operation {
     /// The checked operation form to realize.
     pub form: Expr,
+    /// Optional shape the realized result must satisfy before it is accepted.
+    pub result_shape: Option<ShapeRef>,
+    /// Capabilities the realization target must hold to answer the operation.
+    pub required_capabilities: Vec<CapabilityName>,
+}
+
+impl Operation {
+    /// Build an operation with no additional authority metadata.
+    pub fn new(form: Expr) -> Self {
+        Self {
+            form,
+            result_shape: None,
+            required_capabilities: Vec::new(),
+        }
+    }
+
+    /// Attach the expected shape of the realized result.
+    pub fn with_result_shape(mut self, shape: ShapeRef) -> Self {
+        self.result_shape = Some(shape);
+        self
+    }
+
+    /// Attach one capability required by the realization target.
+    pub fn requiring(mut self, capability: CapabilityName) -> Self {
+        self.required_capabilities.push(capability);
+        self
+    }
 }
 
 /// A registered lens: its metadata plus optional view and editor objects.
