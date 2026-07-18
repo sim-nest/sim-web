@@ -56,11 +56,163 @@ function asNumber(value, fallback) {
   return Number.isFinite(number) ? number : fallback;
 }
 
+function asBool(value) {
+  return value === true || value === "true";
+}
+
 function fieldEditEmit(node, input) {
   const edit = { type: "edit", path: node.path, value: input.value, target: node.target };
   if (node["value-kind"] != null) edit["value-kind"] = node["value-kind"];
   if (node["value-codec"] != null) edit["value-codec"] = node["value-codec"];
   return edit;
+}
+
+function buttonEmit(node) {
+  if (node["emit-type"] === "edit") {
+    const edit = { type: "edit", target: node.target, path: node.path || [], value: node.value };
+    if (node["value-kind"] != null) edit["value-kind"] = node["value-kind"];
+    if (node["value-codec"] != null) edit["value-codec"] = node["value-codec"];
+    return edit;
+  }
+  return { type: "tap", control: node.control, target: node.target };
+}
+
+function renderButton(doc, node, onClick) {
+  const button = el(doc, "button", "scene-button");
+  button.textContent = String(node.label != null ? node.label : "");
+  labelled(button, node);
+  button.addEventListener("click", onClick);
+  return button;
+}
+
+function renderField(doc, node, onChange) {
+  const input = el(doc, "input", "scene-field");
+  input.value = String(node.value != null ? node.value : "");
+  if (node.name != null) input.dataset.name = String(node.name);
+  if (node["value-kind"] != null) input.dataset.valueKind = String(node["value-kind"]);
+  if (node["value-codec"] != null) input.dataset.valueCodec = String(node["value-codec"]);
+  input.readOnly = Boolean(node.readonly);
+  labelled(input, node);
+  input.addEventListener("change", () => onChange(input));
+  return input;
+}
+
+function fieldLabel(node) {
+  return String(node.label || node.name || "field");
+}
+
+function formValuePath(node) {
+  if (node["value-path"] != null) return asArray(node["value-path"]);
+  if (node.name != null) return [String(node.name)];
+  return asArray(node.path);
+}
+
+function formSegment(segment) {
+  return typeof segment === "number" ? segment : String(segment);
+}
+
+function setNestedValue(root, path, value) {
+  let cursor = root;
+  for (let index = 0; index < path.length; index += 1) {
+    const segment = formSegment(path[index]);
+    if (index === path.length - 1) {
+      cursor[segment] = value;
+      return;
+    }
+    const next = formSegment(path[index + 1]);
+    if (cursor[segment] == null || typeof cursor[segment] !== "object") {
+      cursor[segment] = typeof next === "number" ? [] : {};
+    }
+    cursor = cursor[segment];
+  }
+}
+
+function coerceFormValue(node, input) {
+  const raw = String(input.value);
+  const kind = String(node["value-kind"] || "string");
+  if (kind === "number" || kind === "integer") {
+    const value = Number(raw);
+    if (!Number.isFinite(value) || (kind === "integer" && !Number.isInteger(value))) {
+      return { error: `${fieldLabel(node)} must be a ${kind}` };
+    }
+    return { value };
+  }
+  return { value: raw };
+}
+
+function collectEditForm(fields) {
+  const value = {};
+  const errors = [];
+  for (const field of fields) {
+    field.input.setAttribute("aria-invalid", "false");
+    if (asBool(field.node.required) && String(field.input.value).trim() === "") {
+      field.input.setAttribute("aria-invalid", "true");
+      errors.push(`${fieldLabel(field.node)} is required`);
+      continue;
+    }
+    const path = formValuePath(field.node);
+    if (path.length === 0) {
+      field.input.setAttribute("aria-invalid", "true");
+      errors.push(`${fieldLabel(field.node)} has no value path`);
+      continue;
+    }
+    const coerced = coerceFormValue(field.node, field.input);
+    if (coerced.error) {
+      field.input.setAttribute("aria-invalid", "true");
+      errors.push(coerced.error);
+      continue;
+    }
+    setNestedValue(value, path, coerced.value);
+  }
+  return { value, errors };
+}
+
+function renderEditFormBox(doc, node, emit) {
+  const box = el(doc, "div", "scene-box");
+  box.dataset.role = "edit-form";
+  if (node.target != null) box.dataset.target = String(node.target);
+  const fields = [];
+  const error = el(doc, "div", "scene-validation-error");
+  error.setAttribute("role", "alert");
+  error.dataset.active = "false";
+
+  for (const child of asArray(node.children || node.nodes)) {
+    if (kindOf(child) === "scene/field") {
+      const input = renderField(doc, child, () => {
+        input.setAttribute("aria-invalid", "false");
+        error.textContent = "";
+        error.dataset.active = "false";
+      });
+      fields.push({ node: child, input });
+      box.appendChild(input);
+      continue;
+    }
+    if (kindOf(child) === "scene/button") {
+      const button = renderButton(doc, child, () => {
+        const collected = collectEditForm(fields);
+        if (collected.errors.length > 0) {
+          error.textContent = collected.errors.join("; ");
+          error.dataset.active = "true";
+          return;
+        }
+        error.textContent = "";
+        error.dataset.active = "false";
+        const edit = {
+          type: "edit",
+          target: node.target,
+          path: node.path || [],
+          value: collected.value,
+        };
+        if (node["value-codec"] != null) edit["value-codec"] = node["value-codec"];
+        emit(edit);
+      });
+      box.appendChild(button);
+      continue;
+    }
+    box.appendChild(renderScene(doc, child, emit));
+  }
+  box.appendChild(error);
+  return box;
 }
 
 function emitPerformance(node, emit, event) {
@@ -411,6 +563,9 @@ export function renderScene(doc, node, emit) {
       return box;
     }
     case "scene/box": {
+      if (String(node.role || "") === "edit-form") {
+        return renderEditFormBox(doc, node, emit);
+      }
       const box = el(doc, "div", "scene-box");
       if (node.role) box.dataset.role = String(node.role);
       for (const child of paintChildren(doc, node, emit)) box.appendChild(child);
@@ -429,25 +584,10 @@ export function renderScene(doc, node, emit) {
       return badge;
     }
     case "scene/button": {
-      const button = el(doc, "button", "scene-button");
-      button.textContent = String(node.label != null ? node.label : "");
-      labelled(button, node);
-      button.addEventListener("click", () =>
-        emit({ type: "tap", control: node.control, target: node.target }),
-      );
-      return button;
+      return renderButton(doc, node, () => emit(buttonEmit(node)));
     }
     case "scene/field": {
-      const input = el(doc, "input", "scene-field");
-      input.value = String(node.value != null ? node.value : "");
-      if (node["value-kind"] != null) input.dataset.valueKind = String(node["value-kind"]);
-      if (node["value-codec"] != null) input.dataset.valueCodec = String(node["value-codec"]);
-      input.readOnly = Boolean(node.readonly);
-      labelled(input, node);
-      input.addEventListener("change", () =>
-        emit(fieldEditEmit(node, input)),
-      );
-      return input;
+      return renderField(doc, node, (input) => emit(fieldEditEmit(node, input)));
     }
     case "scene/icon": {
       const icon = el(doc, "span", "scene-icon");

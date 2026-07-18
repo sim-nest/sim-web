@@ -5,13 +5,15 @@
 //! agent operators edit the same packet expression: a patch, review, vote, or
 //! receipt is a BRIDGE part record, not a separate browser-side protocol.
 
+mod controls;
+
 use sim_codec_bridge::{
     BridgeBook, BridgePacket, BridgePatchPayload, BridgeReceiptPayload, BridgeReviewPayload,
-    BridgeScore, BridgeVotePayload, expr_to_packet, packet_to_expr,
+    BridgeScore, BridgeVotePayload, expr_to_packet, packet_to_expr, validate_collab_payload,
 };
 use sim_kernel::{Cx, Error, Expr, Result, Symbol};
 use sim_lib_view::codec::reduce_for_caps;
-use sim_lib_view::{Draft, Operation, SurfaceCaps, SurfaceCodec, roundtrip_holds};
+use sim_lib_view::{Draft, Operation, SurfaceCaps, SurfaceCodec};
 use sim_value::access::field;
 use sim_value::build::{entry, list, map, text};
 
@@ -39,21 +41,20 @@ impl SurfaceCodec for BridgePacketSurfaceCodec {
     fn decode(&self, _cx: &mut Cx, value: &Expr, intent: &Expr) -> Result<Draft> {
         sim_lib_intent::validate_intent(intent)
             .map_err(|error| Error::HostError(format!("invalid intent: {error}")))?;
+        require_intent_kind(intent, "edit-field")?;
         let packet = expr_to_packet(value)?;
+        require_packet_target(&packet, intent)?;
         let path = path_segments(intent)?;
-        let target = required_field(intent, "value")?;
-        if path.is_empty() {
-            return Ok(Draft::clean(value.clone(), target.clone()));
-        }
-        if path.first().map(String::as_str) != Some("bridge-collab") {
-            return Err(Error::Eval(
-                "BRIDGE packet surface only decodes bridge-collab edits".to_owned(),
-            ));
-        }
-        let action = path.get(1).map(String::as_str).ok_or_else(|| {
-            Error::Eval("BRIDGE collaboration edit is missing an action".to_owned())
-        })?;
-        let part = collaboration_part(&packet, action, target)?;
+        let action = match path.as_slice() {
+            [lane, action] if lane == "bridge-collab" => action.as_str(),
+            _ => {
+                return Err(Error::Eval(
+                    "BRIDGE edit must target bridge-collab action".to_owned(),
+                ));
+            }
+        };
+        let part = collaboration_part(&packet, action, required_field(intent, "value")?)?;
+        validate_bridge_part(&part)?;
         Ok(Draft::clean(value.clone(), part))
     }
 
@@ -79,7 +80,6 @@ pub fn bridge_packet_view(cx: &mut Cx, packet: &BridgePacket, caps: &SurfaceCaps
 pub fn bridge_packet_edit(cx: &mut Cx, packet: &BridgePacket, intent: &Expr) -> Result<Expr> {
     let value = packet_to_expr(packet);
     let codec = BridgePacketSurfaceCodec::new();
-    debug_assert!(roundtrip_holds(cx, &codec, &value).unwrap_or(false));
     let draft = codec.decode(cx, &value, intent)?;
     if !draft.committable {
         return Err(Error::Eval(
@@ -126,6 +126,7 @@ fn packet_scene(packet: &BridgePacket, caps: &SurfaceCaps) -> Result<Expr> {
             ],
         )
     }));
+    children.push(controls::collaboration_controls(packet));
     let scene = sim_lib_scene::stack("column", children);
     sim_lib_scene::validate_scene(&scene)
         .map_err(|error| Error::HostError(format!("invalid BRIDGE packet scene: {error}")))?;
@@ -135,27 +136,32 @@ fn packet_scene(packet: &BridgePacket, caps: &SurfaceCaps) -> Result<Expr> {
 fn collaboration_part(packet: &BridgePacket, action: &str, value: &Expr) -> Result<Expr> {
     match action {
         "patch" => {
+            reject_unknown_fields(value, &["target", "replacement"], "bridge/Patch edit")?;
             let patch = BridgePatchPayload::new(
                 packet_cid(packet)?,
-                required_string(value, "target")?,
+                required_non_empty_string(value, "target")?,
                 required_field(value, "replacement")?.clone(),
             );
             Ok(part_expr("P1", "Patch", patch.to_expr()))
         }
         "review" => {
+            reject_unknown_fields(value, &["target", "body"], "bridge/Review edit")?;
             let review = BridgeReviewPayload::new(
-                required_string(value, "target")?,
-                required_string(value, "body")?,
+                required_non_empty_string(value, "target")?,
+                required_non_empty_string(value, "body")?,
             );
             Ok(part_expr("R1", "Review", review.to_expr()))
         }
         "vote" => {
-            let vote = BridgeVotePayload::new(required_string(value, "target")?, scores(value)?);
+            reject_unknown_fields(value, &["target", "scores"], "bridge/Vote edit")?;
+            let vote =
+                BridgeVotePayload::new(required_non_empty_string(value, "target")?, scores(value)?);
             Ok(part_expr("V1", "Vote", vote.to_expr()))
         }
         "receipt" => {
+            reject_unknown_fields(value, &["status", "refs"], "bridge/Receipt edit")?;
             let receipt =
-                BridgeReceiptPayload::new(required_symbol(value, "status")?.clone(), refs(value)?);
+                BridgeReceiptPayload::new(required_symbol_like(value, "status")?, refs(value)?);
             Ok(part_expr("Rc1", "Receipt", receipt.to_expr()))
         }
         other => Err(Error::Eval(format!(
@@ -175,7 +181,7 @@ fn part_expr(id: &str, kind: &str, payload: Expr) -> Expr {
 fn scores(value: &Expr) -> Result<Vec<BridgeScore>> {
     let scores = required_vector(value, "scores")?
         .iter()
-        .map(BridgeScore::from_expr)
+        .map(score)
         .collect::<Result<Vec<_>>>()?;
     if scores.is_empty() {
         return Err(Error::Eval(
@@ -183,6 +189,18 @@ fn scores(value: &Expr) -> Result<Vec<BridgeScore>> {
         ));
     }
     Ok(scores)
+}
+
+fn score(value: &Expr) -> Result<BridgeScore> {
+    if let Ok(score) = BridgeScore::from_expr(value) {
+        return Ok(score);
+    }
+    reject_unknown_fields(value, &["axis", "value", "reason"], "bridge/Score edit")?;
+    Ok(BridgeScore::new(
+        required_symbol_like(value, "axis")?,
+        required_i64_like(value, "value")?,
+        required_non_empty_string(value, "reason")?,
+    ))
 }
 
 fn refs(value: &Expr) -> Result<Vec<String>> {
@@ -196,6 +214,46 @@ fn refs(value: &Expr) -> Result<Vec<String>> {
             }),
         })
         .collect()
+}
+
+fn require_intent_kind(intent: &Expr, expected: &str) -> Result<()> {
+    let kind = sim_lib_intent::intent_kind_of(intent)
+        .ok_or_else(|| Error::Eval("intent is missing kind".to_owned()))?;
+    let expected_kind = sim_lib_intent::intent_kind(expected);
+    if kind != expected_kind {
+        return Err(Error::Eval(format!("expected intent/{expected}")));
+    }
+    Ok(())
+}
+
+fn require_packet_target(packet: &BridgePacket, intent: &Expr) -> Result<()> {
+    let target = required_field(intent, "target")?;
+    if target_matches(target, "bridge-packet")
+        || packet
+            .header
+            .cid
+            .as_deref()
+            .is_some_and(|cid| target_matches(target, cid))
+    {
+        return Ok(());
+    }
+    Err(Error::Eval(
+        "BRIDGE edit target must be bridge-packet or the packet cid".to_owned(),
+    ))
+}
+
+fn target_matches(target: &Expr, expected: &str) -> bool {
+    match target {
+        Expr::String(value) => value == expected,
+        Expr::Symbol(symbol) => symbol.as_qualified_str() == expected,
+        _ => false,
+    }
+}
+
+fn validate_bridge_part(part: &Expr) -> Result<()> {
+    let kind = required_symbol(part, "kind")?;
+    let payload = required_field(part, "payload")?;
+    validate_collab_payload(kind, payload)
 }
 
 fn packet_cid(packet: &BridgePacket) -> Result<String> {
@@ -231,6 +289,14 @@ fn required_string<'a>(expr: &'a Expr, name: &str) -> Result<&'a str> {
     }
 }
 
+fn required_non_empty_string<'a>(expr: &'a Expr, name: &str) -> Result<&'a str> {
+    let value = required_string(expr, name)?;
+    if value.trim().is_empty() {
+        return Err(Error::Eval(format!("field {name} must not be empty")));
+    }
+    Ok(value)
+}
+
 fn required_symbol<'a>(expr: &'a Expr, name: &str) -> Result<&'a Symbol> {
     match required_field(expr, name)? {
         Expr::Symbol(value) => Ok(value),
@@ -241,10 +307,61 @@ fn required_symbol<'a>(expr: &'a Expr, name: &str) -> Result<&'a Symbol> {
     }
 }
 
+fn required_symbol_like(expr: &Expr, name: &str) -> Result<Symbol> {
+    match required_field(expr, name)? {
+        Expr::Symbol(value) => Ok(value.clone()),
+        Expr::String(value) if !value.trim().is_empty() => Ok(Symbol::new(value.clone())),
+        Expr::String(_) => Err(Error::Eval(format!("field {name} must not be empty"))),
+        _ => Err(Error::TypeMismatch {
+            expected: "symbol or string",
+            found: "non-symbol",
+        }),
+    }
+}
+
+fn required_i64_like(expr: &Expr, name: &str) -> Result<i64> {
+    match required_field(expr, name)? {
+        Expr::Number(number) => number
+            .canonical
+            .parse()
+            .map_err(|_| Error::Eval(format!("field {name} must be an i64 literal"))),
+        Expr::String(value) => value
+            .parse()
+            .map_err(|_| Error::Eval(format!("field {name} must be an i64 literal"))),
+        _ => Err(Error::TypeMismatch {
+            expected: "number or numeric string",
+            found: "non-number",
+        }),
+    }
+}
+
 fn required_vector<'a>(expr: &'a Expr, name: &str) -> Result<&'a [Expr]> {
     match required_field(expr, name)? {
         Expr::List(items) | Expr::Vector(items) => Ok(items),
         _ => Err(Error::Eval(format!("field {name} must be a list"))),
+    }
+}
+
+fn reject_unknown_fields(expr: &Expr, allowed: &[&str], label: &str) -> Result<()> {
+    let Expr::Map(fields) = expr else {
+        return Err(Error::Eval(format!("{label} must be a map")));
+    };
+    for (key, _) in fields {
+        let Some(name) = field_name(key) else {
+            return Err(Error::Eval(format!("{label} field keys must be symbols")));
+        };
+        if !allowed.contains(&name.as_str()) {
+            return Err(Error::Eval(format!("unknown {label} field {name}")));
+        }
+    }
+    Ok(())
+}
+
+fn field_name(expr: &Expr) -> Option<String> {
+    match expr {
+        Expr::Symbol(symbol) => Some(symbol.name.to_string()),
+        Expr::String(value) => Some(value.clone()),
+        _ => None,
     }
 }
 

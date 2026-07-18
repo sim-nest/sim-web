@@ -119,6 +119,26 @@ assert.equal(intent.value, "9");
 assert.equal(intent["value-kind"], "number");
 assert.equal(intent["value-codec"], "encoded-number-one");
 
+// 2a. Buttons can also emit direct edit-field controls.
+captured = null;
+const editButton = renderScene(doc2, {
+  kind: "scene/button",
+  label: "Patch",
+  "emit-type": "edit",
+  target: "bridge-packet",
+  path: ["bridge-collab", "patch"],
+  value: { target: "body/O1/payload", replacement: "accepted" },
+  "value-codec": "codec:bridge",
+}, (event) => {
+  captured = event;
+});
+editButton._listeners.click();
+const buttonIntent = intentFromEmit(captured, "pane-main", "human", 2);
+assert.equal(buttonIntent.kind, "intent/edit-field");
+assert.deepEqual(buttonIntent.path, ["bridge-collab", "patch"]);
+assert.equal(buttonIntent.value.replacement, "accepted");
+assert.equal(buttonIntent["value-codec"], "codec:bridge");
+
 // 2b. Performance emits become typed bus Intents for a bound performance source.
 const performanceIntent = intentFromEmit({
   type: "performance",

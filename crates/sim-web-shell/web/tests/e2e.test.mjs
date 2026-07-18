@@ -274,6 +274,98 @@ assert.equal(editorIntent.kind, "intent/arranger-edit");
 assert.equal(editorIntent.action, "freeze-to-midi");
 assert.equal(editorIntent.placement, "music/arranger-placement/motif");
 
+function bridgeActionScene(action, fields) {
+  return {
+    kind: "scene/box",
+    role: "edit-form",
+    target: "core/sha256-bridge-v1:packet",
+    path: ["bridge-collab", action],
+    "value-codec": "codec:bridge",
+    children: [
+      ...fields,
+      { kind: "scene/button", label: `Create ${action}`, control: "submit" },
+    ],
+  };
+}
+
+function formField(name, label, value, valuePath, valueKind = "string") {
+  return {
+    kind: "scene/field",
+    name,
+    label,
+    value,
+    "value-path": valuePath,
+    "value-kind": valueKind,
+    required: true,
+  };
+}
+
+function submitBridgeAction(action, fields, fill = () => {}) {
+  let emitted = null;
+  const root = renderScene(makeDoc(), bridgeActionScene(action, fields), (event) => {
+    emitted = event;
+  });
+  fill(root);
+  const button = find(root, (node) => node.className === "scene-button");
+  button._listeners.click();
+  return { root, emitted };
+}
+
+let bridge = submitBridgeAction("patch", [
+  formField("target", "Patch target", "body/O1/payload", ["target"]),
+  formField("replacement", "Replacement", "accepted answer", ["replacement"]),
+]);
+let bridgeIntent = intentFromEmit(bridge.emitted, "pane-main", "human", 19);
+assert.equal(bridgeIntent.kind, "intent/edit-field");
+assert.deepEqual(bridgeIntent.path, ["bridge-collab", "patch"]);
+assert.equal(bridgeIntent.target, "core/sha256-bridge-v1:packet");
+assert.equal(bridgeIntent.value.replacement, "accepted answer");
+assert.equal(bridgeIntent["value-codec"], "codec:bridge");
+
+bridge = submitBridgeAction("review", [
+  formField("target", "Review target", "body/O1/payload", ["target"]),
+  formField("body", "Review body", "", ["body"]),
+]);
+assert.equal(bridge.emitted, null, "empty review body does not emit an Intent");
+const bridgeError = find(bridge.root, (node) => node.className === "scene-validation-error");
+const bodyField = find(bridge.root, (node) => node.className === "scene-field" && node.dataset.name === "body");
+assert.equal(bridgeError.dataset.active, "true", "bridge form shows validation errors");
+assert.equal(bodyField.getAttribute("aria-invalid"), "true", "invalid bridge field is marked");
+
+bridge = submitBridgeAction("review", [
+  formField("target", "Review target", "body/O1/payload", ["target"]),
+  formField("body", "Review body", "", ["body"]),
+], (root) => {
+  const field = find(root, (node) => node.className === "scene-field" && node.dataset.name === "body");
+  field.value = "looks correct";
+  field._listeners.change();
+});
+bridgeIntent = intentFromEmit(bridge.emitted, "pane-main", "human", 20);
+assert.equal(bridgeIntent.kind, "intent/edit-field");
+assert.deepEqual(bridgeIntent.path, ["bridge-collab", "review"]);
+assert.equal(bridgeIntent.value.body, "looks correct");
+
+bridge = submitBridgeAction("vote", [
+  formField("target", "Vote target", "body/O1/payload", ["target"]),
+  formField("axis", "Score axis", "correctness", ["scores", 0, "axis"], "symbol"),
+  formField("value", "Score", "1", ["scores", 0, "value"], "number"),
+  formField("reason", "Score reason", "keeps the packet valid", ["scores", 0, "reason"]),
+]);
+bridgeIntent = intentFromEmit(bridge.emitted, "pane-main", "human", 21);
+assert.deepEqual(bridgeIntent.path, ["bridge-collab", "vote"]);
+assert.equal(bridgeIntent.value.scores[0].axis, "correctness");
+assert.equal(bridgeIntent.value.scores[0].value, 1);
+assert.equal(bridgeIntent.value.scores[0].reason, "keeps the packet valid");
+
+bridge = submitBridgeAction("receipt", [
+  formField("status", "Receipt status", "accepted", ["status"], "symbol"),
+  formField("ref", "Receipt ref", "body/O1/payload", ["refs", 0]),
+]);
+bridgeIntent = intentFromEmit(bridge.emitted, "pane-main", "human", 22);
+assert.deepEqual(bridgeIntent.path, ["bridge-collab", "receipt"]);
+assert.equal(bridgeIntent.value.status, "accepted");
+assert.equal(bridgeIntent.value.refs[0], "body/O1/payload");
+
 let keyboardEmit = null;
 const keyboard = renderScene(makeDoc(), {
   kind: "scene/keyboard",
