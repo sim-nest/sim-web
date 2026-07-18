@@ -485,6 +485,8 @@ fn refusal_reason_symbol(reason: &PlacementRefusalReason) -> Symbol {
         PlacementRefusalReason::UnknownSite => "unknown-site",
         PlacementRefusalReason::RealtimePinViolation => "realtime-pin-violation",
         PlacementRefusalReason::UnsupportedLatencyClass => "unsupported-latency-class",
+        #[allow(unreachable_patterns)]
+        _ => "incomparable-clock-domain",
     };
     Symbol::qualified("placement/refusal", name)
 }
