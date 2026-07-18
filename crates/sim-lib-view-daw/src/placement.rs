@@ -486,7 +486,18 @@ fn refusal_reason_symbol(reason: &PlacementRefusalReason) -> Symbol {
         PlacementRefusalReason::RealtimePinViolation => "realtime-pin-violation",
         PlacementRefusalReason::UnsupportedLatencyClass => "unsupported-latency-class",
         #[allow(unreachable_patterns)]
-        _ => "incomparable-clock-domain",
+        other => fallback_refusal_reason(other),
     };
     Symbol::qualified("placement/refusal", name)
+}
+
+fn fallback_refusal_reason(reason: &PlacementRefusalReason) -> &'static str {
+    let debug = format!("{reason:?}");
+    if debug.starts_with("UnsupportedClockDomain") {
+        "unsupported-clock-domain"
+    } else if debug.starts_with("UnsupportedStreamPorts") {
+        "unsupported-stream-ports"
+    } else {
+        "incomparable-clock-domain"
+    }
 }
