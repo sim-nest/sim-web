@@ -56,6 +56,13 @@ function asNumber(value, fallback) {
   return Number.isFinite(number) ? number : fallback;
 }
 
+function fieldEditEmit(node, input) {
+  const edit = { type: "edit", path: node.path, value: input.value, target: node.target };
+  if (node["value-kind"] != null) edit["value-kind"] = node["value-kind"];
+  if (node["value-codec"] != null) edit["value-codec"] = node["value-codec"];
+  return edit;
+}
+
 function emitPerformance(node, emit, event) {
   emit({
     type: "performance",
@@ -433,10 +440,12 @@ export function renderScene(doc, node, emit) {
     case "scene/field": {
       const input = el(doc, "input", "scene-field");
       input.value = String(node.value != null ? node.value : "");
+      if (node["value-kind"] != null) input.dataset.valueKind = String(node["value-kind"]);
+      if (node["value-codec"] != null) input.dataset.valueCodec = String(node["value-codec"]);
       input.readOnly = Boolean(node.readonly);
       labelled(input, node);
       input.addEventListener("change", () =>
-        emit({ type: "edit", path: node.path, value: input.value, target: node.target }),
+        emit(fieldEditEmit(node, input)),
       );
       return input;
     }

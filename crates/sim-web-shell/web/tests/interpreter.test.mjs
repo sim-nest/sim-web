@@ -74,6 +74,8 @@ const scene = {
     {
       kind: "scene/field",
       value: "1",
+      "value-kind": "number",
+      "value-codec": "encoded-number-one",
       path: [["k", "a"]],
       target: "doc",
     },
@@ -103,13 +105,19 @@ const painted = renderScene(doc2, scene, (e) => {
   captured = e;
 });
 const field = find(painted, (n) => n.className === "scene-field");
+assert.equal(field.dataset.valueKind, "number", "field keeps scalar kind metadata");
+assert.equal(field.dataset.valueCodec, "encoded-number-one", "field keeps encoded value metadata");
 field.value = "9";
 field._listeners.change();
 assert.equal(captured.type, "edit");
+assert.equal(captured["value-kind"], "number");
+assert.equal(captured["value-codec"], "encoded-number-one");
 const intent = intentFromEmit(captured, "pane-main", "human", 1);
 assert.equal(intent.kind, "intent/edit-field");
 assert.deepEqual(intent.path, [["k", "a"]]);
 assert.equal(intent.value, "9");
+assert.equal(intent["value-kind"], "number");
+assert.equal(intent["value-codec"], "encoded-number-one");
 
 // 2b. Performance emits become typed bus Intents for a bound performance source.
 const performanceIntent = intentFromEmit({

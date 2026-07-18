@@ -1,6 +1,6 @@
 //! Tests for the universal default view and editor.
 
-use sim_kernel::{Expr, NumberLiteral, Symbol};
+use sim_kernel::{CodecId, Expr, NumberLiteral, Symbol};
 use sim_lib_intent::{Origin, intent};
 
 use crate::contract::{LensKind, View};
@@ -13,6 +13,7 @@ use crate::{Draft, Editor};
 use sim_kernel::testing::eager_cx as cx;
 
 use sim_value::build::sym;
+use sim_value::path::{Path, get};
 
 fn number(value: &str) -> Expr {
     Expr::Number(NumberLiteral {
@@ -29,6 +30,15 @@ fn sample_map() -> Expr {
             sym("nested"),
             Expr::List(vec![Expr::String("x".to_owned()), Expr::Bool(true)]),
         ),
+    ])
+}
+
+fn scalar_map() -> Expr {
+    Expr::Map(vec![
+        (sym("n"), number("1")),
+        (sym("b"), Expr::Bool(true)),
+        (sym("s"), sym("ready")),
+        (sym("t"), Expr::String("raw".to_owned())),
     ])
 }
 
@@ -220,6 +230,50 @@ fn field_paths(value: &Expr, out: &mut Vec<Expr>) {
     }
 }
 
+/// Recursively collect every field node's map entries.
+fn field_nodes<'a>(value: &'a Expr, out: &mut Vec<&'a [(Expr, Expr)]>) {
+    match value {
+        Expr::Map(entries) => {
+            let is_field = entries.iter().any(|(k, v)| {
+                matches!(k, Expr::Symbol(s) if &*s.name == "kind")
+                    && matches!(v, Expr::Symbol(s) if &*s.name == "field")
+            });
+            if is_field {
+                out.push(entries);
+            }
+            for (_, v) in entries {
+                field_nodes(v, out);
+            }
+        }
+        Expr::List(items) | Expr::Vector(items) | Expr::Set(items) => {
+            for item in items {
+                field_nodes(item, out);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn attr<'a>(entries: &'a [(Expr, Expr)], name: &str) -> Option<&'a Expr> {
+    entries.iter().find_map(|(key, value)| {
+        matches!(key, Expr::Symbol(symbol) if &*symbol.name == name).then_some(value)
+    })
+}
+
+fn symbol_attr<'a>(entries: &'a [(Expr, Expr)], name: &str) -> Option<&'a str> {
+    match attr(entries, name) {
+        Some(Expr::Symbol(symbol)) => Some(&symbol.name),
+        _ => None,
+    }
+}
+
+fn string_attr<'a>(entries: &'a [(Expr, Expr)], name: &str) -> Option<&'a str> {
+    match attr(entries, name) {
+        Some(Expr::String(text)) => Some(text),
+        _ => None,
+    }
+}
+
 #[test]
 fn canonical_text_fields_scope_to_leaf_paths_and_preserve_siblings() {
     let mut cx = cx();
@@ -258,6 +312,95 @@ fn canonical_text_fields_scope_to_leaf_paths_and_preserve_siblings() {
         entries.len(),
         3,
         "the scoped edit preserved every sibling key"
+    );
+}
+
+#[test]
+fn canonical_text_fields_carry_scalar_value_metadata() {
+    let mut cx = cx();
+    let value = scalar_map();
+    let scene = UniversalView.encode(&mut cx, &value).unwrap();
+
+    let mut fields = Vec::new();
+    field_nodes(&scene, &mut fields);
+    assert_eq!(fields.len(), 4, "each scalar leaf is rendered as a field");
+
+    let mut kinds = fields
+        .iter()
+        .map(|entries| symbol_attr(entries, "value-kind").unwrap_or(""))
+        .collect::<Vec<_>>();
+    kinds.sort_unstable();
+    assert_eq!(kinds, ["bool", "number", "string", "symbol"]);
+
+    for entries in fields {
+        let displayed = string_attr(entries, "value").expect("field carries display value");
+        let encoded = string_attr(entries, "value-codec").expect("field carries encoded value");
+        let decoded = sim_codec::decode_portable(CodecId(0), encoded).unwrap();
+        assert_eq!(
+            displayed,
+            crate::universal_view::render_value(&decoded),
+            "field metadata decodes to the displayed scalar"
+        );
+    }
+}
+
+#[test]
+fn scalar_text_edits_rehydrate_against_the_current_leaf_shape() {
+    let mut cx = cx();
+    let value = scalar_map();
+    let editor = UniversalEditor::writable();
+    let cases = [
+        ("n", "9", number("9")),
+        ("b", "false", Expr::Bool(false)),
+        ("s", "done", sym("done")),
+        ("t", "changed", Expr::String("changed".to_owned())),
+    ];
+
+    for (key, text, expected) in cases {
+        let path = Path::new().key(sym(key));
+        let edit = intent(
+            "edit-field",
+            Origin::human(1),
+            vec![
+                ("target", value.clone()),
+                ("path", path.to_expr()),
+                ("value", Expr::String(text.to_owned())),
+            ],
+        );
+        let draft = editor.decode(&mut cx, &value, &edit).unwrap();
+        assert!(draft.committable, "{key} edit must be committable");
+        assert_eq!(
+            get(&draft.proposed, &path),
+            Some(&expected),
+            "{key} edit preserves the leaf type"
+        );
+    }
+}
+
+#[test]
+fn invalid_scalar_text_edits_are_rejected() {
+    let mut cx = cx();
+    let editor = UniversalEditor::writable();
+    let value = scalar_map();
+    let path = Path::new().key(sym("n"));
+    let edit = intent(
+        "edit-field",
+        Origin::human(1),
+        vec![
+            ("target", value.clone()),
+            ("path", path.to_expr()),
+            ("value", Expr::String("not-a-number".to_owned())),
+        ],
+    );
+    let draft = editor.decode(&mut cx, &value, &edit).unwrap();
+    assert!(!draft.committable, "invalid number text must not commit");
+    assert_eq!(draft.proposed, value, "rejected edits preserve the base");
+    assert!(
+        draft
+            .diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.message.contains("cannot parse")),
+        "the rejection explains the scalar parse failure"
     );
 }
 

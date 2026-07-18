@@ -181,16 +181,18 @@ fn index_path(index: usize) -> Expr {
 /// The field's `target` is the root value and `path` scopes the edit, so an
 /// `edit-field` built from it sets only that leaf.
 fn editable_leaf(root: &Expr, path: Expr, leaf: &Expr) -> Expr {
-    node(
-        "field",
-        vec![
-            ("input-kind", sym("text")),
-            ("value", Expr::String(render_value(leaf))),
-            ("target", root.clone()),
-            ("path", path),
-            ("readonly", Expr::Bool(false)),
-        ],
-    )
+    let mut fields = vec![
+        ("input-kind", sym("text")),
+        ("value", Expr::String(render_value(leaf))),
+        ("value-kind", sym(expr_kind(leaf))),
+        ("target", root.clone()),
+        ("path", path),
+        ("readonly", Expr::Bool(false)),
+    ];
+    if let Ok(encoded) = sim_codec::encode_portable(CodecId(0), leaf) {
+        fields.push(("value-codec", Expr::String(encoded)));
+    }
+    node("field", fields)
 }
 
 /// Region 4: properties and actions as buttons emitting `intent/invoke`.
