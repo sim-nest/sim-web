@@ -51,6 +51,13 @@
       "summary": "DAW timeline, mixer, plugin rack, player, piano-roll, and synth lenses for the SIM Web-UI."
     },
     {
+      "crate_name": "sim_lib_view_device",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-view-device/Cargo.toml",
+      "package": "sim-lib-view-device",
+      "summary": "Device profile envelopes for SIM Web surface capabilities."
+    },
+    {
       "crate_name": "sim_lib_view_doc",
       "group": "workspace",
       "manifest": "crates/sim-lib-view-doc/Cargo.toml",

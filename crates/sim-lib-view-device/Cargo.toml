@@ -1,0 +1,22 @@
+[package]
+name = "sim-lib-view-device"
+version = "0.1.0"
+edition = "2024"
+license = "MPL-2.0"
+description = "Device profile envelopes and tier derivation for SIM Web surfaces."
+readme = "README.md"
+publish = true
+repository = "https://github.com/sim-nest/sim-web"
+homepage = "https://github.com/sim-nest/sim-web"
+
+[dependencies]
+sim-cookbook = { version = "0.1.0" }
+sim-kernel = { version = "0.1.0" }
+sim-lib-view = { version = "0.1.2", path = "../sim-lib-view" }
+sim-value = { version = "0.1.0" }
+
+[build-dependencies]
+sim-cookbook = { version = "0.1.0" }
+
+[lints]
+workspace = true

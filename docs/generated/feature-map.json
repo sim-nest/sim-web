@@ -39,6 +39,11 @@
     {
       "features": [],
       "group": "workspace",
+      "package": "sim-lib-view-device"
+    },
+    {
+      "features": [],
+      "group": "workspace",
       "package": "sim-lib-view-doc"
     },
     {

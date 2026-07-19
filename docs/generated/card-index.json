@@ -1,5 +1,5 @@
 {
-  "card_count": 15,
+  "card_count": 16,
   "cards": [
     {
       "id": "browse/catalog",
@@ -24,6 +24,12 @@
       "kind": "cookbook-recipe",
       "owner": "sim-lib-view",
       "summary": "Lens contracts, view selection, and universal scene rendering."
+    },
+    {
+      "id": "cookbook/view-device",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-view-device",
+      "summary": "Device profile envelopes and tier derivation for surface capabilities."
     },
     {
       "id": "cookbook/view/agent",

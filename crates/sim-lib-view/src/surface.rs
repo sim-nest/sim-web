@@ -43,7 +43,7 @@ pub const SURFACE_PRESETS: &[&str] = &[
 
 /// A surface's advertised capabilities, as open metadata over [`Expr`].
 ///
-/// The four capability maps (`display`, `input`, `transport`, `privacy`) are
+/// The capability maps (`display`, `input`, `transport`, `privacy`, `rate`) are
 /// open: a surface may carry fields beyond the well-known ones, and the ranker
 /// reads only the fields it understands. `codecs` lists the surface codecs the
 /// client can decode (lisp/json/bin/...).
@@ -61,6 +61,8 @@ pub struct SurfaceCaps {
     pub transport: Expr,
     /// Privacy policy: redaction class, retention, private fields.
     pub privacy: Expr,
+    /// Timing envelope: content cadence, adapter cadence, and staleness budget.
+    pub rate: Expr,
     /// Surface codecs the client can decode, in preference order.
     pub codecs: Vec<Symbol>,
 }
@@ -130,6 +132,7 @@ impl SurfaceCaps {
             ("input", self.input.clone()),
             ("transport", self.transport.clone()),
             ("privacy", self.privacy.clone()),
+            ("rate", self.rate.clone()),
             (
                 "codecs",
                 build::list(self.codecs.iter().cloned().map(Expr::Symbol).collect()),
@@ -162,6 +165,11 @@ impl SurfaceCaps {
         let input = map_field(entries, "input")?;
         let transport = map_field(entries, "transport")?;
         let privacy = map_field(entries, "privacy")?;
+        let rate = match access::entry_field(entries, "rate") {
+            Some(value @ Expr::Map(_)) => value.clone(),
+            Some(_) => return Err(SurfaceError::BadField("rate")),
+            None => rate_map(1, 1, 1000),
+        };
         let codecs = match access::entry_field(entries, "codecs") {
             Some(Expr::List(items)) => {
                 let mut out = Vec::with_capacity(items.len());
@@ -183,6 +191,7 @@ impl SurfaceCaps {
             input,
             transport,
             privacy,
+            rate,
             codecs,
         })
     }
@@ -216,48 +225,55 @@ impl SurfaceCaps {
 /// The `client_id` is set to the preset name and should be overridden with a
 /// real id via [`SurfaceCaps::from_preset`]. Returns `None` for unknown presets.
 pub fn preset(name: &str) -> Option<SurfaceCaps> {
-    let (display, input, transport, privacy) = match name {
+    let (display, input, transport, privacy, rate) = match name {
         "cli" => (
             display_map(&[("density", sym("dense")), ("color", sym("ansi"))]),
             input_map(&["keyboard"]),
             transport_map("tty", 1, false),
             privacy_map("local", 60_000),
+            rate_map(1, 1, 1000),
         ),
         "tui" => (
             display_map(&[("density", sym("dense")), ("color", sym("ansi256"))]),
             input_map(&["keyboard", "pointer"]),
             transport_map("tty", 1, false),
             privacy_map("local", 60_000),
+            rate_map(1, 1, 1000),
         ),
         "webui" => (
             display_map(&[("density", sym("regular")), ("color", sym("truecolor"))]),
             input_map(&["keyboard", "pointer", "touch", "wheel", "file-drop"]),
             transport_map("websocket", 40, false),
             privacy_map("session", 600_000),
+            rate_map(5, 30, 500),
         ),
         "watch" => (
             display_map(&[("density", sym("glance")), ("shape", sym("round"))]),
             input_map(&["touch", "tap", "crown", "haptic-ack"]),
             transport_map("relay", 250, true),
             privacy_map("local", 60_000),
+            rate_map(1, 1, 1000),
         ),
         "glasses" => (
             display_map(&[("density", sym("glance")), ("lines", build::uint(2))]),
             input_map(&["voice", "tap"]),
             transport_map("relay", 250, true),
             privacy_map("local", 60_000),
+            rate_map(5, 30, 500),
         ),
         "phone" => (
             display_map(&[("density", sym("compact")), ("color", sym("truecolor"))]),
             input_map(&["touch", "voice", "camera"]),
             transport_map("relay", 120, true),
             privacy_map("session", 300_000),
+            rate_map(5, 30, 500),
         ),
         "desktop" => (
             display_map(&[("density", sym("dense")), ("color", sym("truecolor"))]),
             input_map(&["keyboard", "pointer", "wheel", "file-drop"]),
             transport_map("local", 1, false),
             privacy_map("session", 600_000),
+            rate_map(60, 120, 100),
         ),
         _ => return None,
     };
@@ -268,6 +284,7 @@ pub fn preset(name: &str) -> Option<SurfaceCaps> {
         input,
         transport,
         privacy,
+        rate,
         codecs: vec![
             Symbol::qualified(SURFACE_NAMESPACE, "lisp"),
             Symbol::qualified(SURFACE_NAMESPACE, "json"),
@@ -301,6 +318,14 @@ fn privacy_map(class: &str, retain_ms: u64) -> Expr {
         ("class", build::sym(class)),
         ("retain-ms", build::uint(retain_ms)),
         ("private-fields", build::list(Vec::new())),
+    ])
+}
+
+fn rate_map(content_hz: u64, adapt_hz: u64, max_stale_ms: u64) -> Expr {
+    build::map(vec![
+        ("content-hz", build::uint(content_hz)),
+        ("adapt-hz", build::uint(adapt_hz)),
+        ("max-stale-ms", build::uint(max_stale_ms)),
     ])
 }
 
@@ -405,5 +430,16 @@ mod tests {
             SurfaceCaps::from_expr(&Expr::Map(entries)),
             Err(SurfaceError::MissingField("codecs"))
         );
+    }
+
+    #[test]
+    fn missing_rate_map_defaults_to_safe_envelope() {
+        let mut entries = match preset("cli").unwrap().to_expr() {
+            Expr::Map(entries) => entries,
+            _ => unreachable!(),
+        };
+        entries.retain(|(key, _)| !matches!(key, Expr::Symbol(s) if &*s.name == "rate"));
+        let caps = SurfaceCaps::from_expr(&Expr::Map(entries)).expect("older caps parse");
+        assert_eq!(caps.rate, rate_map(1, 1, 1000));
     }
 }

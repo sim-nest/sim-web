@@ -1,6 +1,6 @@
 {
   "generator": "xtask crate-catalog v1",
-  "package_count": 14,
+  "package_count": 15,
   "packages": [
     {
       "description": "Intent value model, gesture algebra, and codec:intent.",
@@ -75,6 +75,19 @@
       "publish": "true",
       "readme": "crates/sim-lib-view-daw/README.md",
       "root": "crates/sim-lib-view-daw",
+      "target_kinds": [
+        "custom-build",
+        "lib"
+      ]
+    },
+    {
+      "description": "Device profile envelopes and tier derivation for SIM Web surfaces.",
+      "generated_readme": true,
+      "manifest": "crates/sim-lib-view-device/Cargo.toml",
+      "name": "sim-lib-view-device",
+      "publish": "true",
+      "readme": "crates/sim-lib-view-device/README.md",
+      "root": "crates/sim-lib-view-device",
       "target_kinds": [
         "custom-build",
         "lib"
