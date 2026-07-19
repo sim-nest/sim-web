@@ -6,10 +6,8 @@
 //! cancel/revert, preserves unknown fields when editing open maps (set
 //! semantics keep sibling keys), and refuses to commit a readonly value.
 //!
-//! Note: earlier scaffolding advertised four "synchronized" modes
-//! (form/tree/text/raw), but form, tree, and text all rendered identically;
-//! only the two distinct projections below are advertised, so the mode list
-//! matches what is actually implemented.
+//! The editor advertises only the two distinct projections below, so the mode
+//! list matches the behavior users can actually choose.
 
 use std::sync::Arc;
 

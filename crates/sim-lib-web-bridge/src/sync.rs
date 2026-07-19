@@ -73,7 +73,7 @@ struct Binding {
 /// The canonical multi-surface coordination point.
 ///
 /// Holds the single canonical value per resource, the universal [`LensRegistry`]
-/// used to render and edit, an owned [`Cx`], the registered surfaces and their
+/// that renders and edits, an owned [`Cx`], the registered surfaces and their
 /// [`SurfaceCaps`], the live `(surface, pane)` bindings, and the append-only
 /// [`EditRow`] ledger.
 pub struct SurfaceHub {

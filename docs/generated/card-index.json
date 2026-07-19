@@ -1,5 +1,5 @@
 {
-  "card_count": 14,
+  "card_count": 15,
   "cards": [
     {
       "id": "browse/catalog",
@@ -78,6 +78,12 @@
       "kind": "cookbook-recipe",
       "owner": "sim-lib-web-layout",
       "summary": "Workspace, panes, palette, and layout persistence values."
+    },
+    {
+      "id": "cookbook/web/shell",
+      "kind": "cookbook-recipe",
+      "owner": "sim-web-shell",
+      "summary": "Browser shell startup and live session descriptors."
     },
     {
       "id": "registry/catalog",

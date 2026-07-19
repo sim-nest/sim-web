@@ -71,5 +71,10 @@
 {"kind":"recipe","path":"crates/sim-lib-web-layout/recipes/01-basics/workspace-pane/recipe.toml"}
 {"kind":"recipe","path":"crates/sim-lib-web-layout/recipes/01-basics/workspace-pane/setup.siml"}
 {"kind":"recipe","path":"crates/sim-lib-web-layout/recipes/book.toml"}
+{"kind":"recipe","path":"crates/sim-web-shell/recipes/01-basics/chapter.toml"}
+{"kind":"recipe","path":"crates/sim-web-shell/recipes/01-basics/open-workspace/purpose.md"}
+{"kind":"recipe","path":"crates/sim-web-shell/recipes/01-basics/open-workspace/recipe.toml"}
+{"kind":"recipe","path":"crates/sim-web-shell/recipes/01-basics/open-workspace/setup.siml"}
+{"kind":"recipe","path":"crates/sim-web-shell/recipes/book.toml"}
 {"kind":"recipe","path":"recipes/edit-field-scene-patch.md"}
 {"kind":"recipe","path":"recipes/two-surfaces-share-one-resource.md"}

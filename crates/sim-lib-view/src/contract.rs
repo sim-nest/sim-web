@@ -48,7 +48,7 @@ pub struct LensMeta {
     pub cost: i32,
     /// Capabilities the operator must hold for this lens to be eligible.
     pub required_capabilities: Vec<CapabilityName>,
-    /// Experience modes this lens prefers (used by mode-aware ranking in P9).
+    /// Experience modes this lens prefers for mode-aware ranking.
     pub preferred_modes: Vec<Symbol>,
     /// Whether this is the always-matching universal default of its kind.
     pub universal_default: bool,

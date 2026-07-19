@@ -237,7 +237,7 @@ fn roundtrip_badge(value: &Expr) -> Expr {
 }
 
 /// The four universal regions in increasing-depth order: summary, canonical
-/// text, structure tree, operations. Mode-aware rendering (P9) takes a prefix.
+/// text, structure tree, operations. Mode-aware rendering takes a prefix.
 pub(crate) fn universal_regions(value: &Expr) -> Vec<Expr> {
     vec![
         summary_card(value),

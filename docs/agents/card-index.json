@@ -74,6 +74,11 @@
     "crates/sim-lib-web-layout/recipes/01-basics/workspace-pane/recipe.toml",
     "crates/sim-lib-web-layout/recipes/01-basics/workspace-pane/setup.siml",
     "crates/sim-lib-web-layout/recipes/book.toml",
+    "crates/sim-web-shell/recipes/01-basics/chapter.toml",
+    "crates/sim-web-shell/recipes/01-basics/open-workspace/purpose.md",
+    "crates/sim-web-shell/recipes/01-basics/open-workspace/recipe.toml",
+    "crates/sim-web-shell/recipes/01-basics/open-workspace/setup.siml",
+    "crates/sim-web-shell/recipes/book.toml",
     "recipes/edit-field-scene-patch.md",
     "recipes/two-surfaces-share-one-resource.md"
   ]
