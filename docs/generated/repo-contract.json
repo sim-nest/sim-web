@@ -482,6 +482,13 @@
         {
           "kind": "normal",
           "optional": false,
+          "package": "sim-lib-scene",
+          "rename": null,
+          "target": null
+        },
+        {
+          "kind": "normal",
+          "optional": false,
           "package": "sim-lib-view",
           "rename": null,
           "target": null
@@ -954,10 +961,10 @@
     "generated_by": "cargo run -p xtask -- simdoc",
     "generation_timestamp": "2026-07-15T16:50:10+02:00",
     "generator": "xtask repo-contract v1",
-    "git_commit": "87f32ce10f6df9cf1bbe98051c3811641323cee7",
+    "git_commit": "f89ae68a89fe5799f6be41ba38f0d2c87e71b555",
     "repo": "sim-web",
     "schema": "sim.provenance.v1",
-    "source_commit": "87f32ce10f6df9cf1bbe98051c3811641323cee7",
+    "source_commit": "f89ae68a89fe5799f6be41ba38f0d2c87e71b555",
     "source_remote": "https://github.com/sim-nest/sim-web",
     "validation_commands": [
       "cargo fmt --all --check",
@@ -970,9 +977,9 @@
       "cargo run -p xtask -- validation-matrix --check --repo .",
       "cargo run -p xtask -- crate-catalog --check --repo ."
     ],
-    "workspace_hash": "f8c58fb947ac48e9",
+    "workspace_hash": "85f40f48e5d635a4",
     "workspace_hash_algorithm": "fnv1a64",
-    "workspace_hash_input_count": 219,
+    "workspace_hash_input_count": 223,
     "workspace_hash_inputs": [
       "Cargo.toml",
       "crates/sim-lib-intent/Cargo.toml",
@@ -997,6 +1004,7 @@
       "crates/sim-lib-scene/src/codec.rs",
       "crates/sim-lib-scene/src/cookbook.rs",
       "crates/sim-lib-scene/src/diff.rs",
+      "crates/sim-lib-scene/src/glance.rs",
       "crates/sim-lib-scene/src/kinds.rs",
       "crates/sim-lib-scene/src/lib.rs",
       "crates/sim-lib-scene/src/model.rs",
@@ -1107,6 +1115,9 @@
       "crates/sim-lib-view-device/src/adapter.rs",
       "crates/sim-lib-view-device/src/clock.rs",
       "crates/sim-lib-view-device/src/degrade.rs",
+      "crates/sim-lib-view-device/src/glance.rs",
+      "crates/sim-lib-view-device/src/glance_adapter.rs",
+      "crates/sim-lib-view-device/src/glance_tests.rs",
       "crates/sim-lib-view-device/src/ladder.rs",
       "crates/sim-lib-view-device/src/lib.rs",
       "crates/sim-lib-view-device/src/loop.rs",

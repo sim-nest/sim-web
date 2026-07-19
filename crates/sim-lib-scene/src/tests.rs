@@ -8,8 +8,8 @@ use sim_kernel::{
 };
 
 use crate::{
-    SceneCodecLib, apply, diff, map, node, scene_codec_symbol, scene_shape_specs,
-    scene_shape_symbol, text, validate_scene,
+    GlanceAction, GlanceCard, GlanceMetric, SceneCodecLib, apply, diff, map, node,
+    scene_codec_symbol, scene_shape_specs, scene_shape_symbol, text, validate_scene,
 };
 
 fn cx() -> Cx {
@@ -208,6 +208,25 @@ fn validates_music_editor_scene_kinds() {
         validate_scene(&node(kind, vec![("target", sym("target"))]))
             .unwrap_or_else(|err| panic!("{kind}: {err}"));
     }
+}
+
+#[test]
+fn glance_card_is_a_scene_kind() {
+    let card = GlanceCard::new(
+        "Drive",
+        Some(GlanceMetric::new("speed", "42")),
+        Some(GlanceAction::new("Ack", sym("ack"))),
+        "info",
+        4,
+    )
+    .to_scene();
+
+    validate_scene(&card).expect("scene/glance validates");
+    let parsed = GlanceCard::from_scene(&card).expect("glance parses");
+
+    assert_eq!(parsed.title, "Drive");
+    assert_eq!(parsed.metric.unwrap().value, "42");
+    assert_eq!(parsed.action.unwrap().label, "Ack");
 }
 
 #[test]

@@ -13,6 +13,8 @@
 pub mod adapter;
 pub mod clock;
 pub mod degrade;
+pub mod glance;
+pub mod glance_adapter;
 pub mod ladder;
 pub mod r#loop;
 pub mod profile;
@@ -22,6 +24,11 @@ pub mod split;
 pub use adapter::{EncodedScene, LocalAdapter, MirrorAdapter};
 pub use clock::FrameClock;
 pub use degrade::{Degradation, DegradationResolver, ObservedRoute};
+pub use glance::{
+    AckChannel, GlanceBudget, GlanceInput, GlanceReducer, GlanceState, fit_to_budget,
+    reduce_scene_to_glance,
+};
+pub use glance_adapter::GlanceAdapter;
 pub use ladder::DeviceTier;
 pub use r#loop::{AdapterInput, AdapterLoop, Frame, StalePolicy, blank_frame};
 pub use profile::{
@@ -43,3 +50,6 @@ mod split_tests;
 
 #[cfg(test)]
 mod timing_tests;
+
+#[cfg(test)]
+mod glance_tests;

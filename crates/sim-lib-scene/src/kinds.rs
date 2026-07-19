@@ -32,6 +32,7 @@ pub const SCENE_KINDS: &[&str] = &[
     "tree",
     "table",
     "graph",
+    "glance",
     "node",
     "edge",
     "plot",
