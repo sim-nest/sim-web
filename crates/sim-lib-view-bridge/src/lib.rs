@@ -1,9 +1,19 @@
 //! Reversible BRIDGE packet review surface for SIM Web.
 //!
-//! The surface renders one `BridgePacket` as Scene data and decodes ordinary
-//! `intent/edit-field` values into typed BRIDGE collaboration parts. Human and
-//! agent operators edit the same packet expression: a patch, review, vote, or
-//! receipt is a BRIDGE part record, not a separate browser-side protocol.
+//! This is the human seat on a BRIDGE conversation. It renders one `BridgePacket`
+//! (from `sim-codec-bridge`) as Scene data via `bridge_packet_view` and decodes
+//! ordinary `intent/edit-field` values back into typed BRIDGE collaboration parts
+//! via `bridge_packet_edit`. It is a view codec at the surface position, not a new
+//! protocol.
+//!
+//! The point is symmetry: a human and an agent edit the *same* packet expression,
+//! and a patch, review, vote, or receipt a person makes
+//! (`patch_edit_intent` / `review_edit_intent` / `vote_edit_intent` /
+//! `receipt_edit_intent`) is the identical BRIDGE part record a model produces.
+//! So the merge policy in `sim-lib-bridge` cannot tell a human reviewer from a
+//! model reviewer -- there is one shared object, not a browser copy beside a model
+//! copy. `BridgePacketSurfaceCodec` / `BRIDGE_PACKET_SURFACE_CODEC_ID` register
+//! the surface; `packet_review_demo` is the runnable cookbook seat.
 
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
