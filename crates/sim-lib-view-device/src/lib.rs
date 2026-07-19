@@ -10,11 +10,14 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
+pub mod adapter;
 pub mod degrade;
 pub mod ladder;
 pub mod profile;
 pub mod rate;
+pub mod split;
 
+pub use adapter::{EncodedScene, LocalAdapter, MirrorAdapter};
 pub use degrade::{Degradation, DegradationResolver, ObservedRoute};
 pub use ladder::DeviceTier;
 pub use profile::{
@@ -22,6 +25,7 @@ pub use profile::{
     DeviceProfileParts, DeviceSurfaceCapsExt, derive_tier, device_profile_demo, tier_preset,
 };
 pub use rate::{RateClass, RateError};
+pub use split::{Split, SplitRun, drive};
 
 /// Embedded cookbook recipe books shipped with this library.
 pub static RECIPES: sim_cookbook::EmbeddedDir =
@@ -29,3 +33,6 @@ pub static RECIPES: sim_cookbook::EmbeddedDir =
 
 #[cfg(test)]
 mod profile_tests;
+
+#[cfg(test)]
+mod split_tests;
