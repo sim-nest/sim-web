@@ -14,4 +14,4 @@ Every surface can say what it can show, sense, emit, and refresh without becomin
 
 ## Where it fits
 
-This crate sits beside the SIM Web view stack. The base view contract describes surface capabilities; this crate interprets those capabilities for worn and edge devices, then hands later adapters a profile they can trust when choosing a reduced view, a live stream route, or a consent-aware fallback.
+This crate sits beside the SIM Web view stack. The base view contract describes surface capabilities; this crate interprets those capabilities for worn and edge devices, then hands adapters a profile and timing loop they can trust when choosing a reduced view, a live stream route, or a consent-aware fallback.
