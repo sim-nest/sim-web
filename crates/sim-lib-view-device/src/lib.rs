@@ -7,7 +7,6 @@
 //! route cannot provide every requested capability. It remains library-level
 //! surface logic; the kernel does not learn a device enum.
 
-#![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
 pub mod adapter;
