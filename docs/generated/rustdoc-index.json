@@ -79,6 +79,13 @@
       "summary": "Host-side view frame facade for wasm-shaped view data."
     },
     {
+      "crate_name": "sim_lib_view_wrist",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-view-wrist/Cargo.toml",
+      "package": "sim-lib-view-wrist",
+      "summary": "Wrist-specific glance budgets for SIM Web watch surfaces."
+    },
+    {
       "crate_name": "sim_lib_web_bridge",
       "group": "workspace",
       "manifest": "crates/sim-lib-web-bridge/Cargo.toml",

@@ -1,5 +1,5 @@
 {
-  "card_count": 16,
+  "card_count": 17,
   "cards": [
     {
       "id": "browse/catalog",
@@ -30,6 +30,12 @@
       "kind": "cookbook-recipe",
       "owner": "sim-lib-view-device",
       "summary": "Device profile envelopes and tier derivation for surface capabilities."
+    },
+    {
+      "id": "cookbook/view-wrist",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-view-wrist",
+      "summary": "Round watch glance budgets over the shared device adapter."
     },
     {
       "id": "cookbook/view/agent",

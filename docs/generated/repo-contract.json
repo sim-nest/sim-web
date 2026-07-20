@@ -1,5 +1,5 @@
 {
-  "card_count": 16,
+  "card_count": 17,
   "cards": [
     {
       "id": "browse/catalog",
@@ -30,6 +30,12 @@
       "kind": "cookbook-recipe",
       "owner": "sim-lib-view-device",
       "summary": "Device profile envelopes and tier derivation for surface capabilities."
+    },
+    {
+      "id": "cookbook/view-wrist",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-view-wrist",
+      "summary": "Round watch glance budgets over the shared device adapter."
     },
     {
       "id": "cookbook/view/agent",
@@ -118,6 +124,7 @@
       "sim-lib-view-doc",
       "sim-lib-view-math",
       "sim-lib-view-wasm-frame",
+      "sim-lib-view-wrist",
       "sim-lib-web-bridge",
       "sim-lib-web-layout",
       "sim-web-shell",
@@ -126,7 +133,7 @@
   },
   "non_citizen_exemption_count": 0,
   "non_citizen_exemptions": [],
-  "package_count": 15,
+  "package_count": 16,
   "packages": [
     {
       "crate_name": "sim_lib_intent",
@@ -703,6 +710,59 @@
       ]
     },
     {
+      "crate_name": "sim_lib_view_wrist",
+      "dependencies": [
+        {
+          "kind": "dev",
+          "optional": false,
+          "package": "sim-lib-scene",
+          "rename": null,
+          "target": null
+        },
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-lib-view-device",
+          "rename": null,
+          "target": null
+        }
+      ],
+      "description": "Round watch glance budgets over the shared SIM Web device adapter.",
+      "features": [],
+      "group": "workspace",
+      "manifest": "crates/sim-lib-view-wrist/Cargo.toml",
+      "name": "sim-lib-view-wrist",
+      "publish": "true",
+      "root": "crates/sim-lib-view-wrist",
+      "rustdoc_summary": "Wrist-specific glance budgets for SIM Web watch surfaces.",
+      "target_kinds": [
+        "custom-build",
+        "lib"
+      ],
+      "targets": [
+        {
+          "crate_types": [
+            "lib"
+          ],
+          "kind": [
+            "lib"
+          ],
+          "name": "sim_lib_view_wrist",
+          "src": "crates/sim-lib-view-wrist/src/lib.rs"
+        },
+        {
+          "crate_types": [
+            "bin"
+          ],
+          "kind": [
+            "custom-build"
+          ],
+          "name": "build-script-build",
+          "src": "crates/sim-lib-view-wrist/build.rs"
+        }
+      ]
+    },
+    {
       "crate_name": "sim_lib_web_bridge",
       "dependencies": [
         {
@@ -968,10 +1028,10 @@
     "generated_by": "cargo run -p xtask -- simdoc",
     "generation_timestamp": "2026-07-15T16:50:10+02:00",
     "generator": "xtask repo-contract v1",
-    "git_commit": "da30709faf09f13a7b2b327ff90d63f59814a166",
+    "git_commit": "575ca07fff2da810bb541cc9a4cd7c53ddfa1e22",
     "repo": "sim-web",
     "schema": "sim.provenance.v1",
-    "source_commit": "da30709faf09f13a7b2b327ff90d63f59814a166",
+    "source_commit": "575ca07fff2da810bb541cc9a4cd7c53ddfa1e22",
     "source_remote": "https://github.com/sim-nest/sim-web",
     "validation_commands": [
       "cargo fmt --all --check",
@@ -984,9 +1044,9 @@
       "cargo run -p xtask -- validation-matrix --check --repo .",
       "cargo run -p xtask -- crate-catalog --check --repo ."
     ],
-    "workspace_hash": "3f1cead636c59aae",
+    "workspace_hash": "7e4ce94ace6aa3d0",
     "workspace_hash_algorithm": "fnv1a64",
-    "workspace_hash_input_count": 229,
+    "workspace_hash_input_count": 236,
     "workspace_hash_inputs": [
       "Cargo.toml",
       "crates/sim-lib-intent/Cargo.toml",
@@ -1170,6 +1230,13 @@
       "crates/sim-lib-view-wasm-frame/src/host.rs",
       "crates/sim-lib-view-wasm-frame/src/lib.rs",
       "crates/sim-lib-view-wasm-frame/src/tests.rs",
+      "crates/sim-lib-view-wrist/Cargo.toml",
+      "crates/sim-lib-view-wrist/build.rs",
+      "crates/sim-lib-view-wrist/recipes/01-basics/watch-glance-budget/recipe.toml",
+      "crates/sim-lib-view-wrist/recipes/book.toml",
+      "crates/sim-lib-view-wrist/src/budget.rs",
+      "crates/sim-lib-view-wrist/src/budget_tests.rs",
+      "crates/sim-lib-view-wrist/src/lib.rs",
       "crates/sim-lib-web-bridge/Cargo.toml",
       "crates/sim-lib-web-bridge/build.rs",
       "crates/sim-lib-web-bridge/recipes/01-basics/session-fixture/recipe.toml",
@@ -1219,7 +1286,7 @@
       "xtask/Cargo.toml"
     ]
   },
-  "recipe_book_count": 14,
+  "recipe_book_count": 15,
   "recipes": [
     {
       "book": "intent",
@@ -1472,6 +1539,26 @@
       ],
       "summary": "Browser-side view host descriptors for local Scene and Intent flow.",
       "title": "Wasm View Host"
+    },
+    {
+      "book": "view-wrist",
+      "book_toml": "crates/sim-lib-view-wrist/recipes/book.toml",
+      "card_id": "cookbook/view-wrist",
+      "group": "workspace",
+      "package": "sim-lib-view-wrist",
+      "recipe_count": 1,
+      "recipes": [
+        {
+          "card_id": "view-wrist/01-basics/watch-glance-budget",
+          "codec": "lisp",
+          "id": "watch-glance-budget",
+          "package": "sim-lib-view-wrist",
+          "recipe_toml": "crates/sim-lib-view-wrist/recipes/01-basics/watch-glance-budget/recipe.toml",
+          "title": "Watch glance budget"
+        }
+      ],
+      "summary": "Round watch glance budgets over the shared device adapter.",
+      "title": "View Wrist"
     },
     {
       "book": "web/bridge",

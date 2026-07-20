@@ -1,0 +1,8 @@
+id = "watch-glance-budget"
+title = "Watch glance budget"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 10
+tags = ["view", "device", "watch", "glance", "haptic"]
+requires = ["view", "device", "codec/lisp"]

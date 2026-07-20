@@ -59,6 +59,11 @@
     {
       "features": [],
       "group": "workspace",
+      "package": "sim-lib-view-wrist"
+    },
+    {
+      "features": [],
+      "group": "workspace",
       "package": "sim-lib-web-bridge"
     },
     {

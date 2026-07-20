@@ -13,6 +13,7 @@ members = [
   "crates/sim-lib-view-doc",
   "crates/sim-lib-view-math",
   "crates/sim-lib-view-wasm-frame",
+  "crates/sim-lib-view-wrist",
   "crates/sim-lib-web-bridge",
   "crates/sim-lib-web-layout",
   "crates/sim-web-shell",

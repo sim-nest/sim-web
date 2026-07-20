@@ -1,0 +1,5 @@
+book = "view-wrist"
+title = "View Wrist"
+summary = "Round watch glance budgets over the shared device adapter."
+order = 95
+chapters = ["01-basics"]

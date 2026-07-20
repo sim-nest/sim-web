@@ -57,6 +57,10 @@ ledgered edit to every open surface.
   projection profiles (`watch`/`glasses`/`phone`/`desktop`/`cli`/`tui`/`webui`),
   experience modes, and the surface-neutral command palette, focus model,
   accessibility metadata, and diagnostics presentation.
+- `sim-lib-view-device` -- device profiles, timing envelopes, tier derivation,
+  shared one-card glance reduction, and local adaptation for small edge surfaces.
+- `sim-lib-view-wrist` -- round watch glance budgets and haptic acknowledgement
+  configuration over the shared device glance adapter.
 
 ### View lenses
 

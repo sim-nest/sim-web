@@ -61,6 +61,11 @@
 {"kind":"recipe","path":"crates/sim-lib-view-wasm-frame/recipes/01-basics/host-loop/recipe.toml"}
 {"kind":"recipe","path":"crates/sim-lib-view-wasm-frame/recipes/01-basics/host-loop/setup.siml"}
 {"kind":"recipe","path":"crates/sim-lib-view-wasm-frame/recipes/book.toml"}
+{"kind":"recipe","path":"crates/sim-lib-view-wrist/recipes/01-basics/chapter.toml"}
+{"kind":"recipe","path":"crates/sim-lib-view-wrist/recipes/01-basics/watch-glance-budget/purpose.md"}
+{"kind":"recipe","path":"crates/sim-lib-view-wrist/recipes/01-basics/watch-glance-budget/recipe.toml"}
+{"kind":"recipe","path":"crates/sim-lib-view-wrist/recipes/01-basics/watch-glance-budget/setup.siml"}
+{"kind":"recipe","path":"crates/sim-lib-view-wrist/recipes/book.toml"}
 {"kind":"recipe","path":"crates/sim-lib-view/recipes/01-basics/chapter.toml"}
 {"kind":"recipe","path":"crates/sim-lib-view/recipes/01-basics/universal-lens/purpose.md"}
 {"kind":"recipe","path":"crates/sim-lib-view/recipes/01-basics/universal-lens/recipe.toml"}
