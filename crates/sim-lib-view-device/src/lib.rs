@@ -19,6 +19,7 @@ pub mod glance_adapter;
 pub mod ladder;
 pub mod r#loop;
 pub mod profile;
+mod profile_surface;
 pub mod rate;
 pub mod reaper;
 pub mod split;

@@ -16,6 +16,7 @@
 #![deny(missing_docs)]
 
 pub mod cookbook;
+mod device_peer;
 pub mod fabric;
 pub mod fixture;
 pub mod history;
@@ -27,6 +28,7 @@ pub mod sync;
 pub mod transport;
 
 pub use cookbook::session_fixture_demo;
+pub use device_peer::{device_peer_surface, register_device_peer};
 pub use fabric::{FabricTransport, operation_to_request};
 pub use fixture::FixtureTransport;
 pub use history::{History, SessionLog, Snapshots, annotate};
