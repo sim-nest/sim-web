@@ -149,9 +149,7 @@ impl GlanceCard {
                 return Err(Error::HostError("expected a scene/glance card".to_owned()));
             }
         }
-        let cells = access::field_i64(expr, "cells")
-            .and_then(|value| u16::try_from(value).ok())
-            .unwrap_or(1);
+        let cells = field_u16(expr, "cells").unwrap_or(1);
         Ok(Self {
             title: access::required_str(expr, "title", "scene/glance")?.to_owned(),
             metric: access::field(expr, "metric")
@@ -167,6 +165,13 @@ impl GlanceCard {
             bypass_budget: access::field_bool(expr, "bypass-budget").unwrap_or(false),
         })
     }
+}
+
+fn field_u16(expr: &Expr, name: &str) -> Option<u16> {
+    let Expr::Number(number) = access::field(expr, name)? else {
+        return None;
+    };
+    number.canonical.parse().ok()
 }
 
 /// Builds a `scene/glance` node.

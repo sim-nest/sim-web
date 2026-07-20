@@ -47,8 +47,8 @@ fn one_reducer_two_budgets_drive_one_adapter() {
 
     assert_eq!(scene_kind(&hud_frame).as_deref(), Some(GLANCE_KIND));
     assert_eq!(scene_kind(&watch_frame).as_deref(), Some(GLANCE_KIND));
-    assert_eq!(access::field_i64(&hud_frame, "cells"), Some(2));
-    assert_eq!(access::field_i64(&watch_frame, "cells"), Some(4));
+    assert_eq!(field_u64(&hud_frame, "cells"), Some(2));
+    assert_eq!(field_u64(&watch_frame, "cells"), Some(4));
 }
 
 #[test]
@@ -93,8 +93,15 @@ fn tap_yields_configured_ack_without_encoder_call() {
         access::field_sym(frame, "ack-input").unwrap().name.as_ref(),
         "tap"
     );
-    assert_eq!(access::field_i64(frame, "ack-ms"), Some(90));
-    assert_eq!(access::field_i64(frame, "ack-tick"), Some(7));
+    assert_eq!(field_u64(frame, "ack-ms"), Some(90));
+    assert_eq!(field_u64(frame, "ack-tick"), Some(7));
+}
+
+fn field_u64(expr: &Expr, field: &str) -> Option<u64> {
+    let Expr::Number(number) = access::field(expr, field)? else {
+        return None;
+    };
+    number.canonical.parse().ok()
 }
 
 #[derive(Clone)]

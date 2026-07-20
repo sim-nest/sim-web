@@ -187,7 +187,7 @@ fn first_metric(expr: &Expr) -> Option<GlanceMetric> {
             .unwrap_or_else(|| "value".to_owned());
         let value = access::field_str(expr, "value")
             .map(str::to_owned)
-            .or_else(|| access::field_i64(expr, "value").map(|number| number.to_string()))
+            .or_else(|| field_number_text(expr, "value"))
             .or_else(|| access::field_str(expr, "text").map(str::to_owned))
             .or_else(|| access::field_str(expr, "label").map(str::to_owned))
             .unwrap_or_else(|| label.clone());
@@ -209,6 +209,13 @@ fn first_action(expr: &Expr) -> Option<GlanceAction> {
         return Some(GlanceAction::new(label, target));
     }
     children(expr).find_map(first_action)
+}
+
+fn field_number_text(expr: &Expr, field: &str) -> Option<String> {
+    let Expr::Number(number) = access::field(expr, field)? else {
+        return None;
+    };
+    Some(number.canonical.clone())
 }
 
 fn urgency(expr: &Expr) -> String {
