@@ -8,6 +8,7 @@
 #![deny(missing_docs)]
 
 pub mod budget;
+pub mod command;
 pub mod pacing;
 
 pub use budget::{
@@ -15,6 +16,7 @@ pub use budget::{
     WATCH_GLANCE_LARGE_GLYPHS, watch_glance_adapter, watch_glance_budget, watch_glance_budget_demo,
     watch_glance_large_adapter, watch_glance_large_budget,
 };
+pub use command::{HapticPattern, HapticStep, Urgency, WatchCommand};
 pub use pacing::{
     offer_worn, tick_worn, watch_adapter_loop, watch_frame_clock, watch_frame_clock_at,
     worn_state_from,
@@ -26,6 +28,9 @@ pub static RECIPES: sim_cookbook::EmbeddedDir =
 
 #[cfg(test)]
 mod budget_tests;
+
+#[cfg(test)]
+mod command_tests;
 
 #[cfg(test)]
 mod pacing_tests;
