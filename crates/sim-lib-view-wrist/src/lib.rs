@@ -8,11 +8,16 @@
 #![deny(missing_docs)]
 
 pub mod budget;
+pub mod pacing;
 
 pub use budget::{
     WATCH_GLANCE_ACK_MS, WATCH_GLANCE_CELLS, WATCH_GLANCE_GLYPHS, WATCH_GLANCE_LARGE_CELLS,
     WATCH_GLANCE_LARGE_GLYPHS, watch_glance_adapter, watch_glance_budget, watch_glance_budget_demo,
     watch_glance_large_adapter, watch_glance_large_budget,
+};
+pub use pacing::{
+    offer_worn, tick_worn, watch_adapter_loop, watch_frame_clock, watch_frame_clock_at,
+    worn_state_from,
 };
 
 /// Embedded cookbook recipe books shipped with this library.
@@ -21,3 +26,6 @@ pub static RECIPES: sim_cookbook::EmbeddedDir =
 
 #[cfg(test)]
 mod budget_tests;
+
+#[cfg(test)]
+mod pacing_tests;
