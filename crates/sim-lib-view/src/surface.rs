@@ -38,15 +38,25 @@ pub const CAPS_KIND: &str = "caps";
 /// in this list still works by advertising its own [`SurfaceCaps`]. The presets
 /// exist so common surfaces have a one-line starting point.
 pub const SURFACE_PRESETS: &[&str] = &[
-    "cli", "tui", "webui", "watch", "glasses", "phone", "desktop",
+    "cli",
+    "tui",
+    "webui",
+    "watch",
+    "watch-glance",
+    "watch-glance-large",
+    "watch-sport",
+    "watch-sleep",
+    "glasses",
+    "phone",
+    "desktop",
 ];
 
 /// A surface's advertised capabilities, as open metadata over [`Expr`].
 ///
-/// The capability maps (`display`, `input`, `transport`, `privacy`, `rate`) are
-/// open: a surface may carry fields beyond the well-known ones, and the ranker
-/// reads only the fields it understands. `codecs` lists the surface codecs the
-/// client can decode (lisp/json/bin/...).
+/// The capability maps (`display`, `input`, `output`, `transport`, `privacy`,
+/// `rate`, `streams`) are open: a surface may carry fields beyond the
+/// well-known ones, and the ranker reads only the fields it understands.
+/// `codecs` lists the surface codecs the client can decode (lisp/json/bin/...).
 #[derive(Clone, Debug, PartialEq)]
 pub struct SurfaceCaps {
     /// A stable client identifier, e.g. `"tty.local.1"`.
@@ -57,12 +67,16 @@ pub struct SurfaceCaps {
     pub display: Expr,
     /// Input capabilities: keyboard/pointer/touch/voice/camera/tap/...
     pub input: Expr,
+    /// Output capabilities: screen/haptic/face/tone/speaker/mic/...
+    pub output: Expr,
     /// Transport capabilities: kind, round-trip, offline queue, ordering.
     pub transport: Expr,
     /// Privacy policy: redaction class, retention, private fields.
     pub privacy: Expr,
     /// Timing envelope: content cadence, adapter cadence, and staleness budget.
     pub rate: Expr,
+    /// Stream capabilities: heart-rate/motion/location/battery/...
+    pub streams: Expr,
     /// Surface codecs the client can decode, in preference order.
     pub codecs: Vec<Symbol>,
 }
@@ -130,9 +144,11 @@ impl SurfaceCaps {
             ("preset", Expr::Symbol(self.preset.clone())),
             ("display", self.display.clone()),
             ("input", self.input.clone()),
+            ("output", self.output.clone()),
             ("transport", self.transport.clone()),
             ("privacy", self.privacy.clone()),
             ("rate", self.rate.clone()),
+            ("streams", self.streams.clone()),
             (
                 "codecs",
                 build::list(self.codecs.iter().cloned().map(Expr::Symbol).collect()),
@@ -163,6 +179,7 @@ impl SurfaceCaps {
         };
         let display = map_field(entries, "display")?;
         let input = map_field(entries, "input")?;
+        let output = optional_map_field(entries, "output")?;
         let transport = map_field(entries, "transport")?;
         let privacy = map_field(entries, "privacy")?;
         let rate = match access::entry_field(entries, "rate") {
@@ -170,6 +187,7 @@ impl SurfaceCaps {
             Some(_) => return Err(SurfaceError::BadField("rate")),
             None => rate_map(1, 1, 1000),
         };
+        let streams = optional_map_field(entries, "streams")?;
         let codecs = match access::entry_field(entries, "codecs") {
             Some(Expr::List(items)) => {
                 let mut out = Vec::with_capacity(items.len());
@@ -189,9 +207,11 @@ impl SurfaceCaps {
             preset,
             display,
             input,
+            output,
             transport,
             privacy,
             rate,
+            streams,
             codecs,
         })
     }
@@ -225,55 +245,154 @@ impl SurfaceCaps {
 /// The `client_id` is set to the preset name and should be overridden with a
 /// real id via [`SurfaceCaps::from_preset`]. Returns `None` for unknown presets.
 pub fn preset(name: &str) -> Option<SurfaceCaps> {
-    let (display, input, transport, privacy, rate) = match name {
+    let (display, input, output, transport, privacy, rate, streams) = match name {
         "cli" => (
             display_map(&[("density", sym("dense")), ("color", sym("ansi"))]),
             input_map(&["keyboard"]),
+            output_map(&["screen"]),
             transport_map("tty", 1, false),
             privacy_map("local", 60_000),
             rate_map(1, 1, 1000),
+            streams_map(&[]),
         ),
         "tui" => (
             display_map(&[("density", sym("dense")), ("color", sym("ansi256"))]),
             input_map(&["keyboard", "pointer"]),
+            output_map(&["screen"]),
             transport_map("tty", 1, false),
             privacy_map("local", 60_000),
             rate_map(1, 1, 1000),
+            streams_map(&[]),
         ),
         "webui" => (
             display_map(&[("density", sym("regular")), ("color", sym("truecolor"))]),
             input_map(&["keyboard", "pointer", "touch", "wheel", "file-drop"]),
+            output_map(&["screen"]),
             transport_map("websocket", 40, false),
             privacy_map("session", 600_000),
             rate_map(5, 30, 500),
+            streams_map(&[]),
         ),
         "watch" => (
-            display_map(&[("density", sym("glance")), ("shape", sym("round"))]),
-            input_map(&["touch", "tap", "crown", "haptic-ack"]),
-            transport_map("relay", 250, true),
+            watch_display_map("generic-round-watch", 480, 48),
+            input_map(&[
+                "button",
+                "touch",
+                "tap",
+                "raise",
+                "voice",
+                "crown",
+                "haptic-ack",
+            ]),
+            watch_output_map(),
+            transport_map_with_links("phone-relay", 250, true, &["phone-relay", "ble"]),
             privacy_map("local", 60_000),
-            rate_map(1, 1, 1000),
+            watch_rate_map(),
+            streams_map(&["heart-rate", "motion", "battery", "connection"]),
+        ),
+        "watch-glance" => (
+            watch_display_map("amazfit-t-rex-3-pro-44", 466, 44),
+            input_map(&["button", "touch", "tap", "raise", "voice", "haptic-ack"]),
+            watch_output_map(),
+            transport_map_with_links(
+                "phone-relay",
+                250,
+                true,
+                &["modeled", "phone-relay", "ble", "zepp-export"],
+            ),
+            privacy_map("local", 60_000),
+            watch_rate_map(),
+            streams_map(&[
+                "heart-rate",
+                "motion",
+                "location",
+                "environment",
+                "battery",
+                "connection",
+            ]),
+        ),
+        "watch-glance-large" => (
+            watch_display_map("amazfit-t-rex-3-pro-48", 480, 48),
+            input_map(&["button", "touch", "tap", "raise", "voice", "haptic-ack"]),
+            watch_output_map(),
+            transport_map_with_links(
+                "phone-relay",
+                250,
+                true,
+                &["modeled", "phone-relay", "ble", "zepp-export"],
+            ),
+            privacy_map("local", 60_000),
+            watch_rate_map(),
+            streams_map(&[
+                "heart-rate",
+                "motion",
+                "location",
+                "environment",
+                "battery",
+                "connection",
+            ]),
+        ),
+        "watch-sport" => (
+            watch_display_map("amazfit-t-rex-3-pro-48", 480, 48),
+            input_map(&["button", "touch", "tap", "raise", "voice", "haptic-ack"]),
+            watch_output_map(),
+            transport_map_with_links(
+                "phone-relay",
+                250,
+                true,
+                &["modeled", "phone-relay", "ble", "zepp-export"],
+            ),
+            privacy_map("local", 60_000),
+            watch_rate_map(),
+            streams_map(&[
+                "heart-rate",
+                "motion",
+                "location",
+                "environment",
+                "battery",
+                "connection",
+            ]),
+        ),
+        "watch-sleep" => (
+            watch_display_map("amazfit-t-rex-3-pro-44", 466, 44),
+            input_map(&["button", "tap", "raise", "haptic-ack"]),
+            output_map(&["screen", "haptic", "tone"]),
+            transport_map_with_links(
+                "phone-relay",
+                250,
+                true,
+                &["modeled", "phone-relay", "zepp-export"],
+            ),
+            privacy_map("local", 60_000),
+            watch_rate_map(),
+            streams_map(&["heart-rate", "motion", "battery"]),
         ),
         "glasses" => (
             display_map(&[("density", sym("glance")), ("lines", build::uint(2))]),
             input_map(&["voice", "tap"]),
+            output_map(&["screen", "hud", "speaker"]),
             transport_map("relay", 250, true),
             privacy_map("local", 60_000),
             rate_map(5, 30, 500),
+            streams_map(&["pose", "motion"]),
         ),
         "phone" => (
             display_map(&[("density", sym("compact")), ("color", sym("truecolor"))]),
             input_map(&["touch", "voice", "camera"]),
+            output_map(&["screen", "speaker", "mic"]),
             transport_map("relay", 120, true),
             privacy_map("session", 300_000),
             rate_map(5, 30, 500),
+            streams_map(&["motion"]),
         ),
         "desktop" => (
             display_map(&[("density", sym("dense")), ("color", sym("truecolor"))]),
             input_map(&["keyboard", "pointer", "wheel", "file-drop"]),
+            output_map(&["screen"]),
             transport_map("local", 1, false),
             privacy_map("session", 600_000),
             rate_map(60, 120, 100),
+            streams_map(&[]),
         ),
         _ => return None,
     };
@@ -282,9 +401,11 @@ pub fn preset(name: &str) -> Option<SurfaceCaps> {
         preset: Symbol::qualified(SURFACE_NAMESPACE, name),
         display,
         input,
+        output,
         transport,
         privacy,
         rate,
+        streams,
         codecs: vec![
             Symbol::qualified(SURFACE_NAMESPACE, "lisp"),
             Symbol::qualified(SURFACE_NAMESPACE, "json"),
@@ -304,12 +425,50 @@ fn input_map(flags: &[&str]) -> Expr {
     build::map(flags.iter().map(|flag| (*flag, Expr::Bool(true))).collect())
 }
 
+fn output_map(flags: &[&str]) -> Expr {
+    input_map(flags)
+}
+
+fn streams_map(flags: &[&str]) -> Expr {
+    input_map(flags)
+}
+
+fn watch_display_map(model: &str, px: u64, size_mm: u64) -> Expr {
+    display_map(&[
+        ("class", sym("watch")),
+        ("shape", sym("round")),
+        ("model", sym(model)),
+        ("px", build::list(vec![build::uint(px), build::uint(px)])),
+        ("size-mm", build::uint(size_mm)),
+        ("color", sym("truecolor")),
+        ("max-hz", build::uint(1)),
+        ("density", sym("glance")),
+    ])
+}
+
+fn watch_output_map() -> Expr {
+    output_map(&["screen", "haptic", "face", "tone", "speaker", "mic"])
+}
+
 fn transport_map(kind: &str, round_trip_ms: u64, offline_queue: bool) -> Expr {
+    transport_map_with_links(kind, round_trip_ms, offline_queue, &[])
+}
+
+fn transport_map_with_links(
+    kind: &str,
+    round_trip_ms: u64,
+    offline_queue: bool,
+    links: &[&str],
+) -> Expr {
     build::map(vec![
         ("kind", build::sym(kind)),
         ("round-trip-ms", build::uint(round_trip_ms)),
         ("offline-queue", Expr::Bool(offline_queue)),
         ("ordered", Expr::Bool(true)),
+        (
+            "links",
+            build::list(links.iter().map(|link| build::sym(link)).collect()),
+        ),
     ])
 }
 
@@ -329,6 +488,10 @@ fn rate_map(content_hz: u64, adapt_hz: u64, max_stale_ms: u64) -> Expr {
     ])
 }
 
+fn watch_rate_map() -> Expr {
+    rate_map(1, 1, 4000)
+}
+
 fn map_field(entries: &[(Expr, Expr)], name: &'static str) -> Result<Expr, SurfaceError> {
     // Defer the required-field lookup to the shared `sim_value::access` reader
     // (mapping its error via `SurfaceError::from`); keep the map-shape check
@@ -337,6 +500,14 @@ fn map_field(entries: &[(Expr, Expr)], name: &'static str) -> Result<Expr, Surfa
     match access::entry_required(entries, name, "surface caps").map_err(SurfaceError::from)? {
         value @ Expr::Map(_) => Ok(value.clone()),
         _ => Err(SurfaceError::BadField(name)),
+    }
+}
+
+fn optional_map_field(entries: &[(Expr, Expr)], name: &'static str) -> Result<Expr, SurfaceError> {
+    match access::entry_field(entries, name) {
+        Some(value @ Expr::Map(_)) => Ok(value.clone()),
+        Some(_) => Err(SurfaceError::BadField(name)),
+        None => Ok(build::map(Vec::new())),
     }
 }
 
@@ -441,5 +612,21 @@ mod tests {
         entries.retain(|(key, _)| !matches!(key, Expr::Symbol(s) if &*s.name == "rate"));
         let caps = SurfaceCaps::from_expr(&Expr::Map(entries)).expect("older caps parse");
         assert_eq!(caps.rate, rate_map(1, 1, 1000));
+    }
+
+    #[test]
+    fn missing_output_and_stream_maps_default_to_empty_metadata() {
+        let mut entries = match preset("watch-glance-large").unwrap().to_expr() {
+            Expr::Map(entries) => entries,
+            _ => unreachable!(),
+        };
+        entries.retain(|(key, _)| {
+            !matches!(key, Expr::Symbol(s) if matches!(s.name.as_ref(), "output" | "streams"))
+        });
+
+        let caps = SurfaceCaps::from_expr(&Expr::Map(entries)).expect("older caps parse");
+
+        assert_eq!(caps.output, build::map(Vec::new()));
+        assert_eq!(caps.streams, build::map(Vec::new()));
     }
 }

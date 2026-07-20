@@ -3,10 +3,10 @@
   "generated_by": "cargo run -p xtask -- simdoc",
   "generation_timestamp": "2026-07-15T16:50:10+02:00",
   "generator": "xtask repo-contract v1",
-  "git_commit": "e678896026ec644eb7bc70098c019d511a99edd3",
+  "git_commit": "da30709faf09f13a7b2b327ff90d63f59814a166",
   "repo": "sim-web",
   "schema": "sim.provenance.v1",
-  "source_commit": "e678896026ec644eb7bc70098c019d511a99edd3",
+  "source_commit": "da30709faf09f13a7b2b327ff90d63f59814a166",
   "source_remote": "https://github.com/sim-nest/sim-web",
   "validation_commands": [
     "cargo fmt --all --check",
@@ -19,9 +19,9 @@
     "cargo run -p xtask -- validation-matrix --check --repo .",
     "cargo run -p xtask -- crate-catalog --check --repo ."
   ],
-  "workspace_hash": "41bf22c9238abe7f",
+  "workspace_hash": "3f1cead636c59aae",
   "workspace_hash_algorithm": "fnv1a64",
-  "workspace_hash_input_count": 228,
+  "workspace_hash_input_count": 229,
   "workspace_hash_inputs": [
     "Cargo.toml",
     "crates/sim-lib-intent/Cargo.toml",
@@ -173,6 +173,7 @@
     "crates/sim-lib-view-device/src/split.rs",
     "crates/sim-lib-view-device/src/split_tests.rs",
     "crates/sim-lib-view-device/src/timing_tests.rs",
+    "crates/sim-lib-view-device/src/worn_caps.rs",
     "crates/sim-lib-view-doc/Cargo.toml",
     "crates/sim-lib-view-doc/build.rs",
     "crates/sim-lib-view-doc/recipes/01-basics/article-document/recipe.toml",

@@ -19,9 +19,11 @@ impl DeviceProfile {
             preset: Symbol::qualified("surface", self.kind.name.clone()),
             display: display_map_from_profile(&self.display),
             input: flags_map(&self.input),
+            output: flags_map(&self.output),
             transport: transport_map_from_profile(&self.links),
             privacy: self.policy.clone(),
             rate: self.rate.to_expr(),
+            streams: flags_map(&self.streams),
             codecs: vec![
                 Symbol::qualified("surface", "lisp"),
                 Symbol::qualified("surface", "json"),

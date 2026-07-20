@@ -22,6 +22,7 @@ mod profile_surface;
 pub mod rate;
 pub mod reaper;
 pub mod split;
+pub mod worn_caps;
 
 pub use adapter::{EncodedScene, LocalAdapter, MirrorAdapter};
 pub use clock::FrameClock;
@@ -46,6 +47,10 @@ pub use reaper::{
     StoredSample, retention_reason,
 };
 pub use split::{Split, SplitRun, drive};
+pub use worn_caps::{
+    T_REX_3_PRO_48_CAPS_FIXTURE, WORN_CAPS_KIND, WORN_CAPS_NAMESPACE,
+    trex3pro_48_worn_caps_fixture, worn_caps_fixture, worn_caps_fixture_names,
+};
 
 /// Embedded cookbook recipe books shipped with this library.
 pub static RECIPES: sim_cookbook::EmbeddedDir =

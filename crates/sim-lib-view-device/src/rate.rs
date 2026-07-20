@@ -26,7 +26,11 @@ impl RateClass {
 
     /// Low-rate watch-style envelope.
     pub fn watch() -> Self {
-        Self::safe_default()
+        Self {
+            content_hz: 1,
+            adapt_hz: 1,
+            max_stale_ms: 4000,
+        }
     }
 
     /// HUD-style envelope for low-bandwidth visual overlays.

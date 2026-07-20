@@ -83,9 +83,11 @@ impl DeviceProfile {
     pub fn from_surface_caps(caps: &SurfaceCaps) -> Self {
         let display = display_symbols(&caps.display);
         let input = flag_symbols(&caps.input);
-        let output = output_symbols(&display, &input);
+        let explicit_output = flag_symbols(&caps.output);
+        let output = output_symbols(&display, &input, &explicit_output);
         let links = link_symbols(&caps.transport);
-        let streams = stream_symbols(&caps.input);
+        let explicit_streams = flag_symbols(&caps.streams);
+        let streams = stream_symbols(&caps.input, &explicit_streams);
         let rate = RateClass::from_expr(&caps.rate).unwrap_or_else(|_| RateClass::safe_default());
         Self::new(DeviceProfileParts {
             kind: Symbol::new(caps.preset_name().to_owned()),
@@ -364,8 +366,8 @@ fn flag_symbols(map: &Expr) -> Vec<Symbol> {
     out
 }
 
-fn output_symbols(display: &[Symbol], input: &[Symbol]) -> Vec<Symbol> {
-    let mut out = Vec::new();
+fn output_symbols(display: &[Symbol], input: &[Symbol], explicit: &[Symbol]) -> Vec<Symbol> {
+    let mut out = explicit.to_vec();
     if !has_symbol(display, "none") && !display.is_empty() {
         push_symbol(&mut out, "screen");
     }
@@ -380,6 +382,13 @@ fn output_symbols(display: &[Symbol], input: &[Symbol]) -> Vec<Symbol> {
 
 fn link_symbols(transport: &Expr) -> Vec<Symbol> {
     let mut out = Vec::new();
+    if let Some(Expr::List(items)) = access::field(transport, "links") {
+        for item in items {
+            if let Expr::Symbol(symbol) = item {
+                push_existing(&mut out, symbol.clone());
+            }
+        }
+    }
     match access::field(transport, "kind") {
         Some(Expr::Symbol(kind)) if kind.name.as_ref() == "relay" => {
             push_symbol(&mut out, "phone-relay");
@@ -396,8 +405,8 @@ fn link_symbols(transport: &Expr) -> Vec<Symbol> {
     out
 }
 
-fn stream_symbols(input: &Expr) -> Vec<Symbol> {
-    let mut out = Vec::new();
+fn stream_symbols(input: &Expr, explicit: &[Symbol]) -> Vec<Symbol> {
+    let mut out = explicit.to_vec();
     if matches!(access::field(input, "camera"), Some(Expr::Bool(true))) {
         push_symbol(&mut out, "motion");
     }
