@@ -19,6 +19,7 @@ pub mod cookbook;
 mod device_peer;
 pub mod fabric;
 pub mod fixture;
+pub mod glasses;
 pub mod history;
 pub mod host;
 pub mod placement;
@@ -31,6 +32,7 @@ pub use cookbook::session_fixture_demo;
 pub use device_peer::{device_peer_surface, register_device_peer};
 pub use fabric::{FabricTransport, operation_to_request};
 pub use fixture::FixtureTransport;
+pub use glasses::{GlassesViewport, HaloPreviewClient, VitureSceneClient};
 pub use history::{History, SessionLog, Snapshots, annotate};
 pub use host::{DesktopHost, PHONE_PANE, PhoneHost};
 pub use placement::{
@@ -55,6 +57,8 @@ pub const SESSION_CLASS: &str = "web:Session";
 pub static RECIPES: sim_cookbook::EmbeddedDir =
     include!(concat!(env!("OUT_DIR"), "/cookbook_recipes.rs"));
 
+#[cfg(test)]
+mod glasses_client_tests;
 #[cfg(test)]
 mod history_tests;
 #[cfg(test)]

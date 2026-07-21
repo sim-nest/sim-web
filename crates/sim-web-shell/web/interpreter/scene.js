@@ -642,6 +642,77 @@ function renderObjectRoll(doc, node, emit) {
   return roll;
 }
 
+function renderSpatialPanel(doc, node, emit) {
+  const panel = el(doc, "section", "scene-spatial-panel");
+  panel.dataset.panel = String(node["source-panel"] || node.id || "");
+  panel.dataset.eye = String(node.eye || "mirror");
+  panel.dataset.anchorRule = String(node["anchor-rule"] || "unprojected");
+  panel.setAttribute("role", "group");
+  labelled(panel, node);
+  if (node.body) panel.appendChild(renderScene(doc, node.body, emit));
+  return panel;
+}
+
+function renderSpatialMirror(doc, node, emit) {
+  const mirror = el(doc, "div", "scene-spatial-mirror");
+  mirror.dataset.layout = "mirror";
+  for (const child of asArray(node.children)) {
+    mirror.appendChild(renderScene(doc, child, emit));
+  }
+  return mirror;
+}
+
+function renderEye(doc, eye, name, emit) {
+  const viewport = el(doc, "div", "scene-eye");
+  viewport.dataset.eye = name;
+  viewport.setAttribute("role", "group");
+  viewport.setAttribute("aria-label", `${name} eye viewport`);
+  for (const child of asArray(eye && eye.children)) {
+    viewport.appendChild(renderScene(doc, child, emit));
+  }
+  return viewport;
+}
+
+function renderStereo(doc, node, emit) {
+  const stereo = el(doc, "div", "scene-stereo");
+  stereo.dataset.layout = String(node.layout || "side-by-side");
+  const eyePx = asArray(node["eye-px"]);
+  if (eyePx.length === 2) {
+    stereo.dataset.eyeWidth = String(eyePx[0]);
+    stereo.dataset.eyeHeight = String(eyePx[1]);
+  }
+  stereo.appendChild(renderEye(doc, node["left-eye"], "left", emit));
+  stereo.appendChild(renderEye(doc, node["right-eye"], "right", emit));
+  return stereo;
+}
+
+function renderGlance(doc, node, emit) {
+  const preview = el(doc, "div", "scene-glance");
+  const card = el(doc, "section", "scene-glance-card");
+  card.dataset.urgency = String(node.urgency || "info");
+  card.setAttribute("role", "group");
+  card.setAttribute("aria-label", String(node.title || "glance"));
+
+  const title = el(doc, "div", "scene-glance-title");
+  title.textContent = String(node.title || "");
+  card.appendChild(title);
+  if (node.metric) {
+    const metric = el(doc, "div", "scene-glance-metric");
+    metric.textContent = `${String(node.metric.label || "")}: ${String(node.metric.value || "")}`;
+    card.appendChild(metric);
+  }
+  if (node.action) {
+    const action = renderButton(doc, {
+      label: node.action.label || "Open",
+      sr: node.action.label || "Open",
+    }, () => emit({ type: "tap", control: "glance-action", target: node.action.target }));
+    action.className = "scene-glance-action";
+    card.appendChild(action);
+  }
+  preview.appendChild(card);
+  return preview;
+}
+
 // Render a Scene node into a DOM element belonging to `doc`.
 export function renderScene(doc, node, emit) {
   const kind = kindOf(node);
@@ -748,6 +819,14 @@ export function renderScene(doc, node, emit) {
       return renderPlayerRack(doc, node, emit);
     case "scene/object-roll":
       return renderObjectRoll(doc, node, emit);
+    case "scene/spatial":
+      return renderSpatialMirror(doc, node, emit);
+    case "scene/stereo":
+      return renderStereo(doc, node, emit);
+    case "scene/panel":
+      return renderSpatialPanel(doc, node, emit);
+    case "scene/glance":
+      return renderGlance(doc, node, emit);
     case "scene/embed": {
       const wrap = el(doc, "div", "scene-embed");
       if (node.scene) wrap.appendChild(renderScene(doc, node.scene, emit));

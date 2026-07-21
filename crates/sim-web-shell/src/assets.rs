@@ -22,6 +22,7 @@ const COOKBOOK_CSS: &str = include_str!("../web/cookbook/cookbook.css");
 const ATELIER_CSS: &str = include_str!("../web/atelier/atelier.css");
 const BOOT_JS: &str = include_str!("../web/interpreter/boot.js");
 const APP_JS: &str = include_str!("../web/interpreter/app.js");
+const GLASSES_JS: &str = include_str!("../web/interpreter/glasses.js");
 const SCENE_JS: &str = include_str!("../web/interpreter/scene.js");
 const DIFF_JS: &str = include_str!("../web/interpreter/diff.js");
 const INTENT_JS: &str = include_str!("../web/interpreter/intent.js");
@@ -70,6 +71,10 @@ pub fn asset_for(path: &str) -> Option<Asset> {
         }),
         "/interpreter/app.js" => Some(Asset {
             body: APP_JS.as_bytes(),
+            content_type: JS_CONTENT_TYPE,
+        }),
+        "/interpreter/glasses.js" => Some(Asset {
+            body: GLASSES_JS.as_bytes(),
             content_type: JS_CONTENT_TYPE,
         }),
         "/interpreter/scene.js" => Some(Asset {

@@ -12,6 +12,7 @@
 
 import { paint } from "./scene.js";
 import { applyPatch } from "./diff.js";
+import { BrowserGlassesClient, defaultPose } from "./glasses.js";
 import { intentFromEmit } from "./intent.js";
 import { postIntent, openSession } from "./session.js";
 
@@ -77,6 +78,22 @@ function boot() {
   let scene = window.__SIM_SCENE__ || BOOTSTRAP_SCENE;
   let sessionError = null;
   let tick = 0;
+  let pose = window.__SIM_GLASSES_POSE__ || defaultPose();
+  const glasses = window.__SIM_GLASSES_CAPS__
+    ? new BrowserGlassesClient(window.__SIM_GLASSES_CAPS__)
+    : null;
+  if (glasses) document.body.dataset.glassesMode = glasses.mode;
+
+  const receiveScene = (next) => {
+    scene = next;
+    if (!glasses) return;
+    try {
+      glasses.receive(scene);
+      sessionError = null;
+    } catch (error) {
+      sessionError = error instanceof Error ? error.message : String(error);
+    }
+  };
 
   const emit = (event) => {
     tick += 1;
@@ -89,17 +106,31 @@ function boot() {
   };
 
   const repaint = () => {
-    paint(document, mount, scene, emit);
+    let visible = scene;
+    if (glasses && glasses.contentReceipts > 0) {
+      try {
+        visible = glasses.frame(pose);
+      } catch (error) {
+        sessionError = error instanceof Error ? error.message : String(error);
+      }
+    }
+    paint(document, mount, visible, emit);
     if (sessionError) {
       mount.appendChild(renderSessionError(document, sessionError));
     }
   };
+  receiveScene(scene);
   repaint();
 
   // When the bridge streams a patch, apply it and repaint.
   document.addEventListener("sim-scene-patch", (e) => {
-    scene = applyPatch(scene, e.detail);
+    receiveScene(applyPatch(scene, e.detail));
     repaint();
+  });
+
+  document.addEventListener("sim-glasses-pose", (e) => {
+    pose = e.detail || defaultPose();
+    if (!glasses || !glasses.usesAdaptLoop()) repaint();
   });
 
   // Forward every emitted Intent to the live session bridge and dispatch the
@@ -124,8 +155,7 @@ function boot() {
   // On load, prefer the server's initial Scene; fall back to the bootstrap.
   openSession(SESSION_RESOURCE, SESSION_PANE).then((result) => {
     if (result.ok && result.scene) {
-      scene = result.scene;
-      sessionError = null;
+      receiveScene(result.scene);
       repaint();
       return;
     }
@@ -134,6 +164,14 @@ function boot() {
       repaint();
     }
   });
+
+  if (glasses && glasses.usesAdaptLoop() && typeof window.requestAnimationFrame === "function") {
+    const adapt = () => {
+      repaint();
+      window.requestAnimationFrame(adapt);
+    };
+    window.requestAnimationFrame(adapt);
+  }
 
   // eslint-disable-next-line no-console
   console.log("sim-web-shell: scene painter booted");

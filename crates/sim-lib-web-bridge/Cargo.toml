@@ -18,6 +18,7 @@ sim-lib-stream-core = { version = "0.1.0" }
 sim-lib-stream-fabric = { version = "0.1.0" }
 sim-lib-view = { version = "0.1.0", path = "../sim-lib-view" }
 sim-lib-view-device = { version = "0.1.0", path = "../sim-lib-view-device" }
+sim-lib-view-spatial = { version = "0.1.0", path = "../sim-lib-view-spatial" }
 sim-value = { version = "0.1.0" }
 
 [build-dependencies]

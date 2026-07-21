@@ -67,6 +67,7 @@ fn unknown_paths_fail_closed() {
 fn interpreter_modules_are_served_as_javascript() {
     for path in [
         "/interpreter/app.js",
+        "/interpreter/glasses.js",
         "/interpreter/scene.js",
         "/interpreter/diff.js",
         "/interpreter/intent.js",
@@ -86,6 +87,10 @@ fn interpreter_module_import_graph_is_served() {
     assert!(
         seen.contains("/interpreter/keymap.js"),
         "scene.js imports keymap.js and the router must serve it"
+    );
+    assert!(
+        seen.contains("/interpreter/glasses.js"),
+        "app.js imports the browser-local glasses client"
     );
 }
 

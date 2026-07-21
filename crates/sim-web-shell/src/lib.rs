@@ -28,4 +28,6 @@ pub use live::{
 pub use serve::{ServeConfig, serve_with_cx};
 
 #[cfg(test)]
+mod glasses_asset_tests;
+#[cfg(test)]
 mod tests;
