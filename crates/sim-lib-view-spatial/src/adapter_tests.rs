@@ -71,7 +71,16 @@ fn reprojector_bespoke_halo_uses_glance_adapter() {
             &halo_profile,
         )
         .unwrap();
+    let tapped_again = halo
+        .adapt(
+            &encoded_glance,
+            &GlanceState::with_input(GlanceInput::Tap, 8),
+            &halo_profile,
+        )
+        .unwrap();
     assert_scene_kind(tapped.as_ref(), "glance");
+    assert_scene_kind(tapped_again.as_ref(), "glance");
+    assert_ne!(tapped, tapped_again);
     assert_eq!(
         access::field_sym(tapped.as_ref(), "ack-channel")
             .unwrap()
@@ -88,6 +97,7 @@ fn reprojector_bespoke_halo_uses_glance_adapter() {
     );
     assert_eq!(field_u64(tapped.as_ref(), "ack-ms"), Some(120));
     assert_eq!(field_u64(tapped.as_ref(), "ack-tick"), Some(7));
+    assert_eq!(field_u64(tapped_again.as_ref(), "ack-tick"), Some(8));
     assert_eq!(encode_count, 1);
 }
 
