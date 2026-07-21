@@ -12,6 +12,7 @@ homepage = "https://github.com/sim-nest/sim-web"
 [dependencies]
 sim-cookbook = { version = "0.1.0" }
 sim-kernel = { version = "0.1.0" }
+sim-lib-intent = { version = "0.1.0", path = "../sim-lib-intent" }
 sim-lib-scene = { version = "0.1.4", path = "../sim-lib-scene" }
 sim-lib-view = { version = "0.1.0", path = "../sim-lib-view" }
 sim-lib-view-device = { version = "0.1.0", path = "../sim-lib-view-device" }

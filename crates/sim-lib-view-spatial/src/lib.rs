@@ -19,6 +19,7 @@ pub mod predict;
 pub mod rank;
 pub mod reproject;
 pub mod reproject_loop;
+pub mod voice_site;
 
 pub use encode::{SPATIAL_SURFACE_CODEC_ID, SpatialSurfaceCodec, surface_spatial_codec_symbol};
 pub use glance_map::halo_glance_scene;
@@ -29,6 +30,10 @@ pub use predict::{ClampedReprojector, clamp_predicted};
 pub use rank::{AttentionBudget, rank_for_profile, rank_glasses, rank_spatial};
 pub use reproject::Reprojector;
 pub use reproject_loop::{HaloGlanceLoop, VitureReprojectLoop, halo_loop, viture_loop};
+pub use voice_site::{
+    AsrSite, AsrSitePlacement, CAP_GLASSES_MIC, XR_MIC_CHUNK_KIND, XR_MIC_CHUNK_NAMESPACE,
+    XrMicChunkRef, glasses_mic_capability, glasses_mic_grant, voice_intent_via_site,
+};
 
 /// Embedded cookbook recipe books shipped with this library.
 pub static RECIPES: sim_cookbook::EmbeddedDir =
@@ -42,3 +47,5 @@ mod rank_tests;
 mod tests;
 #[cfg(test)]
 mod timing_tests;
+#[cfg(test)]
+mod voice_site_tests;
