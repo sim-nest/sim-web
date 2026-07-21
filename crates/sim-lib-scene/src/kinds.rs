@@ -35,6 +35,7 @@ pub const SCENE_KINDS: &[&str] = &[
     "graph",
     "glance",
     "spatial",
+    "stereo",
     "anchor",
     "panel",
     "gaze-cursor",

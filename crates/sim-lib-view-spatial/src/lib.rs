@@ -12,15 +12,23 @@
 
 pub mod encode;
 pub mod glance_map;
+pub mod halo_glance;
 pub mod layout;
+pub mod pose_view;
+pub mod reproject;
 
 pub use encode::{SPATIAL_SURFACE_CODEC_ID, SpatialSurfaceCodec, surface_spatial_codec_symbol};
 pub use glance_map::halo_glance_scene;
+pub use halo_glance::{HALO_ACK_MS, halo_glance_budget, halo_glance_config};
 pub use layout::{PanelLayout, SpatialLayout, arrange_spatial_panels};
+pub use pose_view::PoseView;
+pub use reproject::Reprojector;
 
 /// Embedded cookbook recipe books shipped with this library.
 pub static RECIPES: sim_cookbook::EmbeddedDir =
     include!(concat!(env!("OUT_DIR"), "/cookbook_recipes.rs"));
 
+#[cfg(test)]
+mod adapter_tests;
 #[cfg(test)]
 mod tests;

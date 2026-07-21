@@ -10,7 +10,7 @@ use sim_kernel::{
 use crate::{
     Anchor, AnchorSpace, GlanceAction, GlanceCard, GlanceMetric, SceneCodecLib, Transform3, apply,
     diff, gaze_cursor, hand_ray, map, node, panel, scene_codec_symbol, scene_shape_specs,
-    scene_shape_symbol, spatial, text, validate_scene, world_plane,
+    scene_shape_symbol, spatial, stereo, text, validate_scene, world_plane,
 };
 
 fn cx() -> Cx {
@@ -257,6 +257,16 @@ fn spatial_kinds_validate_and_no_scene_hud() {
 
     validate_scene(&workspace).expect("spatial scene validates");
     assert_pose_free(&workspace);
+
+    let stereo_scene = stereo(
+        map(vec![("eye", sym("left")), ("children", Expr::List(vec![]))]),
+        map(vec![
+            ("eye", sym("right")),
+            ("children", Expr::List(vec![])),
+        ]),
+        12,
+    );
+    validate_scene(&stereo_scene).expect("stereo scene validates");
 
     for space in [
         AnchorSpace::Head,

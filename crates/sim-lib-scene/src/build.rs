@@ -9,7 +9,7 @@
 use sim_kernel::{Error, Expr, Result, Symbol};
 use sim_value::access;
 
-pub use sim_value::build::{float, int, list, map, sym, text, vector};
+pub use sim_value::build::{float, int, list, map, sym, text, uint, vector};
 
 use crate::model::node;
 
@@ -207,6 +207,18 @@ impl Transform3 {
 /// Builds a `scene/spatial` root with pose-free spatial children.
 pub fn spatial(children: Vec<Expr>) -> Expr {
     node("spatial", vec![("children", list(children))])
+}
+
+/// Builds a `scene/stereo` root with left and right eye payloads.
+pub fn stereo(left_eye: Expr, right_eye: Expr, predict_ms: u64) -> Expr {
+    node(
+        "stereo",
+        vec![
+            ("left-eye", left_eye),
+            ("right-eye", right_eye),
+            ("predict-ms", uint(predict_ms)),
+        ],
+    )
 }
 
 /// Builds a `scene/anchor` node.
