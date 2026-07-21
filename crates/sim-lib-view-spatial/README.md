@@ -12,4 +12,4 @@ Spatial glasses surface encoding over the shared SIM Web Scene and device adapte
 
 ## Crate Documentation
 
-Spatial glasses surface encoding for Viture-style displays and Halo-style mono HUDs.
+Spatial glasses surface encoding for SIM Web.
