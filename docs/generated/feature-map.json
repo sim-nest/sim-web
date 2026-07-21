@@ -54,6 +54,11 @@
     {
       "features": [],
       "group": "workspace",
+      "package": "sim-lib-view-spatial"
+    },
+    {
+      "features": [],
+      "group": "workspace",
       "package": "sim-lib-view-wasm-frame"
     },
     {

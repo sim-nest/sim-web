@@ -72,6 +72,13 @@
       "summary": "Math, plotting, tensor, and symbolic lenses for SIM Web."
     },
     {
+      "crate_name": "sim_lib_view_spatial",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-view-spatial/Cargo.toml",
+      "package": "sim-lib-view-spatial",
+      "summary": "Spatial glasses surface encoding for SIM Web."
+    },
+    {
       "crate_name": "sim_lib_view_wasm_frame",
       "group": "workspace",
       "manifest": "crates/sim-lib-view-wasm-frame/Cargo.toml",

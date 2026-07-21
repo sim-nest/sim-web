@@ -1,5 +1,5 @@
 {
-  "card_count": 17,
+  "card_count": 18,
   "cards": [
     {
       "id": "browse/catalog",
@@ -30,6 +30,12 @@
       "kind": "cookbook-recipe",
       "owner": "sim-lib-view-device",
       "summary": "Device profile envelopes and tier derivation for surface capabilities."
+    },
+    {
+      "id": "cookbook/view-spatial",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-view-spatial",
+      "summary": "Spatial glasses surface encoding over shared Scene and device adapters."
     },
     {
       "id": "cookbook/view-wrist",

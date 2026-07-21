@@ -59,6 +59,8 @@
     "crates/sim-lib-view-math/recipes/01-basics/plot-series/recipe.toml",
     "crates/sim-lib-view-math/recipes/01-basics/plot-series/setup.siml",
     "crates/sim-lib-view-math/recipes/book.toml",
+    "crates/sim-lib-view-spatial/recipes/01-basics/chapter.toml",
+    "crates/sim-lib-view-spatial/recipes/book.toml",
     "crates/sim-lib-view-wasm-frame/recipes/01-basics/chapter.toml",
     "crates/sim-lib-view-wasm-frame/recipes/01-basics/host-loop/purpose.md",
     "crates/sim-lib-view-wasm-frame/recipes/01-basics/host-loop/recipe.toml",

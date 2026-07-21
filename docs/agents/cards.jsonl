@@ -56,6 +56,8 @@
 {"kind":"recipe","path":"crates/sim-lib-view-math/recipes/01-basics/plot-series/recipe.toml"}
 {"kind":"recipe","path":"crates/sim-lib-view-math/recipes/01-basics/plot-series/setup.siml"}
 {"kind":"recipe","path":"crates/sim-lib-view-math/recipes/book.toml"}
+{"kind":"recipe","path":"crates/sim-lib-view-spatial/recipes/01-basics/chapter.toml"}
+{"kind":"recipe","path":"crates/sim-lib-view-spatial/recipes/book.toml"}
 {"kind":"recipe","path":"crates/sim-lib-view-wasm-frame/recipes/01-basics/chapter.toml"}
 {"kind":"recipe","path":"crates/sim-lib-view-wasm-frame/recipes/01-basics/host-loop/purpose.md"}
 {"kind":"recipe","path":"crates/sim-lib-view-wasm-frame/recipes/01-basics/host-loop/recipe.toml"}
