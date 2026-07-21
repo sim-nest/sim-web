@@ -1,0 +1,8 @@
+# Public-surface audit allowlist.
+#
+# Format:
+# kind|path-glob|line-regex|reason
+
+local-path|commit:6efad3e1696490877703c58f753d5b69151c9364|/home/bo/projects/sim-web|Historical sim-web validation commit body records the local repo path; current commits use relative paths.
+local-path|commit:b6d0400d1a4fbf92642d123d7e4e0651150031be|/home/bo/projects/sim-web|Historical sim-web validation commit body records the local repo path; current commits use relative paths.
+local-path|commit:c8f5c5578a280b87ff4ea019f774e46b194f5fef|/home/bo/projects/sim-web|Historical sim-web validation commit body records the local repo path; current commits use relative paths.
