@@ -21,6 +21,7 @@ pub mod rank;
 pub mod reproject;
 pub mod reproject_loop;
 pub mod voice_site;
+pub mod world;
 
 pub use consent::{
     CAP_GLASSES_CAMERA, CAP_GLASSES_HAND, CAP_GLASSES_MIC, CAP_GLASSES_POSE,
@@ -48,6 +49,10 @@ pub use voice_site::{
     AsrSite, AsrSitePlacement, XR_MIC_CHUNK_KIND, XR_MIC_CHUNK_NAMESPACE, XrMicChunkRef,
     voice_intent_via_site,
 };
+pub use world::{
+    AnchorResolution, VioTrackingStatus, WORLD_ANCHOR_REASON_NAMESPACE, WorldAnchorObservation,
+    WorldAnchorResolver, XR_TRACKING_STATUS_NAMESPACE, resolve_world_anchor,
+};
 
 /// Embedded cookbook recipe books shipped with this library.
 pub static RECIPES: sim_cookbook::EmbeddedDir =
@@ -67,3 +72,5 @@ mod tests;
 mod timing_tests;
 #[cfg(test)]
 mod voice_site_tests;
+#[cfg(test)]
+mod world_tests;

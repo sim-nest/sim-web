@@ -3,10 +3,10 @@
   "generated_by": "cargo run -p xtask -- simdoc",
   "generation_timestamp": "2026-07-15T16:50:10+02:00",
   "generator": "xtask repo-contract v1",
-  "git_commit": "1a92ff0d5e757c83d91abb892518c05b1e83edfd",
+  "git_commit": "51612abd2a1fe5d235d73601d763774cec9371fb",
   "repo": "sim-web",
   "schema": "sim.provenance.v1",
-  "source_commit": "1a92ff0d5e757c83d91abb892518c05b1e83edfd",
+  "source_commit": "51612abd2a1fe5d235d73601d763774cec9371fb",
   "source_remote": "https://github.com/sim-nest/sim-web",
   "validation_commands": [
     "cargo fmt --all --check",
@@ -19,9 +19,9 @@
     "cargo run -p xtask -- validation-matrix --check --repo .",
     "cargo run -p xtask -- crate-catalog --check --repo ."
   ],
-  "workspace_hash": "60b192016aecada6",
+  "workspace_hash": "f1af869d2f951368",
   "workspace_hash_algorithm": "fnv1a64",
-  "workspace_hash_input_count": 273,
+  "workspace_hash_input_count": 275,
   "workspace_hash_inputs": [
     "Cargo.toml",
     "crates/sim-lib-intent/Cargo.toml",
@@ -224,6 +224,8 @@
     "crates/sim-lib-view-spatial/src/timing_tests.rs",
     "crates/sim-lib-view-spatial/src/voice_site.rs",
     "crates/sim-lib-view-spatial/src/voice_site_tests.rs",
+    "crates/sim-lib-view-spatial/src/world.rs",
+    "crates/sim-lib-view-spatial/src/world_tests.rs",
     "crates/sim-lib-view-wasm-frame/Cargo.toml",
     "crates/sim-lib-view-wasm-frame/build.rs",
     "crates/sim-lib-view-wasm-frame/recipes/01-basics/host-loop/recipe.toml",
