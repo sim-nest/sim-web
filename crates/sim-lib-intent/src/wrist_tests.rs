@@ -7,10 +7,6 @@ use crate::{
     Hit, HitRole, Origin, WristIntentReducer, WristRawInput, field, intent_kind_of, validate_intent,
 };
 
-fn sym(name: &str) -> Expr {
-    build::sym(name)
-}
-
 fn input(names: &[&str]) -> Vec<Symbol> {
     names.iter().map(|name| Symbol::new(*name)).collect()
 }
@@ -32,7 +28,7 @@ fn wrist_inputs_reduce_to_standard_intents() {
             Origin::human(1),
             WristRawInput::Tap {
                 count: 2,
-                target: sym("focused"),
+                target: build::sym("focused"),
                 span_ms: 180,
                 at_ms: 100,
             },
@@ -67,14 +63,14 @@ fn wrist_inputs_reduce_to_standard_intents() {
         .reduce(
             Origin::human(3),
             WristRawInput::Touch {
-                hit: Hit::on(HitRole::Node, sym("row-2")),
+                hit: Hit::on(HitRole::Node, build::sym("row-2")),
                 at_ms: 500,
             },
             &profile,
         )
         .expect("touch moves selection");
     assert_eq!(kind_name(&touch), "move");
-    assert_eq!(field(&touch, "node"), Some(&sym("row-2")));
+    assert_eq!(field(&touch, "node"), Some(&build::sym("row-2")));
     validate_intent(&touch).expect("touch yields a valid Intent");
 
     let edit = reducer
@@ -82,7 +78,7 @@ fn wrist_inputs_reduce_to_standard_intents() {
             Origin::human(4),
             WristRawInput::Tap {
                 count: 3,
-                target: sym("focused"),
+                target: build::sym("focused"),
                 span_ms: 260,
                 at_ms: 700,
             },
@@ -95,7 +91,7 @@ fn wrist_inputs_reduce_to_standard_intents() {
 
 #[test]
 fn crown_rotation_requires_a_profile_capability() {
-    let target = sym("focused");
+    let target = build::sym("focused");
     let mut trex = WristIntentReducer::new();
     let no_crown = input(&["button", "tap", "touch", "raise"]);
 
@@ -141,7 +137,7 @@ fn wrist_jitter_and_debounce_fire_nothing() {
             .reduce(
                 Origin::human(1),
                 WristRawInput::Raise {
-                    target: sym("focused"),
+                    target: build::sym("focused"),
                     stable_ms: 20,
                     at_ms: 100,
                 },
@@ -157,7 +153,7 @@ fn wrist_jitter_and_debounce_fire_nothing() {
                 Origin::human(2),
                 WristRawInput::Tap {
                     count: 1,
-                    target: sym("focused"),
+                    target: build::sym("focused"),
                     span_ms: 80,
                     at_ms: 200,
                 },
@@ -171,7 +167,7 @@ fn wrist_jitter_and_debounce_fire_nothing() {
                 Origin::human(3),
                 WristRawInput::Tap {
                     count: 2,
-                    target: sym("focused"),
+                    target: build::sym("focused"),
                     span_ms: 90,
                     at_ms: 230,
                 },
