@@ -39,6 +39,11 @@ pub fn badge(status: &str, label: &str) -> Expr {
     )
 }
 
+/// A `scene/badge-cluster` node containing visible status badges.
+pub fn badge_cluster(badges: Vec<Expr>) -> Expr {
+    node("badge-cluster", vec![("badges", list(badges))])
+}
+
 /// A `scene/text` node.
 pub fn text_node(content: impl Into<String>) -> Expr {
     node("text", vec![("text", text(content.into()))])
@@ -65,7 +70,10 @@ mod tests {
     fn scene_shape_helpers_validate() {
         let scene = stack(
             "column",
-            vec![box_("summary", vec![text_node("hi"), badge("ok", "done")])],
+            vec![box_(
+                "summary",
+                vec![text_node("hi"), badge_cluster(vec![badge("ok", "done")])],
+            )],
         );
         crate::model::validate_scene(&scene).expect("helper scenes validate");
     }

@@ -28,6 +28,7 @@ pub const SCENE_KINDS: &[&str] = &[
     "field",
     "button",
     "badge",
+    "badge-cluster",
     "icon",
     "tree",
     "table",

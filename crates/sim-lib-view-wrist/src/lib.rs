@@ -9,6 +9,7 @@
 
 pub mod budget;
 pub mod command;
+pub mod consent;
 pub mod pacing;
 pub mod voice;
 
@@ -18,6 +19,12 @@ pub use budget::{
     watch_glance_large_adapter, watch_glance_large_budget,
 };
 pub use command::{HapticPattern, HapticStep, Urgency, WatchCommand};
+pub use consent::{
+    CAP_WATCH_HEALTH, CAP_WATCH_LOCATION, CAP_WATCH_VENDOR_REPORT, WatchCapability,
+    active_watch_consent_badge_cluster, ingest_worn_expr, require_worn_consent, store_worn_sample,
+    sweep_watch_privacy, watch_health_grant, watch_location_grant, watch_vendor_report_grant,
+    worn_event_capability,
+};
 pub use pacing::{
     offer_worn, tick_worn, watch_adapter_loop, watch_frame_clock, watch_frame_clock_at,
     worn_state_from,
@@ -36,6 +43,9 @@ mod budget_tests;
 
 #[cfg(test)]
 mod command_tests;
+
+#[cfg(test)]
+mod consent_tests;
 
 #[cfg(test)]
 mod pacing_tests;
