@@ -8,8 +8,9 @@ use sim_kernel::{
 };
 
 use crate::{
-    GlanceAction, GlanceCard, GlanceMetric, SceneCodecLib, apply, diff, map, node,
-    scene_codec_symbol, scene_shape_specs, scene_shape_symbol, text, validate_scene,
+    Anchor, AnchorSpace, GlanceAction, GlanceCard, GlanceMetric, SceneCodecLib, Transform3, apply,
+    diff, gaze_cursor, hand_ray, map, node, panel, scene_codec_symbol, scene_shape_specs,
+    scene_shape_symbol, spatial, text, validate_scene, world_plane,
 };
 
 fn cx() -> Cx {
@@ -227,6 +228,106 @@ fn glance_card_is_a_scene_kind() {
     assert_eq!(parsed.title, "Drive");
     assert_eq!(parsed.metric.unwrap().value, "42");
     assert_eq!(parsed.action.unwrap().label, "Ack");
+}
+
+#[test]
+fn spatial_kinds_validate_and_no_scene_hud() {
+    let anchor = Anchor::new(AnchorSpace::World, "desk");
+    let transform = Transform3::identity();
+    let workspace = spatial(vec![
+        panel(
+            "editor",
+            node("text", vec![("text", Expr::String("focus".to_owned()))]),
+            anchor.clone(),
+            transform.clone(),
+        ),
+        gaze_cursor(Anchor::new(AnchorSpace::Head, "view"), transform.clone()),
+        hand_ray(
+            "right",
+            Anchor::new(AnchorSpace::Body, "hand"),
+            transform.clone(),
+        ),
+        world_plane(
+            "floor",
+            Anchor::new(AnchorSpace::World, "room"),
+            transform.clone(),
+            [2.0, 1.5],
+        ),
+    ]);
+
+    validate_scene(&workspace).expect("spatial scene validates");
+    assert_pose_free(&workspace);
+
+    for space in [
+        AnchorSpace::Head,
+        AnchorSpace::World,
+        AnchorSpace::Screen,
+        AnchorSpace::Body,
+        AnchorSpace::Device,
+    ] {
+        let anchor_node = crate::build::anchor(space, space.as_name());
+        validate_scene(&anchor_node).expect("anchor scene validates");
+        assert_eq!(
+            Anchor::from_expr(&anchor_node)
+                .expect("anchor parses")
+                .space,
+            space
+        );
+    }
+
+    let decoded_anchor = Anchor::from_expr(&anchor.to_expr()).expect("anchor roundtrip");
+    let decoded_transform =
+        Transform3::from_expr(&transform.to_expr()).expect("transform roundtrip");
+    assert_eq!(decoded_anchor, anchor);
+    assert_eq!(decoded_transform, transform);
+
+    let mut cx = cx();
+    let codec = scene_codec_symbol();
+    let output = encode_with_codec(&mut cx, &codec, &workspace, EncodeOptions::default()).unwrap();
+    let input = match output {
+        Output::Text(text) => Input::Text(text),
+        Output::Bytes(bytes) => Input::Bytes(bytes),
+    };
+    let decoded = decode_with_codec(&mut cx, &codec, input, ReadPolicy::default()).unwrap();
+    assert_eq!(decoded, workspace);
+
+    let halo = GlanceCard::new(
+        "Halo",
+        Some(GlanceMetric::new("tap", "ack")),
+        Some(GlanceAction::new("Open", sym("open"))),
+        "info",
+        2,
+    )
+    .to_scene();
+    assert_eq!(
+        crate::model::node_kind(&halo).map(|kind| kind.as_qualified_str()),
+        Some("scene/glance".to_owned())
+    );
+    assert!(!crate::kinds::SCENE_KINDS.contains(&"hud"));
+    assert!(validate_scene(&node("hud", vec![])).is_err());
+
+    validate_scene(&node("box", vec![("children", Expr::List(vec![]))]))
+        .expect("flat scene remains valid");
+}
+
+fn assert_pose_free(expr: &Expr) {
+    match expr {
+        Expr::Map(entries) => {
+            for (key, value) in entries {
+                if matches!(key, Expr::Symbol(symbol) if symbol.namespace.is_none() && matches!(symbol.name.as_ref(), "pose" | "tick"))
+                {
+                    panic!("spatial scene must not carry live pose/tick fields");
+                }
+                assert_pose_free(value);
+            }
+        }
+        Expr::List(items) | Expr::Vector(items) | Expr::Set(items) => {
+            for item in items {
+                assert_pose_free(item);
+            }
+        }
+        _ => {}
+    }
 }
 
 #[test]

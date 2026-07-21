@@ -30,7 +30,10 @@ pub mod model;
 pub mod shapes;
 pub mod text;
 
-pub use build::{RESERVED_DATA_KEYS, badge, badge_cluster, box_, data_map, stack, sym, text_node};
+pub use build::{
+    Anchor, AnchorSpace, RESERVED_DATA_KEYS, Transform3, anchor, badge, badge_cluster, box_,
+    data_map, gaze_cursor, hand_ray, panel, spatial, stack, sym, text_node, world_plane,
+};
 pub use citizen::{SceneDescriptor, scene_descriptor_class_symbol};
 pub use codec::{SceneCodec, SceneCodecLib, scene_codec_symbol};
 pub use cookbook::text_node_demo;
