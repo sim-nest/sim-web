@@ -1,5 +1,8 @@
 schema = "sim.features"
 
+[enforcement.audience]
+framework = "strict"
+
 [enforcement.route]
 major_entrypoints = "advisory"
 frameworks = "advisory"
@@ -12,13 +15,58 @@ owner = "crate/sim-lib-view"
 audiences = ["code", "framework"]
 guidance = "Use this row when adding a view surface or checking the default projection exports."
 claims_anchors = [
+  "anchor/crate/sim-lib-intent",
+  "anchor/crate/sim-lib-scene",
   "anchor/crate/sim-lib-view",
   "anchor/export/sim-lib-view/surface-default",
   "anchor/export/sim-lib-view/view-default",
+  "anchor/runtime-lib/sim-lib-intent/intent-codec-lib",
+  "anchor/runtime-lib/sim-lib-scene/scene-codec-lib",
 ]
 claims_surfaces = [
   "view/sim-lib-view",
   "view-edit/sim-lib-view",
+]
+
+[[feature]]
+id = "feature/sim-web/device-surfaces"
+title = "Device surface profiles"
+summary = "Rank and project view surfaces against desktop, phone, watch, and glasses device profiles."
+owner = "crate/sim-lib-view"
+audiences = ["code", "framework"]
+guidance = "Use this row when adapting a surface to a worn, handheld, desktop, or glasses target."
+claims_surfaces = [
+  "site-device/desktop",
+  "site-device/glasses",
+  "site-device/glasses-3dof",
+  "site-device/glasses-hud",
+  "site-device/glasses-hud-camera",
+  "site-device/glasses-luma-ultra",
+  "site-device/glasses-stereo",
+  "site-device/phone",
+  "site-device/watch",
+  "site-device/watch-glance-large",
+  "site-device/watch-sleep",
+  "site-device/watch-sport",
+]
+
+[[feature]]
+id = "feature/sim-web/web-shell-host"
+title = "Web shell host"
+summary = "Serve browser-facing surfaces through loaded web shell runtime libraries and command entry points."
+owner = "crate/sim-web-shell"
+audiences = ["code", "framework"]
+guidance = "Use this row when connecting a browser host to loaded view and edit surfaces."
+claims_anchors = [
+  "anchor/crate/sim-web-shell",
+  "anchor/runtime-lib/sim-web-shell/atelier-cli-lib",
+  "anchor/runtime-lib/sim-web-shell/browse-cli-lib",
+  "anchor/runtime-lib/sim-web-shell/web-serve-lib",
+]
+claims_surfaces = [
+  "cli/atelier",
+  "cli/browse",
+  "cli/serve",
 ]
 
 [[route]]
@@ -27,4 +75,6 @@ task = "Expose a view surface"
 audiences = ["code", "framework"]
 steps = [
   { feature = "feature/sim-web/view-surface", why = "The sim-lib-view row owns the default view and reversible edit surfaces." },
+  { feature = "feature/sim-web/device-surfaces", why = "Device profiles show how projection adapts to concrete surface caps." },
+  { feature = "feature/sim-web/web-shell-host", why = "The web shell row shows how a browser host loads those surfaces." },
 ]
