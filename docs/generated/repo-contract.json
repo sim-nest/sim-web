@@ -328,6 +328,13 @@
       "crate_name": "sim_lib_view_bridge",
       "dependencies": [
         {
+          "kind": "dev",
+          "optional": false,
+          "package": "sim-lib-view-spatial",
+          "rename": null,
+          "target": null
+        },
+        {
           "kind": "normal",
           "optional": false,
           "package": "sim-lib-intent",
@@ -345,6 +352,13 @@
           "kind": "normal",
           "optional": false,
           "package": "sim-lib-view",
+          "rename": null,
+          "target": null
+        },
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-lib-view-device",
           "rename": null,
           "target": null
         }
@@ -1116,10 +1130,10 @@
     "generated_by": "cargo run -p xtask -- simdoc",
     "generation_timestamp": "2026-07-15T16:50:10+02:00",
     "generator": "xtask repo-contract v1",
-    "git_commit": "a967002142b76f3ba73a07dd6d2d0f73184653eb",
+    "git_commit": "59591d5dd674f91dc75f7804671efb559b8dc9b9",
     "repo": "sim-web",
     "schema": "sim.provenance.v1",
-    "source_commit": "a967002142b76f3ba73a07dd6d2d0f73184653eb",
+    "source_commit": "59591d5dd674f91dc75f7804671efb559b8dc9b9",
     "source_remote": "https://github.com/sim-nest/sim-web",
     "validation_commands": [
       "cargo fmt --all --check",
@@ -1132,9 +1146,9 @@
       "cargo run -p xtask -- validation-matrix --check --repo .",
       "cargo run -p xtask -- crate-catalog --check --repo ."
     ],
-    "workspace_hash": "6a764d1ca0df2e5f",
+    "workspace_hash": "c703e4f99f945a36",
     "workspace_hash_algorithm": "fnv1a64",
-    "workspace_hash_input_count": 283,
+    "workspace_hash_input_count": 285,
     "workspace_hash_inputs": [
       "Cargo.toml",
       "crates/sim-lib-intent/Cargo.toml",
@@ -1220,6 +1234,8 @@
       "crates/sim-lib-view-bridge/recipes/01-basics/packet-review/recipe.toml",
       "crates/sim-lib-view-bridge/recipes/book.toml",
       "crates/sim-lib-view-bridge/src/cookbook.rs",
+      "crates/sim-lib-view-bridge/src/glasses_review.rs",
+      "crates/sim-lib-view-bridge/src/glasses_tests.rs",
       "crates/sim-lib-view-bridge/src/lib.rs",
       "crates/sim-lib-view-bridge/src/surface/controls.rs",
       "crates/sim-lib-view-bridge/src/surface.rs",

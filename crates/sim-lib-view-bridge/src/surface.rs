@@ -34,6 +34,9 @@ impl BridgePacketSurfaceCodec {
 impl SurfaceCodec for BridgePacketSurfaceCodec {
     fn encode(&self, _cx: &mut Cx, value: &Expr, caps: &SurfaceCaps) -> Result<Expr> {
         let packet = expr_to_packet(value)?;
+        if let Some(scene) = crate::glasses_review::glasses_warrant_scene_for_caps(&packet, caps)? {
+            return Ok(scene);
+        }
         let scene = packet_scene(&packet, caps)?;
         Ok(reduce_for_caps(&scene, caps))
     }

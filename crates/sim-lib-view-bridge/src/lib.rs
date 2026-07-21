@@ -19,14 +19,23 @@
 #![deny(missing_docs)]
 
 pub mod cookbook;
+mod glasses_review;
 mod surface;
 
 pub use cookbook::packet_review_demo;
+pub use glasses_review::{
+    BRIDGE_WARRANT_REVIEW_MISSION_NAME, BRIDGE_WARRANT_REVIEW_MISSION_NAMESPACE,
+    BridgeGlassesReviewInput, VITURE_WARRANT_REVIEW_PANEL_ID, WarrantReviewDecision,
+    halo_warrant_glance_pager, viture_warrant_review_panel, viture_warrant_review_scene,
+    warrant_review_intent, warrant_review_intent_from_glasses_input, warrant_review_mission,
+};
 pub use surface::{
     BRIDGE_PACKET_SURFACE_CODEC_ID, BridgePacketSurfaceCodec, bridge_packet_edit,
     bridge_packet_view, patch_edit_intent, receipt_edit_intent, review_edit_intent,
     vote_edit_intent,
 };
 
+#[cfg(test)]
+mod glasses_tests;
 #[cfg(test)]
 mod tests;
