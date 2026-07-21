@@ -24,7 +24,11 @@ pub mod voice_site;
 pub use encode::{SPATIAL_SURFACE_CODEC_ID, SpatialSurfaceCodec, surface_spatial_codec_symbol};
 pub use glance_map::halo_glance_scene;
 pub use halo_glance::{HALO_ACK_MS, halo_glance_budget, halo_glance_config};
-pub use layout::{PanelLayout, SpatialLayout, arrange_spatial_panels};
+pub use layout::{
+    GlancePreference, PanelLayout, PanelPlacement, SpatialLayout, WORKSPACE_LAYOUT_KIND,
+    WORKSPACE_LAYOUT_NAMESPACE, WORKSPACE_LAYOUT_TABLE_NAMESPACE, WorkspaceLayout,
+    arrange_spatial_panels, layout_load_op, layout_save_op, layout_table_key,
+};
 pub use pose_view::PoseView;
 pub use predict::{ClampedReprojector, clamp_predicted};
 pub use rank::{AttentionBudget, rank_for_profile, rank_glasses, rank_spatial};
@@ -41,6 +45,8 @@ pub static RECIPES: sim_cookbook::EmbeddedDir =
 
 #[cfg(test)]
 mod adapter_tests;
+#[cfg(test)]
+mod layout_tests;
 #[cfg(test)]
 mod rank_tests;
 #[cfg(test)]

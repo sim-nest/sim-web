@@ -16,6 +16,7 @@ sim-lib-intent = { version = "0.1.0", path = "../sim-lib-intent" }
 sim-lib-scene = { version = "0.1.4", path = "../sim-lib-scene" }
 sim-lib-view = { version = "0.1.0", path = "../sim-lib-view" }
 sim-lib-view-device = { version = "0.1.0", path = "../sim-lib-view-device" }
+sim-table-core = { version = "0.1.1" }
 sim-value = { version = "0.1.0" }
 
 [build-dependencies]

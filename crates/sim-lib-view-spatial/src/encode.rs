@@ -1,5 +1,6 @@
 //! Surface codec implementation for spatial-capable glasses.
 
+use std::borrow::Cow;
 use std::sync::Arc;
 
 use sim_kernel::{Cx, Error, Expr, Result, Symbol};
@@ -44,7 +45,8 @@ impl SpatialSurfaceCodec {
     }
 
     fn source_scene(&self, cx: &mut Cx, value: &Expr) -> Result<Expr> {
-        let scene = UniversalView.encode(cx, value)?;
+        let view_value = strip_layout_metadata(value);
+        let scene = UniversalView.encode(cx, view_value.as_ref())?;
         validate("universal view produced invalid Scene", &scene)?;
         Ok(scene)
     }
@@ -78,4 +80,32 @@ impl SurfaceCodec for SpatialSurfaceCodec {
 fn validate(context: &str, scene: &Expr) -> Result<()> {
     sim_lib_scene::validate_scene(scene)
         .map_err(|err| Error::HostError(format!("{context}: {err}")))
+}
+
+fn strip_layout_metadata(value: &Expr) -> Cow<'_, Expr> {
+    let Expr::Map(entries) = value else {
+        return Cow::Borrowed(value);
+    };
+    let filtered = entries
+        .iter()
+        .filter(|(key, _)| !is_layout_metadata_key(key))
+        .cloned()
+        .collect::<Vec<_>>();
+    if filtered.len() == entries.len() {
+        Cow::Borrowed(value)
+    } else {
+        Cow::Owned(Expr::Map(filtered))
+    }
+}
+
+fn is_layout_metadata_key(key: &Expr) -> bool {
+    let name = match key {
+        Expr::Symbol(symbol) if symbol.namespace.is_none() => symbol.name.as_ref(),
+        Expr::String(text) => text.as_str(),
+        _ => return false,
+    };
+    matches!(
+        name,
+        "workspace-layout" | "spatial-workspace-layout" | "spatial-layout" | "layout"
+    )
 }

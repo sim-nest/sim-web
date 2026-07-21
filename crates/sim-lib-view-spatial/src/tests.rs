@@ -29,7 +29,12 @@ fn encoders_are_pose_free_and_halo_uses_glance_reducer() {
     let halo_scene = codec.encode(&mut cx, &value, &halo).unwrap();
     assert_scene_kind(&halo_scene, GLANCE_KIND);
     assert_pose_free(&halo_scene);
-    let source_scene = UniversalView.encode(&mut cx, &value).unwrap();
+    let source_scene = UniversalView
+        .encode(
+            &mut cx,
+            &build::map(vec![("title", Expr::String("Daily focus".to_owned()))]),
+        )
+        .unwrap();
     let expected_halo = GlanceReducer
         .reduce(&source_scene, &halo.device_profile())
         .unwrap();
