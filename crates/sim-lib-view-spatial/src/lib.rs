@@ -15,14 +15,18 @@ pub mod glance_map;
 pub mod halo_glance;
 pub mod layout;
 pub mod pose_view;
+pub mod predict;
 pub mod reproject;
+pub mod reproject_loop;
 
 pub use encode::{SPATIAL_SURFACE_CODEC_ID, SpatialSurfaceCodec, surface_spatial_codec_symbol};
 pub use glance_map::halo_glance_scene;
 pub use halo_glance::{HALO_ACK_MS, halo_glance_budget, halo_glance_config};
 pub use layout::{PanelLayout, SpatialLayout, arrange_spatial_panels};
 pub use pose_view::PoseView;
+pub use predict::{ClampedReprojector, clamp_predicted};
 pub use reproject::Reprojector;
+pub use reproject_loop::{HaloGlanceLoop, VitureReprojectLoop, halo_loop, viture_loop};
 
 /// Embedded cookbook recipe books shipped with this library.
 pub static RECIPES: sim_cookbook::EmbeddedDir =
@@ -32,3 +36,5 @@ pub static RECIPES: sim_cookbook::EmbeddedDir =
 mod adapter_tests;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod timing_tests;
