@@ -1,7 +1,15 @@
 schema = "sim.features"
 
 [enforcement.audience]
+user = "strict"
 framework = "strict"
+code = "advisory"
+
+[enforcement.surface]
+cli = "strict"
+view = "strict"
+view-edit = "strict"
+docs = "advisory"
 
 [enforcement.route]
 major_entrypoints = "advisory"
@@ -10,22 +18,47 @@ frameworks = "advisory"
 [[feature]]
 id = "feature/sim-web/view-surface"
 title = "View surface projection"
-summary = "Expose view and edit surfaces through sim-lib-view so codecs can render and reverse surface data."
+summary = "Expose view and edit surfaces so codecs, browser hosts, and device profiles can render and reverse surface data."
 owner = "crate/sim-lib-view"
-audiences = ["code", "framework"]
-guidance = "Use this row when adding a view surface or checking the default projection exports."
+audiences = ["user", "code", "framework"]
+guidance = "Use this row when choosing a view, edit, or projection surface for a browser-facing workflow."
 claims_anchors = [
+  "anchor/card/cookbook/view/agent",
+  "anchor/card/cookbook/view/bridge",
+  "anchor/card/cookbook/view/codec",
+  "anchor/card/cookbook/view/daw",
+  "anchor/card/cookbook/view/doc",
+  "anchor/card/cookbook/view/math",
+  "anchor/card/cookbook/view/wasm",
   "anchor/crate/sim-lib-intent",
   "anchor/crate/sim-lib-scene",
   "anchor/crate/sim-lib-view",
   "anchor/export/sim-lib-view/surface-default",
   "anchor/export/sim-lib-view/view-default",
+  "anchor/export/sim-lib-view/view/lens-descriptor",
   "anchor/runtime-lib/sim-lib-intent/intent-codec-lib",
   "anchor/runtime-lib/sim-lib-scene/scene-codec-lib",
 ]
 claims_surfaces = [
   "view/sim-lib-view",
+  "view/sim-lib-view-agent",
+  "view/sim-lib-view-bridge",
+  "view/sim-lib-view-codec",
+  "view/sim-lib-view-daw",
+  "view/sim-lib-view-device",
+  "view/sim-lib-view-doc",
+  "view/sim-lib-view-math",
+  "view/sim-lib-view-spatial",
+  "view/sim-lib-view-wasm-frame",
+  "view/sim-lib-view-wrist",
+  "view/sim-lib-web-bridge",
   "view-edit/sim-lib-view",
+  "view-edit/sim-lib-view-bridge",
+  "view-edit/sim-lib-view-device",
+  "view-edit/sim-lib-view-spatial",
+  "view-edit/sim-lib-view-wasm-frame",
+  "view-edit/sim-lib-web-bridge",
+  "view-edit/sim-web-shell",
 ]
 
 [[feature]]
@@ -55,10 +88,17 @@ id = "feature/sim-web/web-shell-host"
 title = "Web shell host"
 summary = "Serve browser-facing surfaces through loaded web shell runtime libraries and command entry points."
 owner = "crate/sim-web-shell"
-audiences = ["code", "framework"]
-guidance = "Use this row when connecting a browser host to loaded view and edit surfaces."
+audiences = ["user", "code", "framework"]
+guidance = "Use this row when starting the browser shell, browsing a repo, or opening the atelier workspace."
 claims_anchors = [
+  "anchor/cli/atelier",
+  "anchor/cli/browse",
+  "anchor/cli/serve",
+  "anchor/cli/sim-web-shell",
   "anchor/crate/sim-web-shell",
+  "anchor/export/sim-web-shell/cli/main/atelier",
+  "anchor/export/sim-web-shell/cli/main/browse",
+  "anchor/export/sim-web-shell/cli/main/serve",
   "anchor/runtime-lib/sim-web-shell/atelier-cli-lib",
   "anchor/runtime-lib/sim-web-shell/browse-cli-lib",
   "anchor/runtime-lib/sim-web-shell/web-serve-lib",
@@ -67,6 +107,24 @@ claims_surfaces = [
   "cli/atelier",
   "cli/browse",
   "cli/serve",
+  "cli/sim-web-shell",
+]
+
+[[feature]]
+id = "feature/sim-web/generated-docs"
+title = "Repository documentation surface"
+summary = "Publish generated package, card, recipe, and index facts for browser and view crates."
+owner = "crate/xtask"
+audiences = ["code"]
+guidance = "Use this row when checking the generated documentation and index lane for the web repo."
+claims_anchors = [
+  "anchor/cli/xtask",
+  "anchor/doc/generated/feature-map",
+  "anchor/doc/generated/sim-index-fragment",
+]
+claims_surfaces = [
+  "cli/xtask",
+  "docs/sim-web/generated",
 ]
 
 [[route]]
@@ -77,4 +135,14 @@ steps = [
   { feature = "feature/sim-web/view-surface", why = "The sim-lib-view row owns the default view and reversible edit surfaces." },
   { feature = "feature/sim-web/device-surfaces", why = "Device profiles show how projection adapts to concrete surface caps." },
   { feature = "feature/sim-web/web-shell-host", why = "The web shell row shows how a browser host loads those surfaces." },
+]
+
+[[route]]
+id = "route/open-web-workspace"
+task = "Open a web workspace"
+audiences = ["user"]
+steps = [
+  { feature = "feature/sim-web/web-shell-host", why = "The web shell row owns the serve, browse, and atelier commands." },
+  { feature = "feature/sim-web/view-surface", why = "The view row supplies the reversible surfaces shown by the browser host." },
+  { specimen = "recipe/sim-web/crates/sim-web-shell/01-basics/open-workspace", why = "The open-workspace recipe is the shortest browser-host example." },
 ]

@@ -17,9 +17,10 @@ This generated lane consumes `docs/generated/sim-index-fragment.sx`. Global inde
 
 | Feature | Subject | Specimens | Summary |
 | --- | --- | ---: | --- |
-| `feature/sim-web/view-surface` | `crate/sim-lib-view` | 0 | Expose view and edit surfaces through sim-lib-view so codecs can render and reverse surface data. |
+| `feature/sim-web/view-surface` | `crate/sim-lib-view` | 0 | Expose view and edit surfaces so codecs, browser hosts, and device profiles can render and reverse surface data. |
 | `feature/sim-web/device-surfaces` | `crate/sim-lib-view` | 0 | Rank and project view surfaces against desktop, phone, watch, and glasses device profiles. |
 | `feature/sim-web/web-shell-host` | `crate/sim-web-shell` | 0 | Serve browser-facing surfaces through loaded web shell runtime libraries and command entry points. |
+| `feature/sim-web/generated-docs` | `crate/xtask` | 0 | Publish generated package, card, recipe, and index facts for browser and view crates. |
 
 ## Surfaces
 
