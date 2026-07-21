@@ -1,6 +1,6 @@
 {
   "generator": "xtask crate-catalog v1",
-  "package_count": 15,
+  "package_count": 16,
   "packages": [
     {
       "description": "Intent value model, gesture algebra, and codec:intent.",
@@ -127,6 +127,19 @@
       "publish": "true",
       "readme": "crates/sim-lib-view-wasm-frame/README.md",
       "root": "crates/sim-lib-view-wasm-frame",
+      "target_kinds": [
+        "custom-build",
+        "lib"
+      ]
+    },
+    {
+      "description": "Round watch glance budgets over the shared SIM Web device adapter.",
+      "generated_readme": true,
+      "manifest": "crates/sim-lib-view-wrist/Cargo.toml",
+      "name": "sim-lib-view-wrist",
+      "publish": "true",
+      "readme": "crates/sim-lib-view-wrist/README.md",
+      "root": "crates/sim-lib-view-wrist",
       "target_kinds": [
         "custom-build",
         "lib"
