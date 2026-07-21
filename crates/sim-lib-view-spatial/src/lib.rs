@@ -16,6 +16,7 @@ pub mod halo_glance;
 pub mod layout;
 pub mod pose_view;
 pub mod predict;
+pub mod rank;
 pub mod reproject;
 pub mod reproject_loop;
 
@@ -25,6 +26,7 @@ pub use halo_glance::{HALO_ACK_MS, halo_glance_budget, halo_glance_config};
 pub use layout::{PanelLayout, SpatialLayout, arrange_spatial_panels};
 pub use pose_view::PoseView;
 pub use predict::{ClampedReprojector, clamp_predicted};
+pub use rank::{AttentionBudget, rank_for_profile, rank_glasses, rank_spatial};
 pub use reproject::Reprojector;
 pub use reproject_loop::{HaloGlanceLoop, VitureReprojectLoop, halo_loop, viture_loop};
 
@@ -34,6 +36,8 @@ pub static RECIPES: sim_cookbook::EmbeddedDir =
 
 #[cfg(test)]
 mod adapter_tests;
+#[cfg(test)]
+mod rank_tests;
 #[cfg(test)]
 mod tests;
 #[cfg(test)]

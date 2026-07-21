@@ -11,6 +11,7 @@ use sim_lib_view_device::{DeviceSurfaceCapsExt, GlassesClass, glasses_class};
 
 use crate::glance_map::halo_glance_scene;
 use crate::layout::{arrange_spatial_panels, layout_expr};
+use crate::rank::rank_for_profile;
 
 /// The id under which the spatial glasses surface codec is registered.
 pub const SPATIAL_SURFACE_CODEC_ID: &str = "surface:spatial";
@@ -54,7 +55,10 @@ impl SurfaceCodec for SpatialSurfaceCodec {
         let scene = self.source_scene(cx, value)?;
         let profile = caps.device_profile();
         let encoded = match glasses_class(&profile) {
-            Some(GlassesClass::Stereo6Dof) => arrange_spatial_panels(scene, layout_expr(value))?,
+            Some(GlassesClass::Stereo6Dof) => rank_for_profile(
+                &arrange_spatial_panels(scene, layout_expr(value))?,
+                &profile,
+            )?,
             Some(GlassesClass::MonoHud) => halo_glance_scene(&scene, &profile)?,
             Some(GlassesClass::DisplayOnly) | None => reduce_for_caps(&scene, caps),
         };
