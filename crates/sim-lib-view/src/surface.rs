@@ -280,7 +280,7 @@ pub fn preset(name: &str) -> Option<SurfaceCaps> {
                 "touch",
                 "tap",
                 "raise",
-                "voice",
+                "mic",
                 "crown",
                 "haptic-ack",
             ]),
@@ -292,7 +292,7 @@ pub fn preset(name: &str) -> Option<SurfaceCaps> {
         ),
         "watch-glance" => (
             watch_display_map("amazfit-t-rex-3-pro-44", 466, 44),
-            input_map(&["button", "touch", "tap", "raise", "voice", "haptic-ack"]),
+            input_map(&["button", "touch", "tap", "raise", "mic", "haptic-ack"]),
             watch_output_map(),
             transport_map_with_links(
                 "phone-relay",
@@ -313,7 +313,7 @@ pub fn preset(name: &str) -> Option<SurfaceCaps> {
         ),
         "watch-glance-large" => (
             watch_display_map("amazfit-t-rex-3-pro-48", 480, 48),
-            input_map(&["button", "touch", "tap", "raise", "voice", "haptic-ack"]),
+            input_map(&["button", "touch", "tap", "raise", "mic", "haptic-ack"]),
             watch_output_map(),
             transport_map_with_links(
                 "phone-relay",
@@ -334,7 +334,7 @@ pub fn preset(name: &str) -> Option<SurfaceCaps> {
         ),
         "watch-sport" => (
             watch_display_map("amazfit-t-rex-3-pro-48", 480, 48),
-            input_map(&["button", "touch", "tap", "raise", "voice", "haptic-ack"]),
+            input_map(&["button", "touch", "tap", "raise", "mic", "haptic-ack"]),
             watch_output_map(),
             transport_map_with_links(
                 "phone-relay",

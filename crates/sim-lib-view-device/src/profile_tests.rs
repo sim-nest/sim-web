@@ -66,15 +66,18 @@ fn watch_presets_are_device_tiers_with_rate() {
         assert!(has_symbol(&profile.links, "phone-relay"), "{preset}");
         assert!(has_symbol(&profile.output, "screen"), "{preset}");
         assert!(has_symbol(&profile.streams, "battery"), "{preset}");
+        assert!(!has_symbol(&profile.input, "voice"), "{preset}");
     }
 
     let large = SurfaceCaps::from_preset("watch-glance-large", "watch.local.48")
         .expect("large watch preset");
     let large_profile = large.device_profile();
+    assert!(has_symbol(&large_profile.input, "mic"));
     assert!(has_symbol(&large_profile.output, "haptic"));
     assert!(has_symbol(&large_profile.output, "face"));
     assert!(has_symbol(&large_profile.output, "speaker"));
     assert!(has_symbol(&large_profile.output, "mic"));
+    assert!(access::field(&large_profile.to_expr(), "asr-site").is_none());
     assert!(!has_symbol(&large_profile.input, "crown"));
 
     let generic = SurfaceCaps::from_preset("watch", "watch.local.generic").expect("watch preset");

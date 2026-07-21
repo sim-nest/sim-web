@@ -10,6 +10,7 @@
 pub mod budget;
 pub mod command;
 pub mod pacing;
+pub mod voice;
 
 pub use budget::{
     WATCH_GLANCE_ACK_MS, WATCH_GLANCE_CELLS, WATCH_GLANCE_GLYPHS, WATCH_GLANCE_LARGE_CELLS,
@@ -20,6 +21,10 @@ pub use command::{HapticPattern, HapticStep, Urgency, WatchCommand};
 pub use pacing::{
     offer_worn, tick_worn, watch_adapter_loop, watch_frame_clock, watch_frame_clock_at,
     worn_state_from,
+};
+pub use voice::{
+    AudioFrame, CAP_WATCH_MIC, MAX_MIC_FRAME_BYTES, MAX_MIC_FRAMES, MicCapture,
+    transcribe_via_site, watch_mic_capability, watch_mic_grant,
 };
 
 /// Embedded cookbook recipe books shipped with this library.
@@ -34,3 +39,6 @@ mod command_tests;
 
 #[cfg(test)]
 mod pacing_tests;
+
+#[cfg(test)]
+mod voice_tests;
