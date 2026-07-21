@@ -1,0 +1,44 @@
+(glasses/bringup
+  :viture_carina
+  (:claims (:device viture-luma-ultra :route carina :sample pose-6dof)
+   :verified false
+   :firmware nil
+   :version nil
+   :notes ("Carina pose frames gate the rich Viture reprojector"))
+  :viture_legacy
+  (:claims (:device viture-luma-ultra :route legacy-imu :sample pose-3dof)
+   :verified false
+   :firmware nil
+   :version nil
+   :notes ("3DoF IMU frames support the display-only fallback"))
+  :viture_uvc_cam
+  (:claims (:device viture-luma-ultra :route uvc-camera :sample camera-frame)
+   :verified false
+   :firmware nil
+   :version nil
+   :notes ("UVC camera frames require by-reference storage and consent"))
+  :halo_ble_direct
+  (:claims (:device halo :route ble-direct :sample lua-diff-frame)
+   :verified false
+   :firmware nil
+   :version nil
+   :notes ("Direct BLE carries bounded Halo display diffs and tap input"))
+  :halo_web_bt
+  (:claims (:device halo :route web-bluetooth :sample lua-diff-frame)
+   :verified false
+   :firmware nil
+   :version nil
+   :notes ("Web Bluetooth carries bounded Halo display diffs and tap input"))
+  :halo_phone_relay
+  (:claims (:device halo :route phone-relay :sample lua-diff-frame)
+   :verified false
+   :firmware nil
+   :version nil
+   :notes ("Phone relay carries bounded Halo display diffs and tap input"))
+  :halo_camera
+  (:claims (:device halo :route camera :sample camera-frame :resolution (640 480))
+   :verified false
+   :firmware nil
+   :version nil
+   :notes ("Halo camera frames stay one-shot and consent-gated"))
+  :notes ("verified flags change only with hardware bring-up ledger evidence"))

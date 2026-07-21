@@ -1130,10 +1130,10 @@
     "generated_by": "cargo run -p xtask -- simdoc",
     "generation_timestamp": "2026-07-15T16:50:10+02:00",
     "generator": "xtask repo-contract v1",
-    "git_commit": "59591d5dd674f91dc75f7804671efb559b8dc9b9",
+    "git_commit": "688ebb5e678f513872e2cd89bb958bc17a5f3b1a",
     "repo": "sim-web",
     "schema": "sim.provenance.v1",
-    "source_commit": "59591d5dd674f91dc75f7804671efb559b8dc9b9",
+    "source_commit": "688ebb5e678f513872e2cd89bb958bc17a5f3b1a",
     "source_remote": "https://github.com/sim-nest/sim-web",
     "validation_commands": [
       "cargo fmt --all --check",
@@ -1146,9 +1146,9 @@
       "cargo run -p xtask -- validation-matrix --check --repo .",
       "cargo run -p xtask -- crate-catalog --check --repo ."
     ],
-    "workspace_hash": "c703e4f99f945a36",
+    "workspace_hash": "9c00b9dfcdaa597d",
     "workspace_hash_algorithm": "fnv1a64",
-    "workspace_hash_input_count": 285,
+    "workspace_hash_input_count": 287,
     "workspace_hash_inputs": [
       "Cargo.toml",
       "crates/sim-lib-intent/Cargo.toml",
@@ -1188,6 +1188,8 @@
       "crates/sim-lib-view/build.rs",
       "crates/sim-lib-view/recipes/01-basics/universal-lens/recipe.toml",
       "crates/sim-lib-view/recipes/book.toml",
+      "crates/sim-lib-view/src/bringup.rs",
+      "crates/sim-lib-view/src/bringup_tests.rs",
       "crates/sim-lib-view/src/citizen.rs",
       "crates/sim-lib-view/src/codec.rs",
       "crates/sim-lib-view/src/contract.rs",
