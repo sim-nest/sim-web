@@ -29,6 +29,15 @@ use sim_lib_view::{
     LensRegistry, SurfaceCaps, UNIVERSAL_EDITOR_ID, UNIVERSAL_VIEW_ID, register_universal_default,
 };
 
+/// The role a surface holds inside a synchronized hub.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SurfaceRole {
+    /// Primary focus surface for a shared session.
+    Main,
+    /// Secondary peer surface for the same canonical session.
+    Peer,
+}
+
 /// One re-rendered Scene pushed to a surface/pane after a canonical edit.
 ///
 /// `diff` is the Scene patch from the pane's cached Scene to `scene`; applying
@@ -61,6 +70,17 @@ pub struct EditRow {
     pub operation: Expr,
 }
 
+/// Public snapshot of one live `(surface, pane)` binding.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SurfaceBinding {
+    /// The surface that owns the binding.
+    pub surface: Symbol,
+    /// The pane on that surface.
+    pub pane: Symbol,
+    /// The canonical resource shown by the binding.
+    pub resource: Symbol,
+}
+
 /// A live binding of a `(surface, pane)` to a resource, with the last Scene
 /// shown there so the next broadcast can be diffed against it.
 struct Binding {
@@ -68,6 +88,16 @@ struct Binding {
     pane: Symbol,
     resource: Symbol,
     last_scene: Expr,
+}
+
+impl Binding {
+    fn snapshot(&self) -> SurfaceBinding {
+        SurfaceBinding {
+            surface: self.surface.clone(),
+            pane: self.pane.clone(),
+            resource: self.resource.clone(),
+        }
+    }
 }
 
 /// The canonical multi-surface coordination point.
@@ -81,6 +111,7 @@ pub struct SurfaceHub {
     registry: LensRegistry,
     cx: Cx,
     surfaces: BTreeMap<Symbol, SurfaceCaps>,
+    roles: BTreeMap<Symbol, SurfaceRole>,
     bindings: Vec<Binding>,
     ledger: Vec<EditRow>,
 }
@@ -102,6 +133,7 @@ impl SurfaceHub {
             registry,
             cx: Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory)),
             surfaces: BTreeMap::new(),
+            roles: BTreeMap::new(),
             bindings: Vec::new(),
             ledger: Vec::new(),
         }
@@ -115,7 +147,23 @@ impl SurfaceHub {
     /// Register a surface (identified by `surface`) with its capabilities.
     /// Re-registering replaces the stored caps.
     pub fn register_surface(&mut self, surface: Symbol, caps: SurfaceCaps) {
+        self.register_surface_with_role(surface, caps, SurfaceRole::Main);
+    }
+
+    /// Register a surface with an explicit role inside the hub.
+    pub fn register_surface_with_role(
+        &mut self,
+        surface: Symbol,
+        caps: SurfaceCaps,
+        role: SurfaceRole,
+    ) {
+        self.roles.insert(surface.clone(), role);
         self.surfaces.insert(surface, caps);
+    }
+
+    /// Returns the role recorded for `surface`.
+    pub fn surface_role(&self, surface: &Symbol) -> Option<SurfaceRole> {
+        self.roles.get(surface).copied()
     }
 
     /// Bind `(surface, pane)` to `resource`, render the canonical value through
@@ -174,7 +222,96 @@ impl SurfaceHub {
             .propose(&mut self.cx, &editor, &value, intent)?;
         let operation = self.registry.commit(&mut self.cx, &editor, &draft)?;
         let new_value = apply_set_value(&operation.form)?;
+        self.commit_change(surface, pane, intent, new_value, operation.form)
+    }
 
+    /// Commit an already decoded value update from `surface`/`pane`.
+    ///
+    /// Device coordinators use this when a physical Intent has already been
+    /// reduced to a canonical value update. The hub still validates the Intent,
+    /// enforces the source surface input capability, records exactly one
+    /// append-only ledger row, and broadcasts through the same atomic path as
+    /// [`Self::submit`].
+    pub fn commit_value_from(
+        &mut self,
+        surface: &Symbol,
+        pane: &Symbol,
+        intent: &Expr,
+        new_value: Expr,
+    ) -> Result<Vec<Broadcast>> {
+        sim_lib_intent::validate_intent(intent)
+            .map_err(|error| Error::HostError(format!("invalid intent: {error}")))?;
+        let caps = self.caps_of(surface)?;
+        require_surface_input(&caps, intent)?;
+        let resource = self
+            .bindings
+            .iter()
+            .find(|binding| binding.surface == *surface && binding.pane == *pane)
+            .map(|binding| binding.resource.clone())
+            .ok_or_else(|| Error::HostError(format!("({surface}, {pane}) is not open")))?;
+        self.commit_resource_change(resource, intent, new_value)
+    }
+
+    /// Detach a surface from this hub without changing canonical resources or
+    /// ledger history.
+    pub fn detach_surface(&mut self, surface: &Symbol) -> Vec<SurfaceBinding> {
+        self.surfaces.remove(surface);
+        self.roles.remove(surface);
+        let mut removed = Vec::new();
+        self.bindings.retain(|binding| {
+            if binding.surface == *surface {
+                removed.push(binding.snapshot());
+                false
+            } else {
+                true
+            }
+        });
+        removed
+    }
+
+    /// Returns live bindings currently showing `resource`.
+    pub fn bindings_for_resource(&self, resource: &Symbol) -> Vec<SurfaceBinding> {
+        self.bindings
+            .iter()
+            .filter(|binding| binding.resource == *resource)
+            .map(Binding::snapshot)
+            .collect()
+    }
+
+    fn commit_change(
+        &mut self,
+        surface: &Symbol,
+        pane: &Symbol,
+        intent: &Expr,
+        new_value: Expr,
+        operation: Expr,
+    ) -> Result<Vec<Broadcast>> {
+        let resource = self
+            .bindings
+            .iter()
+            .find(|binding| binding.surface == *surface && binding.pane == *pane)
+            .map(|binding| binding.resource.clone())
+            .ok_or_else(|| Error::HostError(format!("({surface}, {pane}) is not open")))?;
+        self.commit_resource_change_with_operation(resource, intent, new_value, operation)
+    }
+
+    fn commit_resource_change(
+        &mut self,
+        resource: Symbol,
+        intent: &Expr,
+        new_value: Expr,
+    ) -> Result<Vec<Broadcast>> {
+        let operation = set_value_operation(new_value.clone());
+        self.commit_resource_change_with_operation(resource, intent, new_value, operation)
+    }
+
+    fn commit_resource_change_with_operation(
+        &mut self,
+        resource: Symbol,
+        intent: &Expr,
+        new_value: Expr,
+        operation: Expr,
+    ) -> Result<Vec<Broadcast>> {
         // Render EVERY per-surface broadcast into a staging buffer FIRST. A
         // render (or a surface that lost its capabilities) can fail mid-iteration;
         // if it does we must mutate nothing -- otherwise canonical/ledger move
@@ -221,7 +358,7 @@ impl SurfaceHub {
             resource,
             operator,
             tick,
-            operation: operation.form,
+            operation,
         });
         let mut broadcasts = Vec::with_capacity(staged.len());
         for (index, broadcast) in staged {
@@ -340,8 +477,19 @@ fn input_capabilities_for_intent(intent: &Expr) -> Result<&'static [&'static str
     match kind {
         "tap" | "dismiss" | "commit" | "cancel" | "approve" | "reject" | "pause-agent"
         | "rerun-validation" | "replay-cassette" => Ok(&["tap", "pointer", "touch", "keyboard"]),
-        "select" | "move" | "wire" | "unwire" | "create" | "delete" | "invoke" | "scrub"
+        "select" | "move" | "wire" | "unwire" | "create" | "delete" | "scrub"
         | "piano-roll-edit" | "player-rack-edit" | "arranger-edit" => Ok(&["pointer", "touch"]),
+        "invoke" => Ok(&[
+            "pointer",
+            "touch",
+            "tap",
+            "button",
+            "gaze",
+            "head",
+            "hand",
+            "controller",
+            "voice",
+        ]),
         "edit" | "edit-field" | "set-param" | "set-lens" | "set-mode" | "open" | "ask"
         | "split-mission" | "open-source" => Ok(&["keyboard", "touch", "voice"]),
         "performance-event" => Ok(&["keyboard", "touch", "camera"]),
@@ -349,6 +497,16 @@ fn input_capabilities_for_intent(intent: &Expr) -> Result<&'static [&'static str
             "no surface input capability mapping for intent/{other}"
         ))),
     }
+}
+
+fn set_value_operation(value: Expr) -> Expr {
+    Expr::Map(vec![
+        (
+            Expr::Symbol(Symbol::new("op")),
+            Expr::Symbol(Symbol::new("set-value")),
+        ),
+        (Expr::Symbol(Symbol::new("value")), value),
+    ])
 }
 
 /// Interpret the universal `{op: set-value, value: <v>}` operation, returning
@@ -389,237 +547,4 @@ fn origin_of(intent: &Expr) -> (Symbol, u64) {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    use sim_kernel::NumberLiteral;
-    use sim_lib_intent::{Origin, intent};
-    use sim_lib_view::surface;
-
-    use sim_value::build::keyword as sym;
-
-    fn number(value: &str) -> Expr {
-        Expr::Number(NumberLiteral {
-            domain: sym("i64"),
-            canonical: value.to_owned(),
-        })
-    }
-
-    fn doc() -> Expr {
-        Expr::Map(vec![
-            (Expr::Symbol(sym("a")), number("1")),
-            (Expr::Symbol(sym("b")), number("2")),
-        ])
-    }
-
-    /// An `edit-field` Intent setting top-level field `field` to `value`.
-    fn edit(operator: Origin, field: &str, value: Expr) -> Expr {
-        intent(
-            "edit-field",
-            operator,
-            vec![
-                ("target", doc()),
-                (
-                    "path",
-                    Expr::List(vec![Expr::Vector(vec![
-                        Expr::Symbol(sym("k")),
-                        Expr::Symbol(sym(field)),
-                    ])]),
-                ),
-                ("value", value),
-            ],
-        )
-    }
-
-    fn hub_with_surfaces() -> SurfaceHub {
-        let mut hub = SurfaceHub::new();
-        hub.register_surface(sym("cli"), surface::preset("cli").unwrap());
-        hub.register_surface(sym("web"), surface::preset("webui").unwrap());
-        hub.register_surface(sym("watch"), surface::preset("watch").unwrap());
-        hub
-    }
-
-    #[test]
-    fn submit_rejects_a_surface_without_the_required_input_capability() {
-        let mut hub = SurfaceHub::new();
-        let mut caps = surface::preset("webui").unwrap();
-        caps.client_id = "no-input".to_owned();
-        caps.input = Expr::Map(Vec::new());
-        hub.register_surface(sym("no-input"), caps);
-        hub.seed(sym("doc"), doc());
-        hub.open(&sym("no-input"), sym("pane"), sym("doc")).unwrap();
-        let before = hub.canonical(&sym("doc")).cloned();
-
-        let err = hub
-            .submit(
-                &sym("no-input"),
-                &sym("pane"),
-                &edit(Origin::human(1), "a", number("9")),
-            )
-            .unwrap_err();
-
-        assert!(
-            err.to_string()
-                .contains("does not accept any required input"),
-            "unexpected error: {err}"
-        );
-        assert_eq!(hub.canonical(&sym("doc")).cloned(), before);
-        assert!(hub.ledger().is_empty());
-    }
-
-    #[test]
-    fn an_edit_broadcasts_to_every_surface_viewing_the_resource() {
-        let mut hub = hub_with_surfaces();
-        hub.seed(sym("doc"), doc());
-        let cli_scene = hub.open(&sym("cli"), sym("pane"), sym("doc")).unwrap();
-        let web_scene = hub.open(&sym("web"), sym("pane"), sym("doc")).unwrap();
-
-        let broadcasts = hub
-            .submit(
-                &sym("cli"),
-                &sym("pane"),
-                &edit(Origin::human(1), "a", number("9")),
-            )
-            .unwrap();
-
-        // Both surfaces viewing `doc` receive a broadcast.
-        assert!(broadcasts.len() >= 2);
-        assert!(broadcasts.iter().any(|b| b.surface == sym("cli")));
-        assert!(broadcasts.iter().any(|b| b.surface == sym("web")));
-
-        // Each diff reconstructs the surface's new Scene from its prior Scene.
-        for broadcast in &broadcasts {
-            let prior = if broadcast.surface == sym("cli") {
-                &cli_scene
-            } else {
-                &web_scene
-            };
-            let rebuilt = sim_lib_scene::apply(prior, &broadcast.diff).unwrap();
-            assert_eq!(rebuilt, broadcast.scene);
-        }
-
-        // The canonical value changed.
-        let canonical = hub.canonical(&sym("doc")).unwrap();
-        assert_eq!(
-            sim_value::access::field(canonical, "a").cloned(),
-            Some(number("9"))
-        );
-        assert_eq!(
-            sim_value::access::field(canonical, "b").cloned(),
-            Some(number("2"))
-        );
-    }
-
-    #[test]
-    fn a_mid_loop_broadcast_error_leaves_canonical_ledger_and_caches_unchanged() {
-        let mut hub = hub_with_surfaces();
-        hub.seed(sym("doc"), doc());
-        // cli is bound first, web second, both on `doc`.
-        let cli_scene = hub.open(&sym("cli"), sym("pane"), sym("doc")).unwrap();
-        hub.open(&sym("web"), sym("pane"), sym("doc")).unwrap();
-
-        let canonical_before = hub.canonical(&sym("doc")).cloned();
-        let ledger_len_before = hub.ledger().len();
-
-        // Simulate the web surface dropping its capabilities while its binding
-        // remains -- the desync the atomic submit must tolerate without
-        // corrupting shared state.
-        hub.surfaces.remove(&sym("web"));
-
-        // Submitting from cli stages cli's broadcast, then hits web's missing
-        // caps mid-loop. The submit must fail closed and mutate nothing.
-        let result = hub.submit(
-            &sym("cli"),
-            &sym("pane"),
-            &edit(Origin::human(1), "a", number("9")),
-        );
-        assert!(
-            result.is_err(),
-            "a mid-loop render failure must fail the whole submit"
-        );
-
-        // Canonical and ledger never moved forward.
-        assert_eq!(hub.canonical(&sym("doc")).cloned(), canonical_before);
-        assert_eq!(hub.ledger().len(), ledger_len_before);
-        // cli's cached last_scene was NOT advanced (no half-applied broadcast).
-        let cli_last = hub
-            .bindings
-            .iter()
-            .find(|binding| binding.surface == sym("cli") && binding.pane == sym("pane"))
-            .map(|binding| binding.last_scene.clone());
-        assert_eq!(
-            cli_last,
-            Some(cli_scene),
-            "cli's cached scene must be untouched after the failed submit"
-        );
-    }
-
-    #[test]
-    fn handoff_extends_broadcast_to_the_target_surface() {
-        let mut hub = hub_with_surfaces();
-        hub.seed(sym("doc"), doc());
-        hub.open(&sym("cli"), sym("pane"), sym("doc")).unwrap();
-        hub.open(&sym("web"), sym("pane"), sym("doc")).unwrap();
-
-        // Hand the resource off from cli to watch (a new pane on watch).
-        hub.handoff(&sym("cli"), &sym("watch"), sym("doc"), sym("pane"))
-            .unwrap();
-
-        let broadcasts = hub
-            .submit(
-                &sym("web"),
-                &sym("pane"),
-                &edit(Origin::human(2), "b", number("7")),
-            )
-            .unwrap();
-
-        // cli, web, AND watch all receive the broadcast now.
-        assert!(broadcasts.iter().any(|b| b.surface == sym("cli")));
-        assert!(broadcasts.iter().any(|b| b.surface == sym("web")));
-        assert!(broadcasts.iter().any(|b| b.surface == sym("watch")));
-    }
-
-    #[test]
-    fn two_writer_conflict_is_last_write_wins_and_replayable() {
-        let mut hub = hub_with_surfaces();
-        let seed = doc();
-        hub.seed(sym("doc"), seed.clone());
-        hub.open(&sym("cli"), sym("pane"), sym("doc")).unwrap();
-        hub.open(&sym("web"), sym("pane"), sym("doc")).unwrap();
-
-        // cli edits, then web edits the same resource and field.
-        hub.submit(
-            &sym("cli"),
-            &sym("pane"),
-            &edit(Origin::human(1), "a", number("10")),
-        )
-        .unwrap();
-        hub.submit(
-            &sym("web"),
-            &sym("pane"),
-            &edit(Origin::agent(2), "a", number("20")),
-        )
-        .unwrap();
-
-        // The final canonical value reflects the LAST commit.
-        let canonical = hub.canonical(&sym("doc")).unwrap().clone();
-        assert_eq!(
-            sim_value::access::field(&canonical, "a").cloned(),
-            Some(number("20"))
-        );
-
-        // The ledger has two rows with the right operators and ticks, in order.
-        let ledger = hub.ledger();
-        assert_eq!(ledger.len(), 2);
-        assert_eq!(ledger[0].operator, sym("human"));
-        assert_eq!(ledger[0].tick, 1);
-        assert_eq!(ledger[1].operator, sym("agent"));
-        assert_eq!(ledger[1].tick, 2);
-
-        // Replaying the ledger over the seed reproduces the final canonical state.
-        let mut seed_state = BTreeMap::new();
-        seed_state.insert(sym("doc"), seed);
-        let replayed = replay(ledger, seed_state).expect("ledger rows are all set-value ops");
-        assert_eq!(replayed.get(&sym("doc")), Some(&canonical));
-    }
-}
+mod tests;

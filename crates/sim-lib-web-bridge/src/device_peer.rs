@@ -3,7 +3,7 @@
 use sim_kernel::Symbol;
 use sim_lib_view_device::{DeviceProfile, EdgeId};
 
-use crate::SurfaceHub;
+use crate::{SurfaceHub, SurfaceRole};
 
 /// Registers a device edge session as a peer surface on `hub`.
 ///
@@ -16,10 +16,21 @@ pub fn register_device_peer(
     session: &EdgeId,
     profile: &DeviceProfile,
 ) -> Symbol {
+    register_device_peer_with_role(hub, session, profile, SurfaceRole::Peer)
+}
+
+/// Registers a device edge session as a surface with an explicit hub role.
+pub fn register_device_peer_with_role(
+    hub: &mut SurfaceHub,
+    session: &EdgeId,
+    profile: &DeviceProfile,
+    role: SurfaceRole,
+) -> Symbol {
     let surface = device_peer_surface(session);
-    hub.register_surface(
+    hub.register_surface_with_role(
         surface.clone(),
         profile.to_surface_caps(session.as_symbol().as_qualified_str()),
+        role,
     );
     surface
 }

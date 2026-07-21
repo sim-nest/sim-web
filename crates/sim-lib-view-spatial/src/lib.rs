@@ -10,6 +10,7 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
+pub mod co_use;
 pub mod consent;
 pub mod encode;
 pub mod glance_map;
@@ -23,6 +24,9 @@ pub mod reproject_loop;
 pub mod voice_site;
 pub mod world;
 
+pub use co_use::{
+    GlassesCoUsePlan, GlassesCoUseRole, GlassesPeer, GlassesPeerConfig, glasses_peer_config,
+};
 pub use consent::{
     CAP_GLASSES_CAMERA, CAP_GLASSES_HAND, CAP_GLASSES_MIC, CAP_GLASSES_POSE,
     CAP_GLASSES_VENDOR_REPORT, CAP_GLASSES_WORLD_ANCHOR, GlassesCapability,
