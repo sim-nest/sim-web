@@ -3,10 +3,10 @@
   "generated_by": "cargo run -p xtask -- simdoc",
   "generation_timestamp": "2026-07-15T16:50:10+02:00",
   "generator": "xtask repo-contract v1",
-  "git_commit": "0996b7d24bb59485b0050a83351f4a14a7ee291b",
+  "git_commit": "1a92ff0d5e757c83d91abb892518c05b1e83edfd",
   "repo": "sim-web",
   "schema": "sim.provenance.v1",
-  "source_commit": "0996b7d24bb59485b0050a83351f4a14a7ee291b",
+  "source_commit": "1a92ff0d5e757c83d91abb892518c05b1e83edfd",
   "source_remote": "https://github.com/sim-nest/sim-web",
   "validation_commands": [
     "cargo fmt --all --check",
@@ -19,9 +19,9 @@
     "cargo run -p xtask -- validation-matrix --check --repo .",
     "cargo run -p xtask -- crate-catalog --check --repo ."
   ],
-  "workspace_hash": "876cbddd2b39dc81",
+  "workspace_hash": "60b192016aecada6",
   "workspace_hash_algorithm": "fnv1a64",
-  "workspace_hash_input_count": 271,
+  "workspace_hash_input_count": 273,
   "workspace_hash_inputs": [
     "Cargo.toml",
     "crates/sim-lib-intent/Cargo.toml",
@@ -206,6 +206,8 @@
     "crates/sim-lib-view-spatial/build.rs",
     "crates/sim-lib-view-spatial/recipes/book.toml",
     "crates/sim-lib-view-spatial/src/adapter_tests.rs",
+    "crates/sim-lib-view-spatial/src/consent.rs",
+    "crates/sim-lib-view-spatial/src/consent_tests.rs",
     "crates/sim-lib-view-spatial/src/encode.rs",
     "crates/sim-lib-view-spatial/src/glance_map.rs",
     "crates/sim-lib-view-spatial/src/halo_glance.rs",

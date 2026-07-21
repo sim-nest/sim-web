@@ -5,15 +5,12 @@
 //! site returns the already-formed Intent; this module only enforces consent,
 //! calls the site, and validates the Intent shape.
 
-use sim_kernel::{
-    CapabilityName, Consistency, Cx, Error, EvalFabric, EvalMode, EvalRequest, Expr, Result, Symbol,
-};
+use sim_kernel::{Consistency, Cx, Error, EvalFabric, EvalMode, EvalRequest, Expr, Result, Symbol};
 use sim_lib_intent::validate_intent;
 use sim_lib_view_device::{ConsentReceipt, EdgeId, require_with_consent};
 use sim_value::{access, build};
 
-/// Capability required for glasses microphone capture.
-pub const CAP_GLASSES_MIC: &str = "glasses/mic";
+use crate::{CAP_GLASSES_MIC, glasses_mic_capability};
 
 /// Namespace for glasses microphone chunk references.
 pub const XR_MIC_CHUNK_NAMESPACE: &str = "xr";
@@ -186,16 +183,6 @@ impl XrMicChunkRef {
             uint_field(expr, "bytes", "xr mic chunk")?,
         )
     }
-}
-
-/// Returns the kernel capability name for glasses microphone capture.
-pub fn glasses_mic_capability() -> CapabilityName {
-    CapabilityName::new(CAP_GLASSES_MIC)
-}
-
-/// Returns the visible consent grant symbol for glasses microphone capture.
-pub fn glasses_mic_grant() -> Symbol {
-    Symbol::qualified("glasses", "mic")
 }
 
 /// Produces a voice Intent through a placed ASR site.

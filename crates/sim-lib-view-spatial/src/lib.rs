@@ -10,6 +10,7 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
+pub mod consent;
 pub mod encode;
 pub mod glance_map;
 pub mod halo_glance;
@@ -21,6 +22,15 @@ pub mod reproject;
 pub mod reproject_loop;
 pub mod voice_site;
 
+pub use consent::{
+    CAP_GLASSES_CAMERA, CAP_GLASSES_HAND, CAP_GLASSES_MIC, CAP_GLASSES_POSE,
+    CAP_GLASSES_VENDOR_REPORT, CAP_GLASSES_WORLD_ANCHOR, GlassesCapability,
+    active_glasses_consent_badge_cluster, glasses_camera_grant, glasses_capability_for_expr,
+    glasses_hand_grant, glasses_mic_capability, glasses_mic_grant, glasses_pose_grant,
+    glasses_vendor_report_grant, glasses_world_anchor_grant, halo_consent_glyph,
+    require_glasses_consent, require_glasses_expr_consent, store_glasses_sample,
+    sweep_glasses_privacy,
+};
 pub use encode::{SPATIAL_SURFACE_CODEC_ID, SpatialSurfaceCodec, surface_spatial_codec_symbol};
 pub use glance_map::halo_glance_scene;
 pub use halo_glance::{HALO_ACK_MS, halo_glance_budget, halo_glance_config};
@@ -35,8 +45,8 @@ pub use rank::{AttentionBudget, rank_for_profile, rank_glasses, rank_spatial};
 pub use reproject::Reprojector;
 pub use reproject_loop::{HaloGlanceLoop, VitureReprojectLoop, halo_loop, viture_loop};
 pub use voice_site::{
-    AsrSite, AsrSitePlacement, CAP_GLASSES_MIC, XR_MIC_CHUNK_KIND, XR_MIC_CHUNK_NAMESPACE,
-    XrMicChunkRef, glasses_mic_capability, glasses_mic_grant, voice_intent_via_site,
+    AsrSite, AsrSitePlacement, XR_MIC_CHUNK_KIND, XR_MIC_CHUNK_NAMESPACE, XrMicChunkRef,
+    voice_intent_via_site,
 };
 
 /// Embedded cookbook recipe books shipped with this library.
@@ -45,6 +55,8 @@ pub static RECIPES: sim_cookbook::EmbeddedDir =
 
 #[cfg(test)]
 mod adapter_tests;
+#[cfg(test)]
+mod consent_tests;
 #[cfg(test)]
 mod layout_tests;
 #[cfg(test)]
