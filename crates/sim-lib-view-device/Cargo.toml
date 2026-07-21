@@ -1,6 +1,6 @@
 [package]
 name = "sim-lib-view-device"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 license = "MPL-2.0"
 description = "Device profiles, frame timing, and tier derivation for SIM Web surfaces."
@@ -12,7 +12,7 @@ homepage = "https://github.com/sim-nest/sim-web"
 [dependencies]
 sim-cookbook = { version = "0.1.0" }
 sim-kernel = { version = "0.1.0" }
-sim-lib-scene = { version = "0.1.3", path = "../sim-lib-scene" }
+sim-lib-scene = { version = "0.1.5", path = "../sim-lib-scene" }
 sim-lib-view = { version = "0.1.3", path = "../sim-lib-view" }
 sim-value = { version = "0.1.0" }
 
