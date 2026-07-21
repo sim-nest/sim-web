@@ -12,6 +12,8 @@
 //! - a [`model`] of origin, builders, accessors, fail-closed validation, and
 //!   target resolution against a caller-supplied predicate;
 //! - the [`gesture`] algebra folding raw browser gestures into one Intent;
+//! - the [`wrist`] reducer folding watch buttons, touch, tap, raise, and crown
+//!   input into standard Intent values;
 //! - the [`codec`] `codec:intent` plus Intent kind [`shapes`].
 
 #![forbid(unsafe_code)]
@@ -24,6 +26,7 @@ pub mod gesture;
 pub mod kinds;
 pub mod model;
 pub mod shapes;
+pub mod wrist;
 
 pub use citizen::{IntentDescriptor, intent_descriptor_class_symbol};
 pub use codec::{IntentCodec, IntentCodecLib, intent_codec_symbol};
@@ -37,6 +40,7 @@ pub use model::{
     resolve_targets, validate_intent,
 };
 pub use shapes::{intent_shape_specs, intent_shape_symbol};
+pub use wrist::{WristInputCapabilities, WristInputTiming, WristIntentReducer, WristRawInput};
 
 /// Embedded cookbook recipe books shipped with this library.
 pub static RECIPES: sim_cookbook::EmbeddedDir =
@@ -44,3 +48,6 @@ pub static RECIPES: sim_cookbook::EmbeddedDir =
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod wrist_tests;

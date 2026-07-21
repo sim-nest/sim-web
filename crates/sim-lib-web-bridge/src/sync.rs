@@ -338,12 +338,12 @@ fn input_capabilities_for_intent(intent: &Expr) -> Result<&'static [&'static str
         _ => return Err(Error::HostError("submit input is not an Intent".to_owned())),
     };
     match kind {
-        "tap" | "commit" | "cancel" | "approve" | "reject" | "pause-agent" | "rerun-validation"
-        | "replay-cassette" => Ok(&["tap", "pointer", "touch", "keyboard"]),
+        "tap" | "dismiss" | "commit" | "cancel" | "approve" | "reject" | "pause-agent"
+        | "rerun-validation" | "replay-cassette" => Ok(&["tap", "pointer", "touch", "keyboard"]),
         "select" | "move" | "wire" | "unwire" | "create" | "delete" | "invoke" | "scrub"
         | "piano-roll-edit" | "player-rack-edit" | "arranger-edit" => Ok(&["pointer", "touch"]),
-        "edit-field" | "set-param" | "set-lens" | "set-mode" | "open" | "ask" | "split-mission"
-        | "open-source" => Ok(&["keyboard", "touch", "voice"]),
+        "edit" | "edit-field" | "set-param" | "set-lens" | "set-mode" | "open" | "ask"
+        | "split-mission" | "open-source" => Ok(&["keyboard", "touch", "voice"]),
         "performance-event" => Ok(&["keyboard", "touch", "camera"]),
         other => Err(Error::HostError(format!(
             "no surface input capability mapping for intent/{other}"
