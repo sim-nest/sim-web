@@ -1,0 +1,30 @@
+schema = "sim.features"
+
+[enforcement.route]
+major_entrypoints = "advisory"
+frameworks = "advisory"
+
+[[feature]]
+id = "feature/sim-web/view-surface"
+title = "View surface projection"
+summary = "Expose view and edit surfaces through sim-lib-view so codecs can render and reverse surface data."
+owner = "crate/sim-lib-view"
+audiences = ["code", "framework"]
+guidance = "Use this row when adding a view surface or checking the default projection exports."
+claims_anchors = [
+  "anchor/crate/sim-lib-view",
+  "anchor/export/sim-lib-view/surface-default",
+  "anchor/export/sim-lib-view/view-default",
+]
+claims_surfaces = [
+  "view/sim-lib-view",
+  "view-edit/sim-lib-view",
+]
+
+[[route]]
+id = "route/expose-view-surface"
+task = "Expose a view surface"
+audiences = ["code", "framework"]
+steps = [
+  { feature = "feature/sim-web/view-surface", why = "The sim-lib-view row owns the default view and reversible edit surfaces." },
+]
