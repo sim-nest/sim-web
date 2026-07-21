@@ -15,6 +15,7 @@ pub mod consent;
 pub mod degrade;
 pub mod glance;
 pub mod glance_adapter;
+pub mod glasses_routes;
 pub mod ladder;
 pub mod r#loop;
 pub mod profile;
@@ -35,6 +36,9 @@ pub use glance::{
     reduce_scene_to_glance,
 };
 pub use glance_adapter::GlanceAdapter;
+pub use glasses_routes::{
+    GlassesRoute, ObservedGlassesDevices, ResolvedGlassesProfile, resolve_glasses_route,
+};
 pub use ladder::DeviceTier;
 pub use r#loop::{AdapterInput, AdapterLoop, Frame, StalePolicy, blank_frame};
 pub use profile::{
@@ -68,6 +72,9 @@ mod timing_tests;
 
 #[cfg(test)]
 mod glance_tests;
+
+#[cfg(test)]
+mod glasses_route_tests;
 
 #[cfg(test)]
 mod consent_tests;
