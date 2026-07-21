@@ -3,9 +3,10 @@ use sim_lib_view::SurfaceCaps;
 use sim_value::access;
 
 use crate::{
-    DegradationResolver, DeviceProfile, DeviceSurfaceCapsExt, DeviceTier, ObservedRoute, RateClass,
-    T_REX_3_PRO_48_CAPS_FIXTURE, WORN_CAPS_KIND, WORN_CAPS_NAMESPACE, derive_tier, tier_preset,
-    trex3pro_48_worn_caps_fixture, worn_caps_fixture, worn_caps_fixture_names,
+    DegradationResolver, DeviceProfile, DeviceSurfaceCapsExt, DeviceTier, GlassesClass,
+    ObservedRoute, RateClass, T_REX_3_PRO_48_CAPS_FIXTURE, WORN_CAPS_KIND, WORN_CAPS_NAMESPACE,
+    derive_tier, glasses_class, tier_preset, trex3pro_48_worn_caps_fixture, worn_caps_fixture,
+    worn_caps_fixture_names,
 };
 
 #[test]
@@ -100,6 +101,116 @@ fn weaker_watch_preset_is_a_subset() {
 }
 
 #[test]
+fn glasses_presets_span_the_ladder_with_rateclass() {
+    let presets = [
+        "glasses",
+        "glasses-hud",
+        "glasses-hud-camera",
+        "glasses-3dof",
+        "glasses-stereo",
+        "glasses-luma-ultra",
+    ];
+    for preset in presets {
+        let caps = SurfaceCaps::from_preset(preset, format!("{preset}.local"))
+            .expect("glasses preset exists");
+        let back = SurfaceCaps::from_expr(&caps.to_expr()).expect("surface caps round-trip");
+        assert_eq!(back, caps, "{preset}");
+
+        let profile = caps.device_profile();
+        assert_eq!(derive_tier(&profile), profile.tier, "{preset}");
+        assert!(
+            glasses_class(&profile).is_some(),
+            "{preset} must resolve to a glasses profile"
+        );
+        assert!(has_symbol(&profile.display, "glance"), "{preset}");
+    }
+
+    let display_only = SurfaceCaps::from_preset("glasses", "glasses.local.display")
+        .expect("display-only glasses")
+        .device_profile();
+    assert_eq!(display_only.tier, DeviceTier::Display);
+    assert_eq!(display_only.rate, RateClass::safe_default());
+    assert_eq!(
+        glasses_class(&display_only),
+        Some(GlassesClass::DisplayOnly)
+    );
+    assert!(has_symbol(&display_only.display, "mono"));
+    assert!(has_symbol(&display_only.links, "usb"));
+
+    let halo = SurfaceCaps::from_preset("glasses-hud", "halo.local.hud")
+        .expect("halo hud")
+        .device_profile();
+    assert_eq!(halo.tier, DeviceTier::Actuator);
+    assert_eq!(halo.rate.content_hz, 5);
+    assert_eq!(halo.rate.adapt_hz, 30);
+    assert_eq!(halo.rate.max_stale_ms, 200);
+    assert_eq!(glasses_class(&halo), Some(GlassesClass::MonoHud));
+    assert!(has_symbol(&halo.display, "mono"));
+    assert!(has_symbol(&halo.display, "hud"));
+    assert!(has_symbol(&halo.output, "audio"));
+    assert!(has_symbol(&halo.output, "haptic"));
+    assert!(has_symbol(&halo.links, "bluetooth"));
+    assert!(has_symbol(&halo.links, "web-bluetooth"));
+    assert!(has_symbol(&halo.links, "phone-relay"));
+
+    let halo_camera = SurfaceCaps::from_preset("glasses-hud-camera", "halo.local.camera")
+        .expect("halo camera")
+        .device_profile();
+    assert_eq!(halo_camera.tier, DeviceTier::Actuator);
+    assert_eq!(glasses_class(&halo_camera), Some(GlassesClass::MonoHud));
+    assert!(has_symbol(&halo_camera.input, "camera"));
+    assert!(has_symbol(&halo_camera.streams, "camera"));
+
+    let three_dof = SurfaceCaps::from_preset("glasses-3dof", "viture.local.3dof")
+        .expect("3dof glasses")
+        .device_profile();
+    assert_eq!(three_dof.tier, DeviceTier::Sensor);
+    assert_eq!(three_dof.rate.content_hz, 60);
+    assert_eq!(three_dof.rate.adapt_hz, 120);
+    assert_eq!(glasses_class(&three_dof), Some(GlassesClass::DisplayOnly));
+    assert!(has_symbol(&three_dof.display, "3dof"));
+    assert!(has_symbol(&three_dof.streams, "motion"));
+
+    let stereo = SurfaceCaps::from_preset("glasses-stereo", "viture.local.stereo")
+        .expect("stereo display")
+        .device_profile();
+    assert_eq!(stereo.tier, DeviceTier::Display);
+    assert_eq!(stereo.rate, RateClass::safe_default());
+    assert_eq!(glasses_class(&stereo), Some(GlassesClass::DisplayOnly));
+    assert!(has_symbol(&stereo.display, "stereo"));
+
+    let viture = SurfaceCaps::from_preset("glasses-luma-ultra", "viture.local.ultra")
+        .expect("luma ultra")
+        .device_profile();
+    assert_eq!(viture.tier, DeviceTier::Rich);
+    assert_eq!(viture.rate.content_hz, 60);
+    assert_eq!(viture.rate.adapt_hz, 120);
+    assert_eq!(viture.rate.max_stale_ms, 25);
+    assert_eq!(glasses_class(&viture), Some(GlassesClass::Stereo6Dof));
+    assert!(has_symbol(&viture.display, "stereo"));
+    assert!(has_symbol(&viture.display, "6dof"));
+    assert!(has_symbol(&viture.streams, "pose"));
+    assert!(has_symbol(&viture.streams, "hand"));
+    assert!(has_symbol(&viture.input, "gaze"));
+    assert!(has_symbol(&viture.links, "usb"));
+
+    let degradation =
+        DegradationResolver::resolve(&viture, &ObservedRoute::from_profile(&display_only));
+    assert_eq!(degradation.tier, DeviceTier::Display);
+    assert!(
+        degradation
+            .reasons
+            .iter()
+            .any(|reason| reason == "missing stream: pose")
+    );
+
+    let phone = SurfaceCaps::from_preset("phone", "phone.local")
+        .expect("phone")
+        .device_profile();
+    assert_eq!(glasses_class(&phone), None);
+}
+
+#[test]
 fn missing_sensor_field_degrades_with_reason() {
     let requested = tier_preset(DeviceTier::Rich);
     let mut observed = ObservedRoute::from_profile(&requested);
@@ -120,8 +231,8 @@ fn missing_sensor_field_degrades_with_reason() {
 
 #[test]
 fn missing_rate_map_defaults_to_safe_envelope() {
-    let mut entries = match SurfaceCaps::from_preset("watch", "watch.local.2")
-        .expect("watch caps")
+    let mut entries = match SurfaceCaps::from_preset("glasses-hud", "halo.local.2")
+        .expect("halo caps")
         .to_expr()
     {
         Expr::Map(entries) => entries,

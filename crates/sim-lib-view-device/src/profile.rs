@@ -201,6 +201,36 @@ impl DeviceSurfaceCapsExt for SurfaceCaps {
     }
 }
 
+/// Glasses-specific adapter path selected from an already-derived profile.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum GlassesClass {
+    /// A mono HUD edge such as the Halo.
+    MonoHud,
+    /// A stereo, pose-coupled edge such as the Luma Ultra.
+    Stereo6Dof,
+    /// A mirror/display-only pair with no local spatial adapter.
+    DisplayOnly,
+}
+
+/// Selects the glasses encoder/adapter path without deriving the device tier.
+///
+/// [`derive_tier`] remains the single tier source; this helper only lets
+/// glasses-specific code choose between mono HUD, stereo 6DoF, and mirror paths.
+pub fn glasses_class(profile: &DeviceProfile) -> Option<GlassesClass> {
+    if !is_glasses_profile(profile) {
+        return None;
+    }
+    if has_symbol(&profile.display, "stereo") && has_symbol(&profile.streams, "pose") {
+        Some(GlassesClass::Stereo6Dof)
+    } else if has_symbol(&profile.display, "hud")
+        || (has_symbol(&profile.display, "mono") && has_symbol(&profile.output, "hud"))
+    {
+        Some(GlassesClass::MonoHud)
+    } else {
+        Some(GlassesClass::DisplayOnly)
+    }
+}
+
 /// The single authoritative tier derivation function.
 pub fn derive_tier(profile: &DeviceProfile) -> DeviceTier {
     if has_symbol(&profile.display, "stereo") && has_symbol(&profile.streams, "pose") {
@@ -334,14 +364,23 @@ fn symbol_list(symbols: &[Symbol]) -> Expr {
 
 fn display_symbols(display: &Expr) -> Vec<Symbol> {
     let mut out = Vec::new();
+    push_symbol_field(&mut out, display, "display");
     if matches!(access::field(display, "stereo"), Some(Expr::Bool(true))) {
         push_symbol(&mut out, "stereo");
+    }
+    if matches!(access::field(display, "mono"), Some(Expr::Bool(true))) {
+        push_symbol(&mut out, "mono");
+    }
+    if matches!(access::field(display, "none"), Some(Expr::Bool(true))) {
+        push_symbol(&mut out, "none");
     }
     if access::field(display, "lines").is_some() {
         push_symbol(&mut out, "hud");
     }
     push_symbol_field(&mut out, display, "shape");
     push_symbol_field(&mut out, display, "density");
+    push_symbol_field(&mut out, display, "tracking-class");
+    push_symbol_list_field(&mut out, display, "anchor-spaces");
     if out.is_empty() && matches!(display, Expr::Map(entries) if !entries.is_empty()) {
         push_symbol(&mut out, "flat");
     }
@@ -371,7 +410,7 @@ fn output_symbols(display: &[Symbol], input: &[Symbol], explicit: &[Symbol]) -> 
     if !has_symbol(display, "none") && !display.is_empty() {
         push_symbol(&mut out, "screen");
     }
-    if has_symbol(display, "hud") || has_symbol(display, "stereo") {
+    if has_symbol(display, "hud") {
         push_symbol(&mut out, "hud");
     }
     if has_symbol(input, "haptic-ack") {
@@ -417,6 +456,21 @@ fn push_symbol_field(out: &mut Vec<Symbol>, map: &Expr, name: &str) {
     if let Some(Expr::Symbol(symbol)) = access::field(map, name) {
         push_existing(out, symbol.clone());
     }
+}
+
+fn push_symbol_list_field(out: &mut Vec<Symbol>, map: &Expr, name: &str) {
+    if let Some(Expr::List(items)) = access::field(map, name) {
+        for item in items {
+            if let Expr::Symbol(symbol) = item {
+                push_existing(out, symbol.clone());
+            }
+        }
+    }
+}
+
+fn is_glasses_profile(profile: &DeviceProfile) -> bool {
+    let name = profile.kind.name.as_ref();
+    name == "glasses" || name.starts_with("glasses-")
 }
 
 fn symbols(names: &[&str]) -> Vec<Symbol> {

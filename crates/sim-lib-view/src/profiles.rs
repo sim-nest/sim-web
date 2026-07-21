@@ -125,8 +125,12 @@ mod tests {
         assert_eq!(watch.display_density().unwrap().name.as_ref(), "glance");
 
         let glasses = surface::preset("glasses").unwrap();
-        assert!(glasses.input_flag("voice"));
+        assert!(glasses.input_flag("button"));
         assert_eq!(glasses.display_density().unwrap().name.as_ref(), "glance");
+
+        let halo = surface::preset("glasses-hud").unwrap();
+        assert!(halo.input_flag("voice"));
+        assert!(halo.input_flag("tap"));
 
         let phone = surface::preset("phone").unwrap();
         assert!(phone.input_flag("camera"));

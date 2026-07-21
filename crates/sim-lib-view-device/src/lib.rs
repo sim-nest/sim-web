@@ -39,7 +39,8 @@ pub use ladder::DeviceTier;
 pub use r#loop::{AdapterInput, AdapterLoop, Frame, StalePolicy, blank_frame};
 pub use profile::{
     DEVICE_PROFILE_KIND, DEVICE_PROFILE_NAMESPACE, DeviceProfile, DeviceProfileError,
-    DeviceProfileParts, DeviceSurfaceCapsExt, derive_tier, device_profile_demo, tier_preset,
+    DeviceProfileParts, DeviceSurfaceCapsExt, GlassesClass, derive_tier, device_profile_demo,
+    glasses_class, tier_preset,
 };
 pub use rate::{RateClass, RateError};
 pub use reaper::{
