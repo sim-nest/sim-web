@@ -4,9 +4,9 @@ use std::sync::Arc;
 
 use sim_codec_lisp::LispCodecLib;
 use sim_kernel::{
-    AbiVersion, Args, CORE_FUNCTION_CLASS_ID, Callable, ClassRef, CodecId, Cx, Error, Export, Expr,
-    Lib, LibManifest, LibTarget, Linker, LoadCx, Object, ObjectCompat, Result, Symbol, Value,
-    Version, read_eval_capability,
+    AbiVersion, Args, CORE_FUNCTION_CLASS_ID, Callable, CapabilityName, ClassRef, CodecId, Cx,
+    Error, Export, Expr, Lib, LibManifest, LibTarget, Linker, LoadCx, Object, ObjectCompat, Result,
+    Symbol, Value, Version, read_eval_capability,
 };
 use sim_lib_server::{CookbookCapabilityProfile, CookbookWebState};
 use sim_run_core::{Bootloader, RuntimeConfigState, cli_main_entrypoint_symbol};
@@ -221,6 +221,9 @@ fn configure_web_bootloader_base(loader: Bootloader) -> Bootloader {
         .fold(loader, |loader, capability| {
             loader.with_capability(capability)
         });
+    // Modeled glasses voice recipes need host authority for the consent gate,
+    // but recipe eval is still diminished by explicit allow-capability tags.
+    let loader = loader.with_capability(CapabilityName::new("glasses/mic"));
     loader.host_lib("codec/lisp", || {
         Box::new(LispCodecLib::new(CodecId(1)).expect("lisp boot codec"))
     })
