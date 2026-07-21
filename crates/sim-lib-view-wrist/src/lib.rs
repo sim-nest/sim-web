@@ -10,6 +10,7 @@
 pub mod budget;
 pub mod command;
 pub mod consent;
+pub mod fleet;
 pub mod pacing;
 pub mod voice;
 
@@ -24,6 +25,12 @@ pub use consent::{
     active_watch_consent_badge_cluster, ingest_worn_expr, require_worn_consent, store_worn_sample,
     sweep_watch_privacy, watch_health_grant, watch_location_grant, watch_vendor_report_grant,
     worn_event_capability,
+};
+pub use fleet::{
+    AssignedWornRole, DualWatchRoles, FleetSensorQuorum, FleetSensorSample, FleetWristInput,
+    SwipeDirection, TwoHandedTiming, WatchFleetMember, WornActivity, WornRole, WristSide,
+    assign_worn_roles, fleet_sensor_quorum, two_handed_intent, watch_acknowledge_op,
+    watch_palette_symbol,
 };
 pub use pacing::{
     offer_worn, tick_worn, watch_adapter_loop, watch_frame_clock, watch_frame_clock_at,
@@ -46,6 +53,9 @@ mod command_tests;
 
 #[cfg(test)]
 mod consent_tests;
+
+#[cfg(test)]
+mod fleet_tests;
 
 #[cfg(test)]
 mod pacing_tests;
