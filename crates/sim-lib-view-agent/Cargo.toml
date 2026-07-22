@@ -1,6 +1,6 @@
 [package]
 name = "sim-lib-view-agent"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 license = "MPL-2.0"
 description = "Agent and topology composer lens plus the live monitor for SIM Web."

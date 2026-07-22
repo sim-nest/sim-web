@@ -7,6 +7,7 @@
 
 use sim_kernel::{Error, Expr, Result};
 use sim_lib_scene::{node, sym};
+use sim_value::access::field as intent_field;
 
 use crate::num::{as_f64, number};
 use crate::plot::{multi_plot_view, response_plot_view};
@@ -145,14 +146,4 @@ pub struct SweepParam<'a> {
     pub max: f64,
     /// Current slider value.
     pub value: f64,
-}
-
-fn intent_field<'a>(intent: &'a Expr, name: &str) -> Option<&'a Expr> {
-    let Expr::Map(entries) = intent else {
-        return None;
-    };
-    entries.iter().find_map(|(key, value)| {
-        matches!(key, Expr::Symbol(symbol) if &*symbol.name == name && symbol.namespace.is_none())
-            .then_some(value)
-    })
 }

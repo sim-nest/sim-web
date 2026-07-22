@@ -1,11 +1,7 @@
 //! Tests for the Scene value model, `codec:scene`, and scene diff/apply.
 
-use std::sync::Arc;
-
 use sim_codec::{Input, Output, decode_with_codec, encode_with_codec};
-use sim_kernel::{
-    Cx, DefaultFactory, EagerPolicy, EncodeOptions, Expr, NumberLiteral, ReadPolicy, Symbol,
-};
+use sim_kernel::{Cx, EncodeOptions, Expr, NumberLiteral, ReadPolicy, Symbol, testing::eager_cx};
 
 use crate::{
     Anchor, AnchorSpace, GlanceAction, GlanceCard, GlanceMetric, SceneCodecLib, Transform3, apply,
@@ -14,7 +10,7 @@ use crate::{
 };
 
 fn cx() -> Cx {
-    let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = eager_cx();
     sim_test_support::register_core_classes(&mut cx);
     let lib = SceneCodecLib::new(cx.registry_mut().fresh_codec_id());
     cx.load_lib(&lib).unwrap();

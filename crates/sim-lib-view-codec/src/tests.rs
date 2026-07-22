@@ -3,7 +3,7 @@
 use std::sync::Arc;
 
 use sim_codec::{CodecPrism, Output, RuntimeCodecPrism, encode_with_codec};
-use sim_kernel::{Cx, DefaultFactory, EagerPolicy, EncodeOptions, Expr, NumberLiteral, Symbol};
+use sim_kernel::{Cx, EncodeOptions, Expr, NumberLiteral, Symbol, testing::eager_cx};
 use sim_shape::{ExprKind, ExprKindShape, shape_value};
 
 use crate::multicodec::{
@@ -12,7 +12,7 @@ use crate::multicodec::{
 use crate::shape::shape_view;
 
 fn cx() -> Cx {
-    let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = eager_cx();
     sim_test_support::register_core_classes(&mut cx);
     sim_test_support::register_f64_number_domain(&mut cx);
     let lisp = sim_codec_lisp::LispCodecLib::new(cx.registry_mut().fresh_codec_id()).unwrap();

@@ -1,6 +1,6 @@
 [package]
 name = "sim-lib-view-wasm-frame"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 license = "MPL-2.0"
 description = "Host-side view frame facade for wasm-shaped view data."
@@ -15,12 +15,10 @@ sim-kernel = { version = "0.1.0" }
 sim-lib-intent = { version = "0.1.0", path = "../sim-lib-intent" }
 sim-lib-scene = { version = "0.1.0", path = "../sim-lib-scene" }
 sim-lib-view = { version = "0.1.0", path = "../sim-lib-view" }
+sim-value = { version = "0.1.0" }
 
 [build-dependencies]
 sim-cookbook = { version = "0.1.0" }
 
 [lints]
 workspace = true
-
-[dev-dependencies]
-sim-value = { version = "0.1.0" }
