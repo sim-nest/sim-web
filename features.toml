@@ -3,7 +3,7 @@ schema = "sim.features"
 [enforcement.audience]
 user = "strict"
 framework = "strict"
-code = "advisory"
+code = "strict"
 
 [enforcement.surface]
 cli = "strict"
@@ -33,9 +33,41 @@ claims_anchors = [
   "anchor/crate/sim-lib-intent",
   "anchor/crate/sim-lib-scene",
   "anchor/crate/sim-lib-view",
+  "anchor/crate/sim-lib-view-agent",
+  "anchor/crate/sim-lib-view-bridge",
+  "anchor/crate/sim-lib-view-codec",
+  "anchor/crate/sim-lib-view-doc",
+  "anchor/crate/sim-lib-view-math",
+  "anchor/crate/sim-lib-view-spatial",
+  "anchor/crate/sim-lib-view-wasm-frame",
+  "anchor/crate/sim-lib-web-bridge",
+  "anchor/crate/sim-lib-web-layout",
+  "anchor/export/sim-lib-intent/view-default",
   "anchor/export/sim-lib-view/surface-default",
   "anchor/export/sim-lib-view/view-default",
   "anchor/export/sim-lib-view/view/lens-descriptor",
+  "anchor/export/sim-lib-view-agent/agent/mission",
+  "anchor/export/sim-lib-view-agent/view-agent-change-capsule",
+  "anchor/export/sim-lib-view-agent/view-agent-mission-control",
+  "anchor/export/sim-lib-view-agent/view-agent-monitor",
+  "anchor/export/sim-lib-view-agent/view-agent-topology",
+  "anchor/export/sim-lib-view-bridge/codec-bridge",
+  "anchor/export/sim-lib-view-bridge/model-drafter",
+  "anchor/export/sim-lib-view-bridge/model-judge",
+  "anchor/export/sim-lib-view-bridge/surface-bridge-packet",
+  "anchor/export/sim-lib-view-codec/view-codec-multi",
+  "anchor/export/sim-lib-view-codec/view-codec-shape",
+  "anchor/export/sim-lib-view-codec/view-codec-sysex-comparison",
+  "anchor/export/sim-lib-view-doc/doc/article",
+  "anchor/export/sim-lib-view-doc/view-default",
+  "anchor/export/sim-lib-view-doc/view-doc-article",
+  "anchor/export/sim-lib-view-doc/view-doc-source",
+  "anchor/export/sim-lib-view-math/view-math-matrix",
+  "anchor/export/sim-lib-view-math/view-math-plot",
+  "anchor/export/sim-lib-view-math/view-math-symbolic",
+  "anchor/export/sim-lib-view-spatial/surface-spatial",
+  "anchor/export/sim-lib-view-wasm-frame/view-wasm-host",
+  "anchor/export/sim-lib-web-layout/view-default",
   "anchor/runtime-lib/sim-lib-intent/intent-codec-lib",
   "anchor/runtime-lib/sim-lib-scene/scene-codec-lib",
 ]
@@ -68,6 +100,10 @@ summary = "Rank and project view surfaces against desktop, phone, watch, and gla
 owner = "crate/sim-lib-view"
 audiences = ["code", "framework"]
 guidance = "Use this row when adapting a surface to a worn, handheld, desktop, or glasses target."
+claims_anchors = [
+  "anchor/crate/sim-lib-view-device",
+  "anchor/crate/sim-lib-view-wrist",
+]
 claims_surfaces = [
   "site-device/desktop",
   "site-device/glasses",
@@ -99,6 +135,7 @@ claims_anchors = [
   "anchor/export/sim-web-shell/cli/main/atelier",
   "anchor/export/sim-web-shell/cli/main/browse",
   "anchor/export/sim-web-shell/cli/main/serve",
+  "anchor/export/sim-web-shell/codec/lisp",
   "anchor/runtime-lib/sim-web-shell/atelier-cli-lib",
   "anchor/runtime-lib/sim-web-shell/browse-cli-lib",
   "anchor/runtime-lib/sim-web-shell/web-serve-lib",
@@ -111,6 +148,55 @@ claims_surfaces = [
 ]
 
 [[feature]]
+id = "feature/sim-web/daw-view-surfaces"
+title = "DAW view surfaces"
+summary = "Expose synth, stream, placement, and component views through the DAW view library."
+owner = "crate/sim-lib-view-daw"
+audiences = ["code", "framework"]
+guidance = "Use this row when tracing browser-facing DAW projections to their concrete view exports."
+claims_anchors = [
+  "anchor/crate/sim-lib-view-daw",
+  "anchor/export/sim-lib-view-daw/view-arranger-object-roll",
+  "anchor/export/sim-lib-view-daw/view-component-algorithm-routing",
+  "anchor/export/sim-lib-view-daw/view-component-builder",
+  "anchor/export/sim-lib-view-daw/view-component-cord-editor",
+  "anchor/export/sim-lib-view-daw/view-component-editor",
+  "anchor/export/sim-lib-view-daw/view-component-envelope-curve",
+  "anchor/export/sim-lib-view-daw/view-component-filter-response",
+  "anchor/export/sim-lib-view-daw/view-component-fixed-filter-bank",
+  "anchor/export/sim-lib-view-daw/view-component-graph",
+  "anchor/export/sim-lib-view-daw/view-component-palette",
+  "anchor/export/sim-lib-view-daw/view-component-poly-sections",
+  "anchor/export/sim-lib-view-daw/view-component-polyphony-activity",
+  "anchor/export/sim-lib-view-daw/view-component-resonator-response",
+  "anchor/export/sim-lib-view-daw/view-component-scope-spectrum",
+  "anchor/export/sim-lib-view-daw/view-component-sequencer-step-grid",
+  "anchor/export/sim-lib-view-daw/view-component-sysex-comparison",
+  "anchor/export/sim-lib-view-daw/view-component-wiring-diagram",
+  "anchor/export/sim-lib-view-daw/view-daw-synth",
+  "anchor/export/sim-lib-view-daw/view-daw-timeline",
+  "anchor/export/sim-lib-view-daw/view-performance-keyboard",
+  "anchor/export/sim-lib-view-daw/view-piano-roll",
+  "anchor/export/sim-lib-view-daw/view-placement-bridge-table",
+  "anchor/export/sim-lib-view-daw/view-placement-browser-diagnostics",
+  "anchor/export/sim-lib-view-daw/view-placement-fault-timeline",
+  "anchor/export/sim-lib-view-daw/view-placement-graph",
+  "anchor/export/sim-lib-view-daw/view-placement-inspector",
+  "anchor/export/sim-lib-view-daw/view-placement-latency-budget",
+  "anchor/export/sim-lib-view-daw/view-placement-refusals",
+  "anchor/export/sim-lib-view-daw/view-placement-runtime-diagnostics",
+  "anchor/export/sim-lib-view-daw/view-player-rack",
+  "anchor/export/sim-lib-view-daw/view-stream-detail",
+  "anchor/export/sim-lib-view-daw/view-stream-diagnostic-timeline",
+  "anchor/export/sim-lib-view-daw/view-stream-list",
+  "anchor/export/sim-lib-view-daw/view-stream-packet-preview",
+  "anchor/export/sim-lib-view-daw/view/component",
+]
+supports = [
+  "feature/sim-web/view-surface",
+]
+
+[[feature]]
 id = "feature/sim-web/generated-docs"
 title = "Repository documentation surface"
 summary = "Publish generated package, card, recipe, and index facts for browser and view crates."
@@ -119,6 +205,7 @@ audiences = ["code"]
 guidance = "Use this row when checking the generated documentation and index lane for the web repo."
 claims_anchors = [
   "anchor/cli/xtask",
+  "anchor/crate/xtask",
   "anchor/doc/generated/feature-map",
   "anchor/doc/generated/sim-index-fragment",
 ]
