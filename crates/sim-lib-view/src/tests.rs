@@ -244,10 +244,36 @@ impl Editor for PassthroughEditor {
     }
 
     fn commit(&self, _cx: &mut Cx, draft: &Draft) -> Result<Operation> {
-        Ok(Operation {
-            form: draft.proposed.clone(),
-        })
+        Ok(Operation::new(draft.proposed.clone()))
     }
+}
+
+#[test]
+fn commit_carries_required_lens_capabilities_on_the_operation() {
+    let mut cx = cx();
+    let mut registry = LensRegistry::new();
+    registry.register(Lens::editor(
+        LensMeta::new(sym("edit:admin"), LensKind::Editor)
+            .requiring(CapabilityName::new("admin.write")),
+        Arc::new(PassthroughEditor),
+    ));
+
+    let operation = registry
+        .commit(
+            &mut cx,
+            &sym("edit:admin"),
+            &Draft::clean(Expr::Nil, Expr::Nil),
+        )
+        .unwrap();
+
+    assert_eq!(
+        operation
+            .required_capabilities
+            .iter()
+            .map(|capability| capability.as_str())
+            .collect::<Vec<_>>(),
+        vec!["admin.write"]
+    );
 }
 
 #[test]

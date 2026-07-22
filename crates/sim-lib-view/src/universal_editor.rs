@@ -6,14 +6,15 @@
 //! cancel/revert, preserves unknown fields when editing open maps (set
 //! semantics keep sibling keys), and refuses to commit a readonly value.
 //!
-//! Note: earlier scaffolding advertised four "synchronized" modes
-//! (form/tree/text/raw), but form, tree, and text all rendered identically;
-//! only the two distinct projections below are advertised, so the mode list
-//! matches what is actually implemented.
+//! The editor advertises only the two distinct projections below, so the mode
+//! list matches the behavior users can actually choose.
 
-use sim_kernel::{Cx, Diagnostic, Error, Expr, Result, Symbol};
+use std::sync::Arc;
+
+use sim_kernel::{Cx, Diagnostic, Error, Expr, ExprKind, NumberLiteral, Result, ShapeRef, Symbol};
 use sim_lib_intent::{field, intent_kind_of};
-use sim_value::path::{Path, PathError, set_at};
+use sim_shape::{ExprKindShape, shape_value};
+use sim_value::path::{Path, PathError, get, set_at};
 
 use crate::contract::{Draft, Editor, Operation};
 
@@ -65,16 +66,42 @@ impl Editor for UniversalEditor {
             ));
         }
         // The operation realizes by setting the resource to the proposed value.
-        Ok(Operation {
-            form: Expr::Map(vec![
-                (
-                    Expr::Symbol(Symbol::new("op")),
-                    Expr::Symbol(Symbol::new("set-value")),
-                ),
-                (Expr::Symbol(Symbol::new("value")), draft.proposed.clone()),
-            ]),
-        })
+        Ok(Operation::new(Expr::Map(vec![
+            (
+                Expr::Symbol(Symbol::new("op")),
+                Expr::Symbol(Symbol::new("set-value")),
+            ),
+            (Expr::Symbol(Symbol::new("value")), draft.proposed.clone()),
+        ]))
+        .with_result_shape(expr_kind_shape(&draft.base)))
     }
+}
+
+fn expr_kind_shape(expr: &Expr) -> ShapeRef {
+    let kind = match expr {
+        Expr::Nil => ExprKind::Nil,
+        Expr::Bool(_) => ExprKind::Bool,
+        Expr::Number(_) => ExprKind::Number,
+        Expr::Symbol(_) | Expr::Local(_) => ExprKind::Symbol,
+        Expr::String(_) => ExprKind::String,
+        Expr::Bytes(_) => ExprKind::Bytes,
+        Expr::List(_) => ExprKind::List,
+        Expr::Vector(_) => ExprKind::Vector,
+        Expr::Map(_) => ExprKind::Map,
+        Expr::Set(_) => ExprKind::Set,
+        Expr::Call { .. } => ExprKind::Call,
+        Expr::Infix { .. } => ExprKind::Infix,
+        Expr::Prefix { .. } => ExprKind::Prefix,
+        Expr::Postfix { .. } => ExprKind::Postfix,
+        Expr::Block(_) => ExprKind::Block,
+        Expr::Quote { .. } => ExprKind::Quote,
+        Expr::Annotated { .. } => ExprKind::Annotated,
+        Expr::Extension { .. } => ExprKind::Extension,
+    };
+    shape_value(
+        Symbol::qualified("core", format!("{kind:?}")),
+        Arc::new(ExprKindShape::new(kind)),
+    )
 }
 
 impl UniversalEditor {
@@ -106,13 +133,155 @@ impl UniversalEditor {
                 ));
             }
         };
-        match set_at(value, &path, new_value.clone()) {
+        let replacement = match get(value, &path) {
+            Some(current) => match coerce_edit_value(current, new_value) {
+                Ok(value) => value,
+                Err(message) => {
+                    return Ok(Draft::rejected(
+                        value.clone(),
+                        field_shape_diagnostic(path_expr, message),
+                    ));
+                }
+            },
+            None => new_value.clone(),
+        };
+        match set_at(value, &path, replacement) {
             Ok(proposed) => Ok(Draft::clean(value.clone(), proposed)),
             Err(error) => Ok(Draft::rejected(
                 value.clone(),
                 path_error_diagnostic(path_expr, error),
             )),
         }
+    }
+}
+
+fn coerce_edit_value(current: &Expr, submitted: &Expr) -> core::result::Result<Expr, String> {
+    if !matches!(submitted, Expr::String(_)) {
+        return Ok(submitted.clone());
+    }
+    match current {
+        Expr::String(_) => match submitted {
+            Expr::String(_) => Ok(submitted.clone()),
+            other => Err(format!(
+                "string field received {}",
+                crate::universal_view::expr_kind(other)
+            )),
+        },
+        Expr::Bool(_) => coerce_bool(submitted),
+        Expr::Number(number) => coerce_number(number, submitted),
+        Expr::Symbol(symbol) => coerce_symbol(symbol, submitted).map(Expr::Symbol),
+        Expr::Local(symbol) => coerce_symbol(symbol, submitted).map(Expr::Local),
+        Expr::Nil => coerce_nil(submitted),
+        Expr::Bytes(_) => match submitted {
+            Expr::Bytes(_) => Ok(submitted.clone()),
+            other => Err(format!(
+                "bytes field received {}",
+                crate::universal_view::expr_kind(other)
+            )),
+        },
+        Expr::Map(_)
+        | Expr::List(_)
+        | Expr::Vector(_)
+        | Expr::Set(_)
+        | Expr::Call { .. }
+        | Expr::Infix { .. }
+        | Expr::Prefix { .. }
+        | Expr::Postfix { .. }
+        | Expr::Block(_)
+        | Expr::Quote { .. }
+        | Expr::Annotated { .. }
+        | Expr::Extension { .. } => Ok(submitted.clone()),
+    }
+}
+
+fn coerce_bool(submitted: &Expr) -> core::result::Result<Expr, String> {
+    match submitted {
+        Expr::Bool(_) => Ok(submitted.clone()),
+        Expr::String(text) => match text.trim() {
+            "true" => Ok(Expr::Bool(true)),
+            "false" => Ok(Expr::Bool(false)),
+            _ => Err(format!("bool field cannot parse {text:?}")),
+        },
+        other => Err(format!(
+            "bool field received {}",
+            crate::universal_view::expr_kind(other)
+        )),
+    }
+}
+
+fn coerce_number(current: &NumberLiteral, submitted: &Expr) -> core::result::Result<Expr, String> {
+    match submitted {
+        Expr::Number(_) => Ok(submitted.clone()),
+        Expr::String(text) => {
+            let canonical = text.trim();
+            validate_number_text(&current.canonical, canonical)?;
+            Ok(Expr::Number(NumberLiteral {
+                domain: current.domain.clone(),
+                canonical: canonical.to_owned(),
+            }))
+        }
+        other => Err(format!(
+            "number field received {}",
+            crate::universal_view::expr_kind(other)
+        )),
+    }
+}
+
+fn validate_number_text(old: &str, new: &str) -> core::result::Result<(), String> {
+    if new.is_empty() {
+        return Err("number field cannot be empty".to_owned());
+    }
+    if old.parse::<i128>().is_ok() {
+        new.parse::<i128>()
+            .map(|_| ())
+            .map_err(|_| format!("integer field cannot parse {new:?}"))
+    } else if old.parse::<f64>().is_ok() {
+        match new.parse::<f64>() {
+            Ok(value) if value.is_finite() => Ok(()),
+            _ => Err(format!("number field cannot parse {new:?}")),
+        }
+    } else if new.chars().any(char::is_control) {
+        Err("number field cannot contain control characters".to_owned())
+    } else {
+        Ok(())
+    }
+}
+
+fn coerce_symbol(current: &Symbol, submitted: &Expr) -> core::result::Result<Symbol, String> {
+    match submitted {
+        Expr::Symbol(symbol) | Expr::Local(symbol) => Ok(symbol.clone()),
+        Expr::String(text) => parse_symbol_like(current, text),
+        other => Err(format!(
+            "symbol field received {}",
+            crate::universal_view::expr_kind(other)
+        )),
+    }
+}
+
+fn parse_symbol_like(current: &Symbol, text: &str) -> core::result::Result<Symbol, String> {
+    let text = text.trim();
+    if text.is_empty() {
+        return Err("symbol field cannot be empty".to_owned());
+    }
+    if current.namespace.is_some()
+        && let Some((namespace, name)) = text.split_once('/')
+    {
+        if namespace.is_empty() || name.is_empty() || name.contains('/') {
+            return Err(format!("symbol field cannot parse {text:?}"));
+        }
+        return Ok(Symbol::qualified(namespace.to_owned(), name.to_owned()));
+    }
+    Symbol::checked(text.to_owned()).map_err(|error| error.to_string())
+}
+
+fn coerce_nil(submitted: &Expr) -> core::result::Result<Expr, String> {
+    match submitted {
+        Expr::Nil => Ok(Expr::Nil),
+        Expr::String(text) if text.trim() == "nil" => Ok(Expr::Nil),
+        other => Err(format!(
+            "nil field received {}",
+            crate::universal_view::expr_kind(other)
+        )),
     }
 }
 
@@ -140,7 +309,7 @@ pub fn render_draft(draft: &Draft, mode: &str) -> Result<Expr> {
                     sim_lib_scene::node(
                         "field",
                         vec![
-                            ("kind", Expr::Symbol(Symbol::new("text"))),
+                            ("input-kind", Expr::Symbol(Symbol::new("text"))),
                             ("value", Expr::String(body)),
                             ("readonly", Expr::Bool(false)),
                         ],
@@ -182,6 +351,13 @@ fn committable_badge(draft: &Draft) -> Expr {
 fn path_error_diagnostic(path: &Expr, error: PathError) -> Diagnostic {
     Diagnostic::error(format!(
         "edit rejected at path {}: {error:?}",
+        crate::universal_view::render_value(path)
+    ))
+}
+
+fn field_shape_diagnostic(path: &Expr, message: String) -> Diagnostic {
+    Diagnostic::error(format!(
+        "edit rejected at path {}: {message}",
         crate::universal_view::render_value(path)
     ))
 }

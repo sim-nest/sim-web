@@ -17,7 +17,7 @@
 
 use std::collections::BTreeMap;
 
-use sim_kernel::{Cx, Expr, Result, Symbol};
+use sim_kernel::{Cx, Error, Expr, Result, Symbol};
 use sim_lib_view::surface::SurfaceCaps;
 use sim_lib_view::{LensRegistry, UNIVERSAL_EDITOR_ID, UNIVERSAL_VIEW_ID, surface};
 
@@ -30,6 +30,9 @@ use crate::transport::{SessionStatus, Transport};
 /// [`PhoneHost::open`] subscribes and the one to pass to
 /// [`PhoneHost::last_scene`].
 pub const PHONE_PANE: &str = "phone:main";
+
+/// The maximum number of offline Intents a phone host may buffer.
+pub const MAX_PHONE_OFFLINE_QUEUE: usize = 128;
 
 fn universal_view() -> Symbol {
     Symbol::new(UNIVERSAL_VIEW_ID)
@@ -106,6 +109,11 @@ impl<T: Transport> PhoneHost<T> {
                 Ok(updates)
             }
             _ => {
+                if self.queue.len() >= MAX_PHONE_OFFLINE_QUEUE {
+                    return Err(Error::HostError(format!(
+                        "phone offline queue is full ({MAX_PHONE_OFFLINE_QUEUE}); resume before submitting another intent"
+                    )));
+                }
                 self.queue.push(intent);
                 Ok(Vec::new())
             }
@@ -267,7 +275,7 @@ mod tests {
     use sim_lib_intent::{Origin, intent};
     use sim_lib_view::{LensRegistry, register_universal_default};
 
-    use super::{DesktopHost, PHONE_PANE, PhoneHost};
+    use super::{DesktopHost, MAX_PHONE_OFFLINE_QUEUE, PHONE_PANE, PhoneHost};
     use crate::fixture::FixtureTransport;
     use crate::transport::Transport;
 
@@ -425,6 +433,31 @@ mod tests {
             Some(number("1")),
             "a is untouched -- the post-failure edit did not apply"
         );
+    }
+
+    #[test]
+    fn phone_offline_queue_has_a_backpressure_cap() {
+        let mut cx = cx();
+        let registry = registry();
+        let mut phone = PhoneHost::new(FixtureTransport::new().with(sym("doc"), doc()));
+        phone.open(&mut cx, &registry, sym("doc")).unwrap();
+        phone.transport_mut().disconnect();
+
+        for index in 0..MAX_PHONE_OFFLINE_QUEUE {
+            phone
+                .submit(&mut cx, &registry, edit("a", &index.to_string()))
+                .unwrap();
+        }
+
+        let err = phone
+            .submit(&mut cx, &registry, edit("a", "999"))
+            .unwrap_err();
+
+        assert!(
+            err.to_string().contains("phone offline queue is full"),
+            "unexpected error: {err}"
+        );
+        assert_eq!(phone.queued(), MAX_PHONE_OFFLINE_QUEUE);
     }
 
     #[test]

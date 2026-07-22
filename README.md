@@ -57,6 +57,10 @@ ledgered edit to every open surface.
   projection profiles (`watch`/`glasses`/`phone`/`desktop`/`cli`/`tui`/`webui`),
   experience modes, and the surface-neutral command palette, focus model,
   accessibility metadata, and diagnostics presentation.
+- `sim-lib-view-device` -- device profiles, timing envelopes, tier derivation,
+  shared one-card glance reduction, and local adaptation for small edge surfaces.
+- `sim-lib-view-wrist` -- round watch glance budgets and haptic acknowledgement
+  configuration over the shared device glance adapter.
 
 ### View lenses
 
@@ -115,11 +119,22 @@ ledger carrying the issuing operator and logical tick.
 
 ## Validation
 
-These commands run in the constellation workspace; only `sim-kernel` builds from a lone clone today (see `DEVELOPING.md` in `sim-sdk`). A single-repo build lands with the first crates.io publish.
+This repo is self-contained and validates from a normal clone:
 
 ```bash
-cargo fmt --check && cargo test --workspace && cargo clippy --workspace -- -D warnings && cargo doc --workspace --no-deps
+cargo fmt --all --check
+cargo test --workspace
+cargo clippy --workspace --all-targets -- -D warnings
+cargo doc --workspace --no-deps
 cargo run -p xtask -- simdoc --check
+```
+
+The browser shell smoke tests are part of CI as well:
+
+```bash
+node crates/sim-web-shell/web/tests/interpreter.test.mjs
+node crates/sim-web-shell/web/tests/session.test.mjs
+node crates/sim-web-shell/web/tests/e2e.test.mjs
 ```
 
 ## Documentation Lanes

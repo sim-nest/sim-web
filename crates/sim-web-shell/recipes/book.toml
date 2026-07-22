@@ -1,0 +1,5 @@
+book = "web/shell"
+title = "Web Shell"
+summary = "Browser shell startup and live session descriptors."
+order = 102
+chapters = ["01-basics"]

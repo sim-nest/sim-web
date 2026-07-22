@@ -37,6 +37,33 @@
   gap: 12px;
 }
 
+/* Level 1: loadable library collapsible group. */
+.lib {
+  border-left: 2px solid #2c3640;
+  padding-left: 8px;
+}
+
+.lib-title {
+  color: var(--fg);
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 2px 0;
+}
+
+/* Level 2: loaded library recipe group. */
+.group {
+  margin: 6px 0 6px 6px;
+}
+
+.group-title {
+  color: #c7d0da;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 2px 0;
+}
+
 /* Level 1: family (subsystem) collapsible group. */
 .family {
   border-left: 2px solid #2c3640;

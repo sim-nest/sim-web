@@ -1,6 +1,6 @@
 {
   "generator": "xtask crate-catalog v1",
-  "package_count": 13,
+  "package_count": 17,
   "packages": [
     {
       "description": "Intent value model, gesture algebra, and codec:intent.",
@@ -42,6 +42,19 @@
       ]
     },
     {
+      "description": "Reversible BRIDGE packet review surface for SIM Web.",
+      "generated_readme": false,
+      "manifest": "crates/sim-lib-view-bridge/Cargo.toml",
+      "name": "sim-lib-view-bridge",
+      "publish": "true",
+      "readme": "crates/sim-lib-view-bridge/README.md",
+      "root": "crates/sim-lib-view-bridge",
+      "target_kinds": [
+        "custom-build",
+        "lib"
+      ]
+    },
+    {
       "description": "Codec-aware and Shape-aware lenses for SIM Web.",
       "generated_readme": true,
       "manifest": "crates/sim-lib-view-codec/Cargo.toml",
@@ -62,6 +75,19 @@
       "publish": "true",
       "readme": "crates/sim-lib-view-daw/README.md",
       "root": "crates/sim-lib-view-daw",
+      "target_kinds": [
+        "custom-build",
+        "lib"
+      ]
+    },
+    {
+      "description": "Device profiles, frame timing, and tier derivation for SIM Web surfaces.",
+      "generated_readme": true,
+      "manifest": "crates/sim-lib-view-device/Cargo.toml",
+      "name": "sim-lib-view-device",
+      "publish": "true",
+      "readme": "crates/sim-lib-view-device/README.md",
+      "root": "crates/sim-lib-view-device",
       "target_kinds": [
         "custom-build",
         "lib"
@@ -94,6 +120,19 @@
       ]
     },
     {
+      "description": "Spatial glasses surface encoding over the shared SIM Web Scene and device adapters.",
+      "generated_readme": true,
+      "manifest": "crates/sim-lib-view-spatial/Cargo.toml",
+      "name": "sim-lib-view-spatial",
+      "publish": "true",
+      "readme": "crates/sim-lib-view-spatial/README.md",
+      "root": "crates/sim-lib-view-spatial",
+      "target_kinds": [
+        "custom-build",
+        "lib"
+      ]
+    },
+    {
       "description": "Host-side view frame facade for wasm-shaped view data.",
       "generated_readme": true,
       "manifest": "crates/sim-lib-view-wasm-frame/Cargo.toml",
@@ -101,6 +140,19 @@
       "publish": "true",
       "readme": "crates/sim-lib-view-wasm-frame/README.md",
       "root": "crates/sim-lib-view-wasm-frame",
+      "target_kinds": [
+        "custom-build",
+        "lib"
+      ]
+    },
+    {
+      "description": "Round watch glance budgets over the shared SIM Web device adapter.",
+      "generated_readme": true,
+      "manifest": "crates/sim-lib-view-wrist/Cargo.toml",
+      "name": "sim-lib-view-wrist",
+      "publish": "true",
+      "readme": "crates/sim-lib-view-wrist/README.md",
+      "root": "crates/sim-lib-view-wrist",
       "target_kinds": [
         "custom-build",
         "lib"

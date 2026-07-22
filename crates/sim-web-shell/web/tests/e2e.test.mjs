@@ -8,6 +8,8 @@
 // Run: node crates/sim-web-shell/web/tests/e2e.test.mjs
 
 import assert from "node:assert";
+import { readFile } from "node:fs/promises";
+import vm from "node:vm";
 import { renderScene } from "../interpreter/scene.js";
 import { applyPatch } from "../interpreter/diff.js";
 import { intentFromEmit } from "../interpreter/intent.js";
@@ -72,22 +74,33 @@ function paints(scene) {
   return root;
 }
 
+function assertNoUnsupported(root, label) {
+  const unsupported = find(root, (node) => node.className === "scene-unknown");
+  assert.equal(unsupported, null, `${label} must not render through scene-unknown`);
+}
+
+function paintsSupported(scene, label) {
+  const root = paints(scene);
+  assertNoUnsupported(root, label);
+  return root;
+}
+
 // One demo per domain lens (signature kinds the painter must handle).
-paints({
+paintsSupported({
   kind: "scene/graph",
   nodes: [{ kind: "scene/node", id: "n1", title: "Planner" }],
   edges: [{ kind: "scene/edge", from: ["n1", "out"], to: ["n2", "in"] }],
-});
+}, "scene/graph");
 paints({
   kind: "scene/stack",
   children: [{ kind: "scene/embed", scene: { kind: "scene/text", text: "live block" } }],
 });
-paints({ kind: "scene/plot", series: [{ name: "y", points: [[0, 0]] }] });
-paints({ kind: "scene/matrix", rows: [[1, 2]], editable: true });
-paints({
+paintsSupported({ kind: "scene/plot", series: [{ name: "y", points: [[0, 0]] }] }, "scene/plot");
+paintsSupported({ kind: "scene/matrix", rows: [[1, 2]], editable: true }, "scene/matrix");
+paintsSupported({
   kind: "scene/timeline",
   lanes: [{ track: "lead", clips: [{ id: "c1", at: 0, len: 100 }] }],
-});
+}, "scene/timeline");
 paints({ kind: "scene/knob", param: "cutoff", value: 0.5, min: 0, max: 1 });
 
 let pianoRollEmit = null;
@@ -272,6 +285,98 @@ assert.equal(editorIntent.kind, "intent/arranger-edit");
 assert.equal(editorIntent.action, "freeze-to-midi");
 assert.equal(editorIntent.placement, "music/arranger-placement/motif");
 
+function bridgeActionScene(action, fields) {
+  return {
+    kind: "scene/box",
+    role: "edit-form",
+    target: "core/sha256-bridge-v1:packet",
+    path: ["bridge-collab", action],
+    "value-codec": "codec:bridge",
+    children: [
+      ...fields,
+      { kind: "scene/button", label: `Create ${action}`, control: "submit" },
+    ],
+  };
+}
+
+function formField(name, label, value, valuePath, valueKind = "string") {
+  return {
+    kind: "scene/field",
+    name,
+    label,
+    value,
+    "value-path": valuePath,
+    "value-kind": valueKind,
+    required: true,
+  };
+}
+
+function submitBridgeAction(action, fields, fill = () => {}) {
+  let emitted = null;
+  const root = renderScene(makeDoc(), bridgeActionScene(action, fields), (event) => {
+    emitted = event;
+  });
+  fill(root);
+  const button = find(root, (node) => node.className === "scene-button");
+  button._listeners.click();
+  return { root, emitted };
+}
+
+let bridge = submitBridgeAction("patch", [
+  formField("target", "Patch target", "body/O1/payload", ["target"]),
+  formField("replacement", "Replacement", "accepted answer", ["replacement"]),
+]);
+let bridgeIntent = intentFromEmit(bridge.emitted, "pane-main", "human", 19);
+assert.equal(bridgeIntent.kind, "intent/edit-field");
+assert.deepEqual(bridgeIntent.path, ["bridge-collab", "patch"]);
+assert.equal(bridgeIntent.target, "core/sha256-bridge-v1:packet");
+assert.equal(bridgeIntent.value.replacement, "accepted answer");
+assert.equal(bridgeIntent["value-codec"], "codec:bridge");
+
+bridge = submitBridgeAction("review", [
+  formField("target", "Review target", "body/O1/payload", ["target"]),
+  formField("body", "Review body", "", ["body"]),
+]);
+assert.equal(bridge.emitted, null, "empty review body does not emit an Intent");
+const bridgeError = find(bridge.root, (node) => node.className === "scene-validation-error");
+const bodyField = find(bridge.root, (node) => node.className === "scene-field" && node.dataset.name === "body");
+assert.equal(bridgeError.dataset.active, "true", "bridge form shows validation errors");
+assert.equal(bodyField.getAttribute("aria-invalid"), "true", "invalid bridge field is marked");
+
+bridge = submitBridgeAction("review", [
+  formField("target", "Review target", "body/O1/payload", ["target"]),
+  formField("body", "Review body", "", ["body"]),
+], (root) => {
+  const field = find(root, (node) => node.className === "scene-field" && node.dataset.name === "body");
+  field.value = "looks correct";
+  field._listeners.change();
+});
+bridgeIntent = intentFromEmit(bridge.emitted, "pane-main", "human", 20);
+assert.equal(bridgeIntent.kind, "intent/edit-field");
+assert.deepEqual(bridgeIntent.path, ["bridge-collab", "review"]);
+assert.equal(bridgeIntent.value.body, "looks correct");
+
+bridge = submitBridgeAction("vote", [
+  formField("target", "Vote target", "body/O1/payload", ["target"]),
+  formField("axis", "Score axis", "correctness", ["scores", 0, "axis"], "symbol"),
+  formField("value", "Score", "1", ["scores", 0, "value"], "number"),
+  formField("reason", "Score reason", "keeps the packet valid", ["scores", 0, "reason"]),
+]);
+bridgeIntent = intentFromEmit(bridge.emitted, "pane-main", "human", 21);
+assert.deepEqual(bridgeIntent.path, ["bridge-collab", "vote"]);
+assert.equal(bridgeIntent.value.scores[0].axis, "correctness");
+assert.equal(bridgeIntent.value.scores[0].value, 1);
+assert.equal(bridgeIntent.value.scores[0].reason, "keeps the packet valid");
+
+bridge = submitBridgeAction("receipt", [
+  formField("status", "Receipt status", "accepted", ["status"], "symbol"),
+  formField("ref", "Receipt ref", "body/O1/payload", ["refs", 0]),
+]);
+bridgeIntent = intentFromEmit(bridge.emitted, "pane-main", "human", 22);
+assert.deepEqual(bridgeIntent.path, ["bridge-collab", "receipt"]);
+assert.equal(bridgeIntent.value.status, "accepted");
+assert.equal(bridgeIntent.value.refs[0], "body/O1/payload");
+
 let keyboardEmit = null;
 const keyboard = renderScene(makeDoc(), {
   kind: "scene/keyboard",
@@ -407,4 +512,214 @@ const afterClose = applyPatch(workspace, {
 const repainted = paints(afterClose);
 assert.equal(repainted.children.length, 1, "after closing a pane, one remains");
 
-console.log("e2e.test.mjs: all domain demos and pane operations passed");
+function makeCookbookHarness() {
+  function makeEl(tag) {
+    const node = {
+      tagName: tag,
+      className: "",
+      dataset: {},
+      attributes: {},
+      children: [],
+      textContent: "",
+      value: "",
+      open: false,
+      type: "",
+      firstChild: null,
+      _listeners: {},
+      append(...items) {
+        for (const item of items) {
+          if (typeof item === "string") {
+            this.children.push(item);
+            this.textContent += item;
+          } else {
+            this.children.push(item);
+          }
+        }
+        this.firstChild = this.children[0] || null;
+      },
+      appendChild(child) {
+        this.children.push(child);
+        this.firstChild = this.children[0] || null;
+        return child;
+      },
+      replaceChildren(...items) {
+        this.children = [];
+        this.textContent = "";
+        this.firstChild = null;
+        this.append(...items);
+      },
+      addEventListener(type, fn) {
+        this._listeners[type] = fn;
+      },
+      setAttribute(name, value) {
+        this.attributes[name] = String(value);
+      },
+      getAttribute(name) {
+        return this.attributes[name];
+      },
+    };
+    node.classList = {
+      add(...names) {
+        const current = new Set(node.className.split(/\s+/).filter(Boolean));
+        for (const name of names) current.add(name);
+        node.className = [...current].join(" ");
+      },
+    };
+    return node;
+  }
+
+  const storage = new Map();
+  const app = makeEl("div");
+  app.dataset.apiRoot = "/api/cookbook";
+  const tree = makeEl("nav");
+  const pane = makeEl("section");
+  const search = makeEl("input");
+  const recipeSummary = {
+    id: "demo/lib/01-basics/run-demo",
+    title: "Run demo",
+    book: "demo/lib",
+    chapter: "01-basics",
+    runnable: true,
+    action: null,
+    lib: "demo/lib",
+    loaded: true,
+  };
+  const recipeDetail = {
+    ...recipeSummary,
+    purpose: "# Demo\nRun a deterministic browser fixture.",
+    setup: "(demo/run)",
+    next: null,
+    requires: [],
+    tags: [],
+  };
+  let runCount = 0;
+  const document = {
+    createElement: makeEl,
+    querySelector(selector) {
+      return {
+        "#cookbook-app": app,
+        "#cookbook-tree": tree,
+        "#recipe-pane": pane,
+        "#cookbook-search": search,
+      }[selector] || null;
+    },
+  };
+  const localStorage = {
+    getItem(key) {
+      return storage.has(key) ? storage.get(key) : null;
+    },
+    setItem(key, value) {
+      storage.set(key, String(value));
+    },
+  };
+  async function fetch(url, options = {}) {
+    const method = options.method || "GET";
+    if (url === "/api/cookbook" && method === "GET") {
+      return jsonResponse({
+        libs: [
+          {
+            id: "demo/lib",
+            title: "Demo Lib",
+            loaded: true,
+            groups: [
+              {
+                name: "01-basics",
+                title: "Basics",
+                recipes: [recipeSummary],
+              },
+            ],
+          },
+        ],
+        recipes: [recipeSummary],
+        families: [],
+        books: [],
+      });
+    }
+    if (
+      url === "/api/cookbook/recipe/demo%2Flib%2F01-basics%2Frun-demo" &&
+      method === "GET"
+    ) {
+      return jsonResponse(recipeDetail);
+    }
+    if (
+      url === "/api/cookbook/recipe/demo%2Flib%2F01-basics%2Frun-demo/run" &&
+      method === "POST"
+    ) {
+      runCount += 1;
+      return jsonResponse({ recipe: recipeSummary.id, ok: true, forms: 1, results: ["ok"], checks: [] });
+    }
+    return jsonResponse({ error: `unexpected ${method} ${url}` }, false, 404);
+  }
+  return { document, fetch, localStorage, pane, storage, tree, runCount: () => runCount };
+}
+
+function jsonResponse(data, ok = true, status = 200) {
+  return {
+    ok,
+    status,
+    async json() {
+      return data;
+    },
+  };
+}
+
+async function settleCookbook() {
+  for (let i = 0; i < 8; i += 1) {
+    await Promise.resolve();
+  }
+}
+
+async function cookbookKeepsClosedGroupThroughSelectAndRun() {
+  const harness = makeCookbookHarness();
+  const context = vm.createContext({
+    document: harness.document,
+    fetch: harness.fetch,
+    localStorage: harness.localStorage,
+    navigator: { clipboard: { async writeText() {} } },
+    console,
+    encodeURIComponent,
+    Error,
+    Set,
+  });
+  const script = await readFile(new URL("../cookbook/cookbook.js", import.meta.url), "utf8");
+  vm.runInContext(script, context, { filename: "cookbook.js" });
+  await settleCookbook();
+
+  let group = find(harness.tree, (node) => node && node.className === "group");
+  assert.ok(group, "cookbook group renders");
+  group.open = true;
+  group._listeners.toggle();
+  group.open = false;
+  group._listeners.toggle();
+  assert.equal(
+    harness.storage.get("sim-cookbook:group:demo/lib/01-basics"),
+    "0",
+    "closed group state is stored",
+  );
+
+  const recipe = find(
+    harness.tree,
+    (node) => node && String(node.className).includes("recipe-button") && node.dataset.recipeId === "demo/lib/01-basics/run-demo",
+  );
+  assert.ok(recipe, "recipe button renders");
+  await recipe._listeners.click();
+  await settleCookbook();
+  group = find(harness.tree, (node) => node && node.className === "group");
+  assert.equal(group.open, false, "selecting a recipe preserves the closed group");
+
+  const run = find(
+    harness.pane,
+    (node) => node && node.tagName === "button" && node.textContent === "Run",
+  );
+  assert.ok(run, "run button renders");
+  await run._listeners.click();
+  await settleCookbook();
+  group = find(harness.tree, (node) => node && node.className === "group");
+  assert.equal(group.open, false, "running an ordinary recipe preserves the closed group");
+  assert.equal(harness.runCount(), 1, "ordinary recipe was run through the API");
+}
+
+await cookbookKeepsClosedGroupThroughSelectAndRun();
+
+console.log("cookbook-verify: tree state OK");
+console.log("e2e.test.mjs: all domain demos, pane operations, and cookbook tree memory passed");

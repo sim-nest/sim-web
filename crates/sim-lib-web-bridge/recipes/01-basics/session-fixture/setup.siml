@@ -1,1 +1,1 @@
-(quote (web-bridge session fixture transport scene-update status-ready))
+(web/bridge-session-fixture-demo)

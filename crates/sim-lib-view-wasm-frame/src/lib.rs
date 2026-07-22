@@ -14,8 +14,10 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
+pub mod cookbook;
 pub mod host;
 
+pub use cookbook::host_loop_demo;
 pub use host::{BrowserHost, SceneUpdate};
 
 /// Stable symbol for the view wasm host facade.

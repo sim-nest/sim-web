@@ -27,6 +27,7 @@
 #![deny(missing_docs)]
 
 pub mod change_capsule;
+pub mod cookbook;
 pub mod editor;
 pub mod mission_control;
 mod mission_control_fixture;
@@ -41,6 +42,7 @@ pub use change_capsule::{
     CapsuleReplaySummary, ChangeCapsuleViewState, GeneratedDocsSummary, PinPlanView,
     change_capsule_replay_frames, change_capsule_view, fake_change_capsule_state,
 };
+pub use cookbook::composer_demo;
 pub use editor::apply_composer_intent;
 pub use mission_control::{
     EvidenceEvent, ExplanationFacet, HumanGate, LeaseClaim, LeaseConflictCard,

@@ -1,5 +1,1 @@
-(quote
-  (recipe descriptor-fixtures
-    (fixtures player-chain-instrument keyboard-rack-roll arranger-object-roll)
-    (validate scene)
-    (golden web-recipe-descriptors)))
+(view/daw-descriptor-fixtures-demo)

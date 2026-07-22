@@ -1,0 +1,5 @@
+book = "view-spatial"
+title = "View Spatial"
+summary = "Spatial glasses surface encoding over shared Scene and device adapters."
+order = 96
+chapters = ["01-basics"]

@@ -194,7 +194,7 @@ pub fn validate_intent(expr: &Expr) -> Result<(), IntentError> {
         if *required == "path" && !matches!(value, Expr::List(_)) {
             return Err(IntentError::at(
                 &["path"],
-                "edit-field 'path' must be a list of segments",
+                format!("{kind} 'path' must be a list of segments"),
             ));
         }
     }
@@ -279,7 +279,7 @@ pub fn referenced_targets(expr: &Expr) -> Vec<(String, Expr)> {
         }
     };
     match &*kind.name {
-        "tap" | "edit-field" | "invoke" | "scrub" | "set-param" | "performance-event"
+        "tap" | "edit" | "edit-field" | "invoke" | "scrub" | "set-param" | "performance-event"
         | "piano-roll-edit" | "player-rack-edit" | "arranger-edit" => single("target"),
         "move" => single("node"),
         "unwire" => single("edge"),

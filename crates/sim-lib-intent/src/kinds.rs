@@ -27,6 +27,7 @@ pub const AT_TICK_KEY: &str = "at-tick";
 pub const INTENT_KINDS: &[&str] = &[
     "tap",
     "select",
+    "edit",
     "edit-field",
     "move",
     "wire",
@@ -34,6 +35,7 @@ pub const INTENT_KINDS: &[&str] = &[
     "create",
     "delete",
     "invoke",
+    "dismiss",
     "set-lens",
     "set-mode",
     "open",
@@ -75,6 +77,7 @@ pub fn required_fields(kind_name: &str) -> &'static [&'static str] {
     match kind_name {
         "tap" => &["target", "control"],
         "select" => &["targets"],
+        "edit" => &["target", "path"],
         "edit-field" => &["target", "path", "value"],
         "move" => &["node", "at"],
         "wire" => &["from", "to"],
@@ -82,6 +85,7 @@ pub fn required_fields(kind_name: &str) -> &'static [&'static str] {
         "create" => &["class", "at", "args"],
         "delete" => &["targets"],
         "invoke" => &["target", "op", "args"],
+        "dismiss" => &[],
         "set-lens" => &["pane", "lens"],
         "set-mode" => &["mode"],
         "open" => &["value", "pane"],

@@ -44,6 +44,13 @@ function origin(operator, tick) {
   return { operator: operator || "human", "at-tick": tick || 0 };
 }
 
+function fieldValueMetadata(emit) {
+  const metadata = {};
+  if (emit["value-kind"] != null) metadata["value-kind"] = emit["value-kind"];
+  if (emit["value-codec"] != null) metadata["value-codec"] = emit["value-codec"];
+  return metadata;
+}
+
 // Build an Intent value from a raw gesture, mirroring sim-lib-intent.
 export function intentFromGesture(raw, pane, operator, tick) {
   const o = origin(operator, tick);
@@ -84,6 +91,7 @@ export function intentFromEmit(emit, pane, operator, tick) {
       target: emit.target,
       path: emit.path || [],
       value: emit.value,
+      ...fieldValueMetadata(emit),
     };
   }
   if (emit.type === "performance") {

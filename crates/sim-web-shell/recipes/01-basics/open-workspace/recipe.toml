@@ -1,0 +1,8 @@
+id = "open-workspace"
+title = "Open Web Workspace"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 10
+tags = ["web", "shell", "workspace", "sandbox-descriptor"]
+requires = ["web/shell", "codec/lisp"]

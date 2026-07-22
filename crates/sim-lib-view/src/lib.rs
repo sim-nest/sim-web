@@ -28,9 +28,11 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
+pub mod bringup;
 mod citizen;
 pub mod codec;
 pub mod contract;
+pub mod cookbook;
 pub mod dispatch;
 pub mod embed;
 pub mod mode;
@@ -44,9 +46,17 @@ pub mod universal;
 pub mod universal_editor;
 pub mod universal_view;
 
+pub use bringup::{
+    BringUpEntry, BringUpLedger, GLASSES_BRINGUP_FIXTURE, GLASSES_BRINGUP_FIXTURE_TEXT,
+    GLASSES_BRINGUP_KIND, GLASSES_BRINGUP_LANES, GLASSES_BRINGUP_NAMESPACE, HALO_BLE_DIRECT_LANE,
+    HALO_CAMERA_LANE, HALO_PHONE_RELAY_LANE, HALO_WEB_BLUETOOTH_LANE, VITURE_CARINA_LANE,
+    VITURE_LEGACY_IMU_LANE, VITURE_UVC_CAMERA_LANE, default_glasses_bringup_fixture,
+    glasses_bringup_fixture, glasses_bringup_fixture_names,
+};
 pub use citizen::{ViewLensDescriptor, view_lens_descriptor_class_symbol};
 pub use codec::{PairCodec, SurfaceCodec, roundtrip_holds};
 pub use contract::{Draft, Editor, Lens, LensKind, LensMeta, Operation, View};
+pub use cookbook::universal_lens_demo;
 pub use dispatch::{DispatchContext, DispatchOutcome, DispatchReason, LensRegistry};
 pub use embed::embed_scene;
 pub use mode::{Exposure, Mode, action_exposure, denied_scene, readonly_scene, universal_scene};
@@ -69,6 +79,8 @@ pub const UNIVERSAL_DEFAULT_LENS: &str = UNIVERSAL_VIEW_ID;
 pub static RECIPES: sim_cookbook::EmbeddedDir =
     include!(concat!(env!("OUT_DIR"), "/cookbook_recipes.rs"));
 
+#[cfg(test)]
+mod bringup_tests;
 #[cfg(test)]
 mod mode_tests;
 #[cfg(test)]

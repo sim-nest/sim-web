@@ -1,5 +1,124 @@
 {
-  "schema": "sim.rustdoc-index.v1",
-  "repo": "sim-web",
-  "target_doc": "target/doc/"
+  "generator": "xtask repo-contract v1",
+  "packages": [
+    {
+      "crate_name": "sim_lib_intent",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-intent/Cargo.toml",
+      "package": "sim-lib-intent",
+      "summary": "Intent value model, gesture algebra, and codec:intent."
+    },
+    {
+      "crate_name": "sim_lib_scene",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-scene/Cargo.toml",
+      "package": "sim-lib-scene",
+      "summary": "Scene value model and codec:scene for the SIM Web-UI."
+    },
+    {
+      "crate_name": "sim_lib_view",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-view/Cargo.toml",
+      "package": "sim-lib-view",
+      "summary": "View/editor codec contracts, Shape-based lens dispatch, lens stack, and the universal default lens for SIM Web."
+    },
+    {
+      "crate_name": "sim_lib_view_agent",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-view-agent/Cargo.toml",
+      "package": "sim-lib-view-agent",
+      "summary": "Agent and topology composer lens plus the live monitor for SIM Web."
+    },
+    {
+      "crate_name": "sim_lib_view_bridge",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-view-bridge/Cargo.toml",
+      "package": "sim-lib-view-bridge",
+      "summary": "Reversible BRIDGE packet review surface for SIM Web."
+    },
+    {
+      "crate_name": "sim_lib_view_codec",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-view-codec/Cargo.toml",
+      "package": "sim-lib-view-codec",
+      "summary": "Codec-aware and Shape-aware lenses for SIM Web."
+    },
+    {
+      "crate_name": "sim_lib_view_daw",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-view-daw/Cargo.toml",
+      "package": "sim-lib-view-daw",
+      "summary": "DAW timeline, mixer, plugin rack, player, piano-roll, and synth lenses for the SIM Web-UI."
+    },
+    {
+      "crate_name": "sim_lib_view_device",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-view-device/Cargo.toml",
+      "package": "sim-lib-view-device",
+      "summary": "Device profiles and timing loops for SIM Web surface capabilities."
+    },
+    {
+      "crate_name": "sim_lib_view_doc",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-view-doc/Cargo.toml",
+      "package": "sim-lib-view-doc",
+      "summary": "Markup article workspace lens for the SIM Web UI."
+    },
+    {
+      "crate_name": "sim_lib_view_math",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-view-math/Cargo.toml",
+      "package": "sim-lib-view-math",
+      "summary": "Math, plotting, tensor, and symbolic lenses for SIM Web."
+    },
+    {
+      "crate_name": "sim_lib_view_spatial",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-view-spatial/Cargo.toml",
+      "package": "sim-lib-view-spatial",
+      "summary": "Spatial glasses surface encoding for SIM Web."
+    },
+    {
+      "crate_name": "sim_lib_view_wasm_frame",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-view-wasm-frame/Cargo.toml",
+      "package": "sim-lib-view-wasm-frame",
+      "summary": "Host-side view frame facade for wasm-shaped view data."
+    },
+    {
+      "crate_name": "sim_lib_view_wrist",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-view-wrist/Cargo.toml",
+      "package": "sim-lib-view-wrist",
+      "summary": "Wrist-specific glance budgets for SIM Web watch surfaces."
+    },
+    {
+      "crate_name": "sim_lib_web_bridge",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-web-bridge/Cargo.toml",
+      "package": "sim-lib-web-bridge",
+      "summary": "Session and transport bridge over realize/EvalFabric for the Intent/Scene bus."
+    },
+    {
+      "crate_name": "sim_lib_web_layout",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-web-layout/Cargo.toml",
+      "package": "sim-lib-web-layout",
+      "summary": "Workspace value, panes, tabs, docks, and layout persistence."
+    },
+    {
+      "crate_name": "sim_web_shell",
+      "group": "workspace",
+      "manifest": "crates/sim-web-shell/Cargo.toml",
+      "package": "sim-web-shell",
+      "summary": "sim-web-shell: the binary that serves the SIM WebUI shell."
+    },
+    {
+      "crate_name": "xtask",
+      "group": "workspace",
+      "manifest": "xtask/Cargo.toml",
+      "package": "xtask",
+      "summary": "SIM workspace package for xtask."
+    }
+  ]
 }

@@ -22,16 +22,23 @@
 pub mod build;
 mod citizen;
 pub mod codec;
+pub mod cookbook;
 pub mod diff;
+pub mod glance;
 pub mod kinds;
 pub mod model;
 pub mod shapes;
 pub mod text;
 
-pub use build::{RESERVED_DATA_KEYS, badge, box_, data_map, stack, sym, text_node};
+pub use build::{
+    Anchor, AnchorSpace, RESERVED_DATA_KEYS, Transform3, anchor, badge, badge_cluster, box_,
+    data_map, gaze_cursor, hand_ray, panel, spatial, stack, stereo, sym, text_node, world_plane,
+};
 pub use citizen::{SceneDescriptor, scene_descriptor_class_symbol};
 pub use codec::{SceneCodec, SceneCodecLib, scene_codec_symbol};
+pub use cookbook::text_node_demo;
 pub use diff::{apply, diff};
+pub use glance::{GLANCE_KIND, GlanceAction, GlanceCard, GlanceMetric, glance_card};
 pub use kinds::{SCENE_KINDS, SCENE_NAMESPACE, is_known_kind, scene_kind};
 pub use model::{SceneError, map, node, node_kind, validate_scene};
 pub use shapes::{scene_shape_specs, scene_shape_symbol};

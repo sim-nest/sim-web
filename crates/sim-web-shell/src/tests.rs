@@ -1,9 +1,39 @@
 //! Tests for the shell asset routing.
 
+// conformance: web shell host opens runtime-backed workspaces.
+
 use std::sync::Arc;
 
 use crate::{AtelierCliLib, BrowseCliLib, ServeConfig, assets::asset_for, serve_with_cx};
-use sim_kernel::{Args, Cx, DefaultFactory, NoopEvalPolicy, Symbol, Value};
+use sim_codec_lisp::LispCodecLib;
+use sim_kernel::{
+    Args, Cx, DefaultFactory, EagerPolicy, NoopEvalPolicy, Symbol, Value, read_eval_capability,
+};
+use sim_lib_server::CookbookWebState;
+use sim_test_support::register_core_classes;
+
+trait GrantOutcome {
+    fn expect_granted(self);
+}
+
+impl GrantOutcome for () {
+    fn expect_granted(self) {}
+}
+
+impl GrantOutcome for sim_kernel::Result<()> {
+    fn expect_granted(self) {
+        self.unwrap();
+    }
+}
+
+macro_rules! expect_granted {
+    ($grant:expr) => {{
+        #[allow(clippy::let_unit_value)]
+        let grant_result = $grant;
+        #[allow(clippy::unit_arg)]
+        grant_result.expect_granted();
+    }};
+}
 
 #[test]
 fn root_serves_the_shell_page() {
@@ -39,14 +69,31 @@ fn unknown_paths_fail_closed() {
 fn interpreter_modules_are_served_as_javascript() {
     for path in [
         "/interpreter/app.js",
+        "/interpreter/glasses.js",
         "/interpreter/scene.js",
         "/interpreter/diff.js",
         "/interpreter/intent.js",
+        "/interpreter/keymap.js",
     ] {
         let asset = asset_for(path).unwrap_or_else(|| panic!("{path} must be served"));
         assert_eq!(asset.content_type, "text/javascript; charset=utf-8");
         assert!(!asset.body.is_empty(), "{path} must have a body");
     }
+}
+
+#[test]
+fn interpreter_module_import_graph_is_served() {
+    let mut seen = std::collections::BTreeSet::new();
+    assert_served_import_graph("/interpreter/app.js", &mut seen);
+
+    assert!(
+        seen.contains("/interpreter/keymap.js"),
+        "scene.js imports keymap.js and the router must serve it"
+    );
+    assert!(
+        seen.contains("/interpreter/glasses.js"),
+        "app.js imports the browser-local glasses client"
+    );
 }
 
 #[test]
@@ -199,13 +246,21 @@ fn cookbook_script_targets_required_apis() {
 }
 
 #[test]
-fn cookbook_script_renders_grouped_tree_with_badges() {
-    // The browser renders the two-level family -> domain grouped tree with a
-    // runnable/descriptor badge on each leaf.
+fn cookbook_script_renders_lib_tree_with_badges() {
+    // The browser renders the lib-first tree when the API provides `libs`, while
+    // retaining the family fallback for older payloads.
     let js = asset_text("/cookbook/cookbook.js");
     for expected in [
+        "data.libs",
+        "state.libs",
+        "state.hasLibTree",
+        "hasLibTree(data)",
+        "renderLibTree",
+        "lib-title",
+        "group-title",
         "data.families",
         "state.families",
+        "renderFamilyTree",
         "family-title",
         "domain-title",
         "recipeBadge",
@@ -214,8 +269,32 @@ fn cookbook_script_renders_grouped_tree_with_badges() {
         assert!(js.contains(expected), "missing {expected}");
     }
     let css = asset_text("/cookbook/cookbook.css");
-    for expected in [".badge.runnable", ".badge.descriptor", ".domain-title"] {
+    for expected in [
+        ".badge.runnable",
+        ".badge.descriptor",
+        ".lib-title",
+        ".group-title",
+        ".domain-title",
+    ] {
         assert!(css.contains(expected), "css missing {expected}");
+    }
+}
+
+#[test]
+fn cookbook_script_persists_branch_state() {
+    let js = asset_text("/cookbook/cookbook.js");
+    for expected in [
+        "function treeStateKey(kind, id)",
+        "`sim-cookbook:${kind}:${id}`",
+        "localStorage.getItem(treeStateKey(kind, id))",
+        "localStorage.setItem(treeStateKey(kind, id), open ? \"1\" : \"0\")",
+        "function setDetailsOpen(details, kind, id, defaultOpen, forceOpen = false)",
+        "details.open = forceOpen || (saved == null ? defaultOpen : saved === \"1\")",
+        "state.visibleIds !== null",
+        "setDetailsOpen(libEl, \"lib\", lib.id, true, searching)",
+        "setDetailsOpen(groupEl, \"group\", `${lib.id}/${group.name}`, false, searching)",
+    ] {
+        assert!(js.contains(expected), "missing {expected}");
     }
 }
 
@@ -299,13 +378,104 @@ fn web_serve_does_not_preload_demo_codecs() {
     }
 }
 
+#[test]
+fn standalone_serve_config_uses_seeded_fixture_directory() {
+    let mut cx = cookbook_cx();
+    let response = crate::serve::cookbook_index_for_test(&mut cx, &ServeConfig::default()).unwrap();
+    assert_eq!(response.status, 200, "{}", response.body);
+    let json: serde_json::Value = serde_json::from_str(&response.body).unwrap();
+    let libs = json["libs"]
+        .as_array()
+        .unwrap_or_else(|| panic!("libs array in {}", response.body));
+
+    assert!(
+        libs.iter()
+            .any(|lib| lib["id"].as_str() == Some("numbers/cas")),
+        "{}",
+        response.body
+    );
+}
+
+#[test]
+fn serve_config_can_use_host_cookbook_state() {
+    let mut cx = cookbook_cx();
+    let response = crate::serve::cookbook_index_for_test(
+        &mut cx,
+        &ServeConfig {
+            cookbook: Some(Arc::new(CookbookWebState::empty())),
+            ..ServeConfig::default()
+        },
+    )
+    .unwrap();
+    assert_eq!(response.status, 200, "{}", response.body);
+    let json: serde_json::Value = serde_json::from_str(&response.body).unwrap();
+
+    assert_eq!(
+        json["libs"]
+            .as_array()
+            .unwrap_or_else(|| panic!("libs array in {}", response.body))
+            .len(),
+        0
+    );
+    assert!(!response.body.contains("numbers/cas"), "{}", response.body);
+}
+
 fn asset_text(path: &str) -> String {
     let asset = asset_for(path).unwrap_or_else(|| panic!("{path} must be served"));
     std::str::from_utf8(asset.body).unwrap().to_owned()
 }
 
+fn assert_served_import_graph(path: &str, seen: &mut std::collections::BTreeSet<String>) {
+    if !seen.insert(path.to_owned()) {
+        return;
+    }
+
+    let source = asset_text(path);
+    for import in relative_module_imports(&source) {
+        let next = resolve_relative_module_path(path, &import)
+            .unwrap_or_else(|| panic!("could not resolve import {import:?} from {path}"));
+        let asset = asset_for(&next).unwrap_or_else(|| panic!("{path} imports unrouted {next}"));
+        assert_eq!(
+            asset.content_type, "text/javascript; charset=utf-8",
+            "{next} must be served as JavaScript"
+        );
+        assert_served_import_graph(&next, seen);
+    }
+}
+
+fn relative_module_imports(source: &str) -> Vec<String> {
+    source
+        .lines()
+        .filter_map(|line| {
+            let line = line.trim();
+            if !line.starts_with("import ") {
+                return None;
+            }
+            let quoted = line.split('"').nth(1).or_else(|| line.split('\'').nth(1))?;
+            quoted.starts_with('.').then(|| quoted.to_owned())
+        })
+        .collect()
+}
+
+fn resolve_relative_module_path(from: &str, import: &str) -> Option<String> {
+    if !import.starts_with("./") {
+        return None;
+    }
+    let dir = from.rsplit_once('/')?.0;
+    Some(format!("{dir}/{}", import.trim_start_matches("./")))
+}
+
 fn cli_cx() -> Cx {
     Cx::new(Arc::new(NoopEvalPolicy), Arc::new(DefaultFactory))
+}
+
+fn cookbook_cx() -> Cx {
+    let (mut cx, seat) = Cx::new_seated(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    register_core_classes(&mut cx);
+    let lisp = LispCodecLib::new(cx.registry_mut().fresh_codec_id()).unwrap();
+    cx.load_lib(&lisp).unwrap();
+    expect_granted!(seat.grant(&mut cx, read_eval_capability()));
+    cx
 }
 
 fn cli_envelope(cx: &mut Cx, verb: &str, args: &[&str]) -> Value {

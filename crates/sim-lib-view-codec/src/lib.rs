@@ -10,9 +10,11 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
+pub mod cookbook;
 pub mod multicodec;
 pub mod shape;
 
+pub use cookbook::multicodec_demo;
 pub use multicodec::{
     MULTI_CODEC_LENS, ProbeResult, SYSEX_COMPARISON_LENS, multi_codec_view, roundtrip_probe,
     sysex_comparison_view,

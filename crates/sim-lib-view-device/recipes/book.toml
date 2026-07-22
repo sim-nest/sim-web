@@ -1,0 +1,5 @@
+book = "view-device"
+title = "View Device"
+summary = "Device profile envelopes and tier derivation for surface capabilities."
+order = 94
+chapters = ["01-basics"]

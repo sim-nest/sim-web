@@ -13,10 +13,12 @@
 #![deny(missing_docs)]
 
 mod citizen;
+pub mod cookbook;
 pub mod doc;
 pub mod lens;
 
 pub use citizen::{DocArticleDescriptor, doc_article_class_symbol};
+pub use cookbook::{article_demo, latex_lens_demo};
 pub use doc::{
     ARTICLE_CLASS, article, article_from_markup, blocks, citation, embed_block, equation, figure,
     markup_from_article, prose, section, table, title,

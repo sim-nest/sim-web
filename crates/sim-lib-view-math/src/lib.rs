@@ -19,12 +19,14 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
+pub mod cookbook;
 pub mod matrix;
 pub mod num;
 pub mod plot;
 pub mod sweep;
 pub mod symbolic;
 
+pub use cookbook::plot_series_demo;
 pub use matrix::{MATRIX_LENS, cell, matrix, matrix_view, set_cell};
 pub use num::{as_f64, number, point};
 pub use plot::{PLOT_LENS, multi_plot_view, plot_view, series};

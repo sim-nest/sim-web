@@ -4,9 +4,11 @@
 //! shell cache API. Runtime transport remains the Intent/Scene bridge over
 //! `realize`/`EvalFabric`.
 
+use std::fmt;
 use std::io::{BufRead, BufReader, Write};
 use std::net::{TcpListener, TcpStream, ToSocketAddrs};
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::time::Duration;
 
 /// Largest request body the shell will read. A larger declared `Content-Length`
@@ -37,18 +39,30 @@ use crate::live::{
 use sim_kernel::Cx;
 use sim_lib_net_core::{CapOutcome, read_capped_line};
 use sim_lib_server::{CookbookWebResponse, CookbookWebState};
-use sim_lib_stream_core::install_stream_core_shapes_lib;
 
 /// Configuration for the shell server.
-#[derive(Debug)]
 pub struct ServeConfig {
     /// The address to bind, e.g. `127.0.0.1:8787`.
     pub addr: String,
     /// Directory containing generated Atelier cache files.
     pub atelier_root: PathBuf,
-    /// Install host-essential shapes, then return before binding the socket.
-    /// Lets a caller confirm the serve verb dispatches without holding a port.
+    /// Return before binding the socket. Lets a caller confirm the serve verb
+    /// dispatches without holding a port.
     pub dry_run: bool,
+    /// Host-provided cookbook state. When absent, the standalone shell uses the
+    /// small fixture directory from `sim-lib-cookbook`.
+    pub cookbook: Option<Arc<CookbookWebState>>,
+}
+
+impl fmt::Debug for ServeConfig {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ServeConfig")
+            .field("addr", &self.addr)
+            .field("atelier_root", &self.atelier_root)
+            .field("dry_run", &self.dry_run)
+            .field("cookbook", &self.cookbook.as_ref().map(|_| "<provided>"))
+            .finish()
+    }
 }
 
 impl Default for ServeConfig {
@@ -57,6 +71,7 @@ impl Default for ServeConfig {
             addr: "127.0.0.1:8787".to_owned(),
             atelier_root: PathBuf::from(".sim/atelier"),
             dry_run: false,
+            cookbook: None,
         }
     }
 }
@@ -70,8 +85,6 @@ impl Default for ServeConfig {
 /// session's host GrantSeat), not self-granted here; `run_recipe` gates each run
 /// on it.
 pub fn serve_with_cx(cx: &mut Cx, config: &ServeConfig) -> std::io::Result<()> {
-    install_stream_core_shapes_lib(cx).map_err(io_error)?;
-
     if config.dry_run {
         println!("sim-web-shell: dry-run OK");
         return Ok(());
@@ -103,7 +116,7 @@ fn bind(addr: &str) -> std::io::Result<TcpListener> {
 
 struct ShellState<'a> {
     atelier: AtelierWebState,
-    cookbook: CookbookWebState,
+    cookbook: Arc<CookbookWebState>,
     cookbook_cx: &'a mut Cx,
     live: LiveSession,
 }
@@ -117,11 +130,25 @@ impl<'a> ShellState<'a> {
         // uses it.
         Ok(Self {
             atelier: AtelierWebState::load(config.atelier_root.clone()),
-            cookbook: CookbookWebState::seeded().map_err(io_error)?,
+            cookbook: match &config.cookbook {
+                Some(cookbook) => Arc::clone(cookbook),
+                None => Arc::new(CookbookWebState::seeded().map_err(io_error)?),
+            },
             cookbook_cx: cx,
             live: LiveSession::new().map_err(io_error)?,
         })
     }
+}
+
+#[cfg(test)]
+pub(crate) fn cookbook_index_for_test(
+    cx: &mut Cx,
+    config: &ServeConfig,
+) -> std::io::Result<CookbookWebResponse> {
+    let state = ShellState::new(config, cx)?;
+    Ok(state
+        .cookbook
+        .handle_request("GET", "/api/cookbook", Some(&mut *state.cookbook_cx)))
 }
 
 fn io_error(err: impl std::fmt::Display) -> std::io::Error {
@@ -298,7 +325,11 @@ fn write_session_intent(
     if request.method != "POST" {
         return write_json(stream, 405, &error_json("intent route requires POST"));
     }
-    let pane = query_value(&request.target, "pane").unwrap_or_else(|| DEFAULT_PANE.to_owned());
+    let pane = match query_value(&request.target, "pane") {
+        Ok(Some(value)) => value,
+        Ok(None) => DEFAULT_PANE.to_owned(),
+        Err(err) => return write_json(stream, 400, &error_json(&err.to_string())),
+    };
     let intent = match decode_intent_body(&request.body) {
         Ok(intent) => intent,
         Err(err) => return write_json(stream, 400, &error_json(&err)),
@@ -319,9 +350,16 @@ fn write_session_open(
     if request.method != "GET" {
         return write_json(stream, 405, &error_json("open route requires GET"));
     }
-    let resource =
-        query_value(&request.target, "resource").unwrap_or_else(|| DEFAULT_RESOURCE.to_owned());
-    let pane = query_value(&request.target, "pane").unwrap_or_else(|| DEFAULT_PANE.to_owned());
+    let resource = match query_value(&request.target, "resource") {
+        Ok(Some(value)) => value,
+        Ok(None) => DEFAULT_RESOURCE.to_owned(),
+        Err(err) => return write_json(stream, 400, &error_json(&err.to_string())),
+    };
+    let pane = match query_value(&request.target, "pane") {
+        Ok(Some(value)) => value,
+        Ok(None) => DEFAULT_PANE.to_owned(),
+        Err(err) => return write_json(stream, 400, &error_json(&err.to_string())),
+    };
     match live.open(&resource, &pane) {
         Ok(scene) => write_json(stream, 200, &encode_scene(&scene)),
         Err(err) => write_json(stream, 400, &error_json(&err.to_string())),
@@ -333,20 +371,95 @@ fn path_of(target: &str) -> &str {
     target.split(['?', '#']).next().unwrap_or(target)
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct QueryError {
+    key: String,
+    reason: String,
+}
+
+impl QueryError {
+    fn new(key: &str, reason: impl Into<String>) -> Self {
+        Self {
+            key: key.to_owned(),
+            reason: reason.into(),
+        }
+    }
+}
+
+impl fmt::Display for QueryError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "malformed query value for '{}': {}",
+            self.key, self.reason
+        )
+    }
+}
+
 /// Whether a request targets the cookbook RUN route
 /// (`POST /api/cookbook/recipe/<id>/run`). This is the only cookbook route that
 /// evaluates a recipe, so it is the only one the shell grants read-eval for;
 /// list/search/show routes stay ungated. Mirrors the run-route match in
 /// `sim-lib-server`'s `CookbookWebState::handle_request`.
 /// The first value of a query-string key in a request target, if present. Only a
-/// plain `key=value` split is performed; values are expected to be simple
-/// identifiers (pane and resource names).
-fn query_value(target: &str, key: &str) -> Option<String> {
-    let (_, query) = target.split_once('?')?;
-    query.split('&').find_map(|pair| {
+/// value for the matching key is percent-decoded; malformed escapes are errors
+/// so the session routes can reject them with a structured 400 response.
+fn query_value(target: &str, key: &str) -> Result<Option<String>, QueryError> {
+    let Some((_, query_and_fragment)) = target.split_once('?') else {
+        return Ok(None);
+    };
+    let query = query_and_fragment
+        .split('#')
+        .next()
+        .unwrap_or(query_and_fragment);
+    for pair in query.split('&') {
         let (name, value) = pair.split_once('=').unwrap_or((pair, ""));
-        (name == key).then(|| value.to_owned())
-    })
+        if name == key {
+            return percent_decode_query(value)
+                .map(Some)
+                .map_err(|reason| QueryError::new(key, reason));
+        }
+    }
+    Ok(None)
+}
+
+fn percent_decode_query(value: &str) -> Result<String, String> {
+    let bytes = value.as_bytes();
+    let mut decoded = Vec::with_capacity(bytes.len());
+    let mut index = 0usize;
+    while index < bytes.len() {
+        match bytes[index] {
+            b'%' => {
+                if index + 2 >= bytes.len() {
+                    return Err("incomplete percent escape".to_owned());
+                }
+                let high = hex_digit(bytes[index + 1])
+                    .ok_or_else(|| "invalid percent escape".to_owned())?;
+                let low = hex_digit(bytes[index + 2])
+                    .ok_or_else(|| "invalid percent escape".to_owned())?;
+                decoded.push((high << 4) | low);
+                index += 3;
+            }
+            b'+' => {
+                decoded.push(b' ');
+                index += 1;
+            }
+            byte => {
+                decoded.push(byte);
+                index += 1;
+            }
+        }
+    }
+    String::from_utf8(decoded).map_err(|_| "decoded value is not UTF-8".to_owned())
+}
+
+fn hex_digit(byte: u8) -> Option<u8> {
+    match byte {
+        b'0'..=b'9' => Some(byte - b'0'),
+        b'a'..=b'f' => Some(byte - b'a' + 10),
+        b'A'..=b'F' => Some(byte - b'A' + 10),
+        _ => None,
+    }
 }
 
 /// Write a JSON body with the given status.
@@ -424,8 +537,10 @@ fn status_text(status: u16) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::{
-        MAX_BODY_BYTES, MAX_HEAD_LINE_BYTES, MAX_HEADER_COUNT, ReadOutcome, read_request_from,
+        MAX_BODY_BYTES, MAX_HEAD_LINE_BYTES, MAX_HEADER_COUNT, ReadOutcome, RequestLine,
+        query_value, read_request_from, write_session_open,
     };
+    use crate::live::LiveSession;
     use std::io::{BufReader, Cursor};
 
     fn parse(raw: &str) -> ReadOutcome {
@@ -507,5 +622,57 @@ mod tests {
             }
             other => panic!("expected a parsed request, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn query_values_are_percent_decoded() {
+        assert_eq!(
+            query_value(
+                "/api/session/open?resource=demo%2Fone&pane=pane%20main",
+                "resource"
+            )
+            .unwrap(),
+            Some("demo/one".to_owned())
+        );
+        assert_eq!(
+            query_value(
+                "/api/session/open?resource=demo%2Fone&pane=pane%20main",
+                "pane"
+            )
+            .unwrap(),
+            Some("pane main".to_owned())
+        );
+        assert_eq!(
+            query_value("/api/session/open?resource=demo", "pane").unwrap(),
+            None
+        );
+    }
+
+    #[test]
+    fn malformed_query_percent_escape_is_an_error() {
+        let error = query_value("/api/session/open?resource=bad%2", "resource")
+            .expect_err("bad escape must fail closed");
+        assert!(error.to_string().contains("incomplete percent escape"));
+    }
+
+    #[test]
+    fn malformed_session_open_query_returns_bad_request() {
+        let request = RequestLine {
+            method: "GET".to_owned(),
+            target: "/api/session/open?resource=bad%ZZ".to_owned(),
+            body: String::new(),
+        };
+        let mut response = Vec::new();
+        let mut live = LiveSession::new().expect("live session");
+        write_session_open(&mut response, &request, &mut live).expect("response");
+        let text = String::from_utf8(response).expect("utf-8 response");
+        assert!(
+            text.starts_with("HTTP/1.1 400 Bad Request"),
+            "malformed query must return 400, got {text}"
+        );
+        assert!(
+            text.contains("malformed query value"),
+            "structured JSON error must describe the query problem: {text}"
+        );
     }
 }

@@ -50,7 +50,7 @@ use crate::surface::SurfaceCaps;
 /// Intent to a Draft, and commit a Draft to a checked Operation.
 ///
 /// Implementors back both directions with one definition. [`PairCodec`] adapts a
-/// legacy ([`View`], [`Editor`]) pair to this contract.
+/// view/editor pair to this contract.
 pub trait SurfaceCodec: Send + Sync {
     /// Renders `value` to a Scene projected for `caps` (deterministic).
     fn encode(&self, cx: &mut Cx, value: &Expr, caps: &SurfaceCaps) -> Result<Expr>;
@@ -259,9 +259,7 @@ mod tests {
             Ok(Draft::clean(value.clone(), value.clone()))
         }
         fn commit(&self, _cx: &mut Cx, draft: &Draft) -> Result<Operation> {
-            Ok(Operation {
-                form: draft.proposed.clone(),
-            })
+            Ok(Operation::new(draft.proposed.clone()))
         }
     }
 

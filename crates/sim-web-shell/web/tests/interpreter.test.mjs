@@ -10,6 +10,7 @@
 import assert from "node:assert";
 import { renderScene, paint } from "../interpreter/scene.js";
 import { applyPatch } from "../interpreter/diff.js";
+import { BrowserGlassesClient } from "../interpreter/glasses.js";
 import { intentFromEmit } from "../interpreter/intent.js";
 
 // Minimal DOM shim: just enough for the painter.
@@ -59,6 +60,12 @@ function find(node, predicate) {
   return null;
 }
 
+function findAll(node, predicate, found = []) {
+  if (predicate(node)) found.push(node);
+  for (const child of node.children || []) findAll(child, predicate, found);
+  return found;
+}
+
 const scene = {
   kind: "scene/stack",
   dir: "column",
@@ -74,6 +81,8 @@ const scene = {
     {
       kind: "scene/field",
       value: "1",
+      "value-kind": "number",
+      "value-codec": "encoded-number-one",
       path: [["k", "a"]],
       target: "doc",
     },
@@ -103,13 +112,39 @@ const painted = renderScene(doc2, scene, (e) => {
   captured = e;
 });
 const field = find(painted, (n) => n.className === "scene-field");
+assert.equal(field.dataset.valueKind, "number", "field keeps scalar kind metadata");
+assert.equal(field.dataset.valueCodec, "encoded-number-one", "field keeps encoded value metadata");
 field.value = "9";
 field._listeners.change();
 assert.equal(captured.type, "edit");
+assert.equal(captured["value-kind"], "number");
+assert.equal(captured["value-codec"], "encoded-number-one");
 const intent = intentFromEmit(captured, "pane-main", "human", 1);
 assert.equal(intent.kind, "intent/edit-field");
 assert.deepEqual(intent.path, [["k", "a"]]);
 assert.equal(intent.value, "9");
+assert.equal(intent["value-kind"], "number");
+assert.equal(intent["value-codec"], "encoded-number-one");
+
+// 2a. Buttons can also emit direct edit-field controls.
+captured = null;
+const editButton = renderScene(doc2, {
+  kind: "scene/button",
+  label: "Patch",
+  "emit-type": "edit",
+  target: "bridge-packet",
+  path: ["bridge-collab", "patch"],
+  value: { target: "body/O1/payload", replacement: "accepted" },
+  "value-codec": "codec:bridge",
+}, (event) => {
+  captured = event;
+});
+editButton._listeners.click();
+const buttonIntent = intentFromEmit(captured, "pane-main", "human", 2);
+assert.equal(buttonIntent.kind, "intent/edit-field");
+assert.deepEqual(buttonIntent.path, ["bridge-collab", "patch"]);
+assert.equal(buttonIntent.value.replacement, "accepted");
+assert.equal(buttonIntent["value-codec"], "codec:bridge");
 
 // 2b. Performance emits become typed bus Intents for a bound performance source.
 const performanceIntent = intentFromEmit({
@@ -168,5 +203,71 @@ const mount = doc3.createElement("div");
 mount.appendChild(doc3.createElement("span"));
 paint(doc3, mount, scene, () => {});
 assert.equal(mount.children.length, 1, "paint clears then mounts one scene root");
+
+// 5. One spatial receipt produces moving side-by-side frames at device rate.
+const glassesCaps = {
+  display: { stereo: true, "per-eye-px": [1920, 1200] },
+  streams: { pose: true },
+  "max-predict-ms": 12,
+};
+const spatial = {
+  kind: "scene/spatial",
+  children: [{
+    kind: "scene/panel",
+    id: "workspace",
+    body: { kind: "scene/text", text: "Workspace" },
+    anchor: { kind: "scene/anchor", space: "world", target: "desk" },
+    transform: {
+      "translate-m": [0, 0, -1.5],
+      "rotate-xyzw": [0, 0, 0, 1],
+      scale: [1, 1, 1],
+    },
+  }],
+};
+const glasses = new BrowserGlassesClient(glassesCaps);
+glasses.receive(spatial);
+const firstFrame = glasses.frame({
+  "sample-seq": 1,
+  "age-ms": 1,
+  "predict-ns": 40_000_000,
+  "translation-m": [0.2, 0, 0],
+  "yaw-deg": 10,
+});
+const secondFrame = glasses.frame({
+  "sample-seq": 2,
+  "age-ms": 2,
+  "predict-ns": 4_000_000,
+  "translation-m": [0, 0, 0],
+});
+assert.equal(glasses.contentReceipts, 1, "device frames reuse one content receipt");
+assert.equal(firstFrame.kind, "scene/stereo");
+assert.equal(firstFrame["predict-ms"], 12, "prediction is clamped");
+assert.deepEqual(firstFrame["eye-px"], [1920, 1200]);
+assert.deepEqual(firstFrame["frame-px"], [3840, 1200]);
+assert.notDeepEqual(firstFrame["left-eye"], secondFrame["left-eye"], "pose moves eye roots");
+const stereoDom = renderScene(makeDoc(), firstFrame, () => {});
+assert.equal(findAll(stereoDom, (n) => n.className === "scene-eye").length, 2);
+
+const heldFrame = glasses.frame({ "sample-seq": 3, "age-ms": 13, "predict-ns": 80_000_000 });
+assert.strictEqual(heldFrame, secondFrame, "pose beyond the clamp holds the last frame");
+
+// 6. Display-only glasses mirror the content; Halo paints exactly one mono card.
+const mirror = new BrowserGlassesClient({
+  glassesClass: "display-only",
+  display: { stereo: true, "per-eye-px": [1920, 1200] },
+});
+mirror.receive(spatial);
+assert.strictEqual(mirror.frame(), spatial, "display-only mode mirrors the content Scene");
+
+const halo = new BrowserGlassesClient({ glassesClass: "mono-hud" });
+const glance = {
+  kind: "scene/glance",
+  title: "Build",
+  urgency: "info",
+  metric: { label: "tests", value: "green" },
+};
+halo.receive(glance);
+const glanceDom = renderScene(makeDoc(), halo.frame(), () => {});
+assert.equal(findAll(glanceDom, (n) => n.className === "scene-glance-card").length, 1);
 
 console.log("interpreter.test.mjs: all assertions passed");

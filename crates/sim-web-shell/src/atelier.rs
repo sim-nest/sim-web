@@ -176,6 +176,28 @@ mod tests {
     }
 
     #[test]
+    fn atelier_api_serves_contract_native_cached_shell_json() {
+        let root = std::env::temp_dir().join(format!(
+            "sim-web-shell-atelier-contract-native-{}",
+            std::process::id()
+        ));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(&root).unwrap();
+        fs::write(
+            root.join("shell.json"),
+            "{\n  \"schema\": \"sim.atelier.shell.v1\",\n  \"contract_native\": {\n    \"schema\": \"sim.atelier.contract-native.v1\",\n    \"cassette_hash\": \"fnv1a64:bf233c4e5a8bc12d\"\n  },\n  \"scenarios\": []\n}\n",
+        )
+        .unwrap();
+
+        let state = AtelierWebState::load(&root);
+        let response = state.response("GET", "/api/atelier").unwrap();
+        assert_eq!(response.status, 200);
+        assert!(response.body.contains("sim.atelier.contract-native.v1"));
+        assert!(response.body.contains("fnv1a64:bf233c4e5a8bc12d"));
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
     fn atelier_api_reports_missing_cache_without_reading_source() {
         let root = std::env::temp_dir().join(format!(
             "sim-web-shell-atelier-missing-{}",

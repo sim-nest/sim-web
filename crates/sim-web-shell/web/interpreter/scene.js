@@ -56,6 +56,165 @@ function asNumber(value, fallback) {
   return Number.isFinite(number) ? number : fallback;
 }
 
+function asBool(value) {
+  return value === true || value === "true";
+}
+
+function fieldEditEmit(node, input) {
+  const edit = { type: "edit", path: node.path, value: input.value, target: node.target };
+  if (node["value-kind"] != null) edit["value-kind"] = node["value-kind"];
+  if (node["value-codec"] != null) edit["value-codec"] = node["value-codec"];
+  return edit;
+}
+
+function buttonEmit(node) {
+  if (node["emit-type"] === "edit") {
+    const edit = { type: "edit", target: node.target, path: node.path || [], value: node.value };
+    if (node["value-kind"] != null) edit["value-kind"] = node["value-kind"];
+    if (node["value-codec"] != null) edit["value-codec"] = node["value-codec"];
+    return edit;
+  }
+  return { type: "tap", control: node.control, target: node.target };
+}
+
+function renderButton(doc, node, onClick) {
+  const button = el(doc, "button", "scene-button");
+  button.textContent = String(node.label != null ? node.label : "");
+  labelled(button, node);
+  button.addEventListener("click", onClick);
+  return button;
+}
+
+function renderField(doc, node, onChange) {
+  const input = el(doc, "input", "scene-field");
+  input.value = String(node.value != null ? node.value : "");
+  if (node.name != null) input.dataset.name = String(node.name);
+  if (node["value-kind"] != null) input.dataset.valueKind = String(node["value-kind"]);
+  if (node["value-codec"] != null) input.dataset.valueCodec = String(node["value-codec"]);
+  input.readOnly = Boolean(node.readonly);
+  labelled(input, node);
+  input.addEventListener("change", () => onChange(input));
+  return input;
+}
+
+function fieldLabel(node) {
+  return String(node.label || node.name || "field");
+}
+
+function formValuePath(node) {
+  if (node["value-path"] != null) return asArray(node["value-path"]);
+  if (node.name != null) return [String(node.name)];
+  return asArray(node.path);
+}
+
+function formSegment(segment) {
+  return typeof segment === "number" ? segment : String(segment);
+}
+
+function setNestedValue(root, path, value) {
+  let cursor = root;
+  for (let index = 0; index < path.length; index += 1) {
+    const segment = formSegment(path[index]);
+    if (index === path.length - 1) {
+      cursor[segment] = value;
+      return;
+    }
+    const next = formSegment(path[index + 1]);
+    if (cursor[segment] == null || typeof cursor[segment] !== "object") {
+      cursor[segment] = typeof next === "number" ? [] : {};
+    }
+    cursor = cursor[segment];
+  }
+}
+
+function coerceFormValue(node, input) {
+  const raw = String(input.value);
+  const kind = String(node["value-kind"] || "string");
+  if (kind === "number" || kind === "integer") {
+    const value = Number(raw);
+    if (!Number.isFinite(value) || (kind === "integer" && !Number.isInteger(value))) {
+      return { error: `${fieldLabel(node)} must be a ${kind}` };
+    }
+    return { value };
+  }
+  return { value: raw };
+}
+
+function collectEditForm(fields) {
+  const value = {};
+  const errors = [];
+  for (const field of fields) {
+    field.input.setAttribute("aria-invalid", "false");
+    if (asBool(field.node.required) && String(field.input.value).trim() === "") {
+      field.input.setAttribute("aria-invalid", "true");
+      errors.push(`${fieldLabel(field.node)} is required`);
+      continue;
+    }
+    const path = formValuePath(field.node);
+    if (path.length === 0) {
+      field.input.setAttribute("aria-invalid", "true");
+      errors.push(`${fieldLabel(field.node)} has no value path`);
+      continue;
+    }
+    const coerced = coerceFormValue(field.node, field.input);
+    if (coerced.error) {
+      field.input.setAttribute("aria-invalid", "true");
+      errors.push(coerced.error);
+      continue;
+    }
+    setNestedValue(value, path, coerced.value);
+  }
+  return { value, errors };
+}
+
+function renderEditFormBox(doc, node, emit) {
+  const box = el(doc, "div", "scene-box");
+  box.dataset.role = "edit-form";
+  if (node.target != null) box.dataset.target = String(node.target);
+  const fields = [];
+  const error = el(doc, "div", "scene-validation-error");
+  error.setAttribute("role", "alert");
+  error.dataset.active = "false";
+
+  for (const child of asArray(node.children || node.nodes)) {
+    if (kindOf(child) === "scene/field") {
+      const input = renderField(doc, child, () => {
+        input.setAttribute("aria-invalid", "false");
+        error.textContent = "";
+        error.dataset.active = "false";
+      });
+      fields.push({ node: child, input });
+      box.appendChild(input);
+      continue;
+    }
+    if (kindOf(child) === "scene/button") {
+      const button = renderButton(doc, child, () => {
+        const collected = collectEditForm(fields);
+        if (collected.errors.length > 0) {
+          error.textContent = collected.errors.join("; ");
+          error.dataset.active = "true";
+          return;
+        }
+        error.textContent = "";
+        error.dataset.active = "false";
+        const edit = {
+          type: "edit",
+          target: node.target,
+          path: node.path || [],
+          value: collected.value,
+        };
+        if (node["value-codec"] != null) edit["value-codec"] = node["value-codec"];
+        emit(edit);
+      });
+      box.appendChild(button);
+      continue;
+    }
+    box.appendChild(renderScene(doc, child, emit));
+  }
+  box.appendChild(error);
+  return box;
+}
+
 function emitPerformance(node, emit, event) {
   emit({
     type: "performance",
@@ -101,6 +260,101 @@ function noteIntent(kind, node, key, velocity) {
     velocity: String(velocity),
     channel: channelOf(node),
   };
+}
+
+function endpointLabel(value) {
+  if (Array.isArray(value)) return value.map((part) => String(part)).join(".");
+  return String(value || "");
+}
+
+function renderGraphEdge(doc, edge) {
+  const edgeEl = el(doc, "div", "scene-edge");
+  const from = endpointLabel(edge.from);
+  const to = endpointLabel(edge.to);
+  edgeEl.dataset.from = from;
+  edgeEl.dataset.to = to;
+  edgeEl.textContent = `${from || "?"} -> ${to || "?"}`;
+  return edgeEl;
+}
+
+function renderGraph(doc, node, emit) {
+  const graph = el(doc, "div", "scene-graph");
+  graph.setAttribute("role", "group");
+  labelled(graph, node);
+
+  const nodes = el(doc, "div", "scene-graph-nodes");
+  for (const graphNode of asArray(node.nodes)) {
+    nodes.appendChild(renderScene(doc, graphNode, emit));
+  }
+  graph.appendChild(nodes);
+
+  const edges = el(doc, "div", "scene-graph-edges");
+  for (const edge of asArray(node.edges)) {
+    edges.appendChild(renderGraphEdge(doc, edge));
+  }
+  graph.appendChild(edges);
+  return graph;
+}
+
+function renderPlot(doc, node) {
+  const plot = el(doc, "div", "scene-plot");
+  plot.setAttribute("role", "img");
+  labelled(plot, node);
+  const title = el(doc, "div", "scene-plot-title");
+  title.textContent = String(node.title || node.label || "plot");
+  plot.appendChild(title);
+
+  for (const series of asArray(node.series)) {
+    const seriesEl = el(doc, "div", "scene-plot-series");
+    const points = asArray(series.points);
+    seriesEl.dataset.name = String(series.name || "");
+    seriesEl.dataset.points = String(points.length);
+    seriesEl.textContent = `${String(series.name || "series")}: ${points.length} point${points.length === 1 ? "" : "s"}`;
+    plot.appendChild(seriesEl);
+  }
+  return plot;
+}
+
+function renderMatrix(doc, node) {
+  const table = el(doc, "table", "scene-matrix");
+  table.setAttribute("role", "grid");
+  labelled(table, node);
+  table.dataset.editable = String(Boolean(node.editable));
+  for (const row of asArray(node.rows)) {
+    const tr = el(doc, "tr", "scene-matrix-row");
+    for (const cell of asArray(row)) {
+      const td = el(doc, "td", "scene-matrix-cell");
+      td.textContent = String(cell);
+      tr.appendChild(td);
+    }
+    table.appendChild(tr);
+  }
+  return table;
+}
+
+function renderTimeline(doc, node) {
+  const timeline = el(doc, "div", "scene-timeline");
+  timeline.setAttribute("role", "group");
+  labelled(timeline, node);
+  for (const lane of asArray(node.lanes)) {
+    const laneEl = el(doc, "div", "scene-timeline-lane");
+    laneEl.dataset.track = String(lane.track || lane.id || "");
+    const label = el(doc, "div", "scene-timeline-lane-label");
+    label.textContent = String(lane.label || lane.track || lane.id || "");
+    laneEl.appendChild(label);
+    const clips = el(doc, "div", "scene-timeline-clips");
+    for (const clip of asArray(lane.clips)) {
+      const clipEl = el(doc, "div", "scene-timeline-clip");
+      clipEl.dataset.clip = String(clip.id || "");
+      clipEl.dataset.at = String(clip.at || 0);
+      clipEl.dataset.len = String(clip.len || clip.duration || 0);
+      clipEl.textContent = String(clip.label || clip.id || "");
+      clips.appendChild(clipEl);
+    }
+    laneEl.appendChild(clips);
+    timeline.appendChild(laneEl);
+  }
+  return timeline;
 }
 
 function appendActionButtons(doc, root, className, actions, onAction) {
@@ -388,6 +642,77 @@ function renderObjectRoll(doc, node, emit) {
   return roll;
 }
 
+function renderSpatialPanel(doc, node, emit) {
+  const panel = el(doc, "section", "scene-spatial-panel");
+  panel.dataset.panel = String(node["source-panel"] || node.id || "");
+  panel.dataset.eye = String(node.eye || "mirror");
+  panel.dataset.anchorRule = String(node["anchor-rule"] || "unprojected");
+  panel.setAttribute("role", "group");
+  labelled(panel, node);
+  if (node.body) panel.appendChild(renderScene(doc, node.body, emit));
+  return panel;
+}
+
+function renderSpatialMirror(doc, node, emit) {
+  const mirror = el(doc, "div", "scene-spatial-mirror");
+  mirror.dataset.layout = "mirror";
+  for (const child of asArray(node.children)) {
+    mirror.appendChild(renderScene(doc, child, emit));
+  }
+  return mirror;
+}
+
+function renderEye(doc, eye, name, emit) {
+  const viewport = el(doc, "div", "scene-eye");
+  viewport.dataset.eye = name;
+  viewport.setAttribute("role", "group");
+  viewport.setAttribute("aria-label", `${name} eye viewport`);
+  for (const child of asArray(eye && eye.children)) {
+    viewport.appendChild(renderScene(doc, child, emit));
+  }
+  return viewport;
+}
+
+function renderStereo(doc, node, emit) {
+  const stereo = el(doc, "div", "scene-stereo");
+  stereo.dataset.layout = String(node.layout || "side-by-side");
+  const eyePx = asArray(node["eye-px"]);
+  if (eyePx.length === 2) {
+    stereo.dataset.eyeWidth = String(eyePx[0]);
+    stereo.dataset.eyeHeight = String(eyePx[1]);
+  }
+  stereo.appendChild(renderEye(doc, node["left-eye"], "left", emit));
+  stereo.appendChild(renderEye(doc, node["right-eye"], "right", emit));
+  return stereo;
+}
+
+function renderGlance(doc, node, emit) {
+  const preview = el(doc, "div", "scene-glance");
+  const card = el(doc, "section", "scene-glance-card");
+  card.dataset.urgency = String(node.urgency || "info");
+  card.setAttribute("role", "group");
+  card.setAttribute("aria-label", String(node.title || "glance"));
+
+  const title = el(doc, "div", "scene-glance-title");
+  title.textContent = String(node.title || "");
+  card.appendChild(title);
+  if (node.metric) {
+    const metric = el(doc, "div", "scene-glance-metric");
+    metric.textContent = `${String(node.metric.label || "")}: ${String(node.metric.value || "")}`;
+    card.appendChild(metric);
+  }
+  if (node.action) {
+    const action = renderButton(doc, {
+      label: node.action.label || "Open",
+      sr: node.action.label || "Open",
+    }, () => emit({ type: "tap", control: "glance-action", target: node.action.target }));
+    action.className = "scene-glance-action";
+    card.appendChild(action);
+  }
+  preview.appendChild(card);
+  return preview;
+}
+
 // Render a Scene node into a DOM element belonging to `doc`.
 export function renderScene(doc, node, emit) {
   const kind = kindOf(node);
@@ -404,6 +729,9 @@ export function renderScene(doc, node, emit) {
       return box;
     }
     case "scene/box": {
+      if (String(node.role || "") === "edit-form") {
+        return renderEditFormBox(doc, node, emit);
+      }
       const box = el(doc, "div", "scene-box");
       if (node.role) box.dataset.role = String(node.role);
       for (const child of paintChildren(doc, node, emit)) box.appendChild(child);
@@ -422,23 +750,10 @@ export function renderScene(doc, node, emit) {
       return badge;
     }
     case "scene/button": {
-      const button = el(doc, "button", "scene-button");
-      button.textContent = String(node.label != null ? node.label : "");
-      labelled(button, node);
-      button.addEventListener("click", () =>
-        emit({ type: "tap", control: node.control, target: node.target }),
-      );
-      return button;
+      return renderButton(doc, node, () => emit(buttonEmit(node)));
     }
     case "scene/field": {
-      const input = el(doc, "input", "scene-field");
-      input.value = String(node.value != null ? node.value : "");
-      input.readOnly = Boolean(node.readonly);
-      labelled(input, node);
-      input.addEventListener("change", () =>
-        emit({ type: "edit", path: node.path, value: input.value, target: node.target }),
-      );
-      return input;
+      return renderField(doc, node, (input) => emit(fieldEditEmit(node, input)));
     }
     case "scene/icon": {
       const icon = el(doc, "span", "scene-icon");
@@ -459,6 +774,16 @@ export function renderScene(doc, node, emit) {
       box.appendChild(title);
       return box;
     }
+    case "scene/edge":
+      return renderGraphEdge(doc, node);
+    case "scene/graph":
+      return renderGraph(doc, node, emit);
+    case "scene/plot":
+      return renderPlot(doc, node);
+    case "scene/matrix":
+      return renderMatrix(doc, node);
+    case "scene/timeline":
+      return renderTimeline(doc, node);
     case "scene/knob":
     case "scene/slider": {
       const control = el(doc, "div", "scene-" + kind.split("/")[1]);
@@ -494,6 +819,14 @@ export function renderScene(doc, node, emit) {
       return renderPlayerRack(doc, node, emit);
     case "scene/object-roll":
       return renderObjectRoll(doc, node, emit);
+    case "scene/spatial":
+      return renderSpatialMirror(doc, node, emit);
+    case "scene/stereo":
+      return renderStereo(doc, node, emit);
+    case "scene/panel":
+      return renderSpatialPanel(doc, node, emit);
+    case "scene/glance":
+      return renderGlance(doc, node, emit);
     case "scene/embed": {
       const wrap = el(doc, "div", "scene-embed");
       if (node.scene) wrap.appendChild(renderScene(doc, node.scene, emit));

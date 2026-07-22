@@ -11,6 +11,7 @@ use sim_lib_stream_core::{
     PushResult, StreamEnvelope, StreamInspectorSnapshot, StreamItem, StreamMetadata, StreamPacket,
     StreamStats, StreamValue, TransportProfile, stream_inspector_route_local_symbol,
 };
+use sim_lib_view::Operation;
 
 use crate::transport::{
     BrowserStreamStatus, ChangeEvent, SessionStatus, StreamInspectorRecord, Transport,
@@ -204,9 +205,9 @@ impl Transport for FixtureTransport {
             })
     }
 
-    fn realize(&mut self, resource: &Symbol, operation: &Expr) -> Result<Expr> {
+    fn realize_operation(&mut self, resource: &Symbol, operation: &Operation) -> Result<Expr> {
         self.ensure_live()?;
-        let new_value = apply_operation(self.store.get(resource), operation)?;
+        let new_value = apply_operation(self.store.get(resource), &operation.form)?;
         self.store.insert(resource.clone(), new_value.clone());
         self.events.push(ChangeEvent {
             resource: resource.clone(),

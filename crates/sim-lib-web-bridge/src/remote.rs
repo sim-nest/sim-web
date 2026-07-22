@@ -14,6 +14,7 @@ use sim_lib_stream_core::{
     TransportProfile, stream_inspector_route_local_symbol,
 };
 use sim_lib_stream_fabric::{StreamControl, stream_control_frame_from_control};
+use sim_lib_view::Operation;
 
 use crate::transport::{
     BrowserStreamStatus, ChangeEvent, SessionStatus, StreamInspectorRecord, Transport,
@@ -56,9 +57,13 @@ impl RemoteTransport {
         &self.endpoint
     }
 
-    /// Mark the remote channel connected.
+    /// Request a remote connection.
+    ///
+    /// The placeholder remote transports do not yet implement data read or
+    /// realize operations, so they remain unavailable rather than reporting a
+    /// live status that cannot carry traffic.
     pub fn connect(&mut self) {
-        self.status = SessionStatus::Connected;
+        self.status = SessionStatus::Disconnected;
     }
 
     /// Mark the remote channel disconnected.
@@ -93,7 +98,7 @@ impl RemoteTransport {
 
     fn not_connected(&self) -> Error {
         Error::HostError(format!(
-            "{:?} transport to {} is not connected (live channel unavailable)",
+            "{:?} transport to {} is unavailable (data channel not implemented)",
             self.kind, self.endpoint
         ))
     }
@@ -112,7 +117,7 @@ impl Transport for RemoteTransport {
         Err(self.not_connected())
     }
 
-    fn realize(&mut self, _resource: &Symbol, _operation: &Expr) -> Result<Expr> {
+    fn realize_operation(&mut self, _resource: &Symbol, _operation: &Operation) -> Result<Expr> {
         Err(self.not_connected())
     }
 
@@ -160,7 +165,8 @@ impl Transport for RemoteTransport {
             SessionStatus::Disconnected => BrowserStreamStatus::Disconnected,
             SessionStatus::Reconnecting => BrowserStreamStatus::Reconnecting,
             SessionStatus::Closed => BrowserStreamStatus::Cancelled,
-            _ => BrowserStreamStatus::Live,
+            SessionStatus::Connected => BrowserStreamStatus::Disconnected,
+            SessionStatus::Connecting => BrowserStreamStatus::Disconnected,
         };
         Ok(StreamInspectorRecord {
             stream_id: stream_id.clone(),

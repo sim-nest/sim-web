@@ -12,6 +12,7 @@
 
 import { paint } from "./scene.js";
 import { applyPatch } from "./diff.js";
+import { BrowserGlassesClient, defaultPose } from "./glasses.js";
 import { intentFromEmit } from "./intent.js";
 import { postIntent, openSession } from "./session.js";
 
@@ -32,6 +33,14 @@ const BOOTSTRAP_SCENE = {
     },
   ],
 };
+
+export function renderSessionError(doc, message) {
+  const error = doc.createElement("div");
+  error.className = "session-error";
+  error.setAttribute("role", "alert");
+  error.textContent = String(message || "session error");
+  return error;
+}
 
 // Reduced-motion is owned by the interpreter, not each lens: reflect the OS
 // setting (and any explicit override) onto the body so theme.css disables motion
@@ -67,7 +76,24 @@ function boot() {
   applyReducedMotion();
   installKeyboardSpine(mount);
   let scene = window.__SIM_SCENE__ || BOOTSTRAP_SCENE;
+  let sessionError = null;
   let tick = 0;
+  let pose = window.__SIM_GLASSES_POSE__ || defaultPose();
+  const glasses = window.__SIM_GLASSES_CAPS__
+    ? new BrowserGlassesClient(window.__SIM_GLASSES_CAPS__)
+    : null;
+  if (glasses) document.body.dataset.glassesMode = glasses.mode;
+
+  const receiveScene = (next) => {
+    scene = next;
+    if (!glasses) return;
+    try {
+      glasses.receive(scene);
+      sessionError = null;
+    } catch (error) {
+      sessionError = error instanceof Error ? error.message : String(error);
+    }
+  };
 
   const emit = (event) => {
     tick += 1;
@@ -79,31 +105,73 @@ function boot() {
     }
   };
 
-  const repaint = () => paint(document, mount, scene, emit);
+  const repaint = () => {
+    let visible = scene;
+    if (glasses && glasses.contentReceipts > 0) {
+      try {
+        visible = glasses.frame(pose);
+      } catch (error) {
+        sessionError = error instanceof Error ? error.message : String(error);
+      }
+    }
+    paint(document, mount, visible, emit);
+    if (sessionError) {
+      mount.appendChild(renderSessionError(document, sessionError));
+    }
+  };
+  receiveScene(scene);
   repaint();
 
   // When the bridge streams a patch, apply it and repaint.
   document.addEventListener("sim-scene-patch", (e) => {
-    scene = applyPatch(scene, e.detail);
+    receiveScene(applyPatch(scene, e.detail));
     repaint();
   });
 
+  document.addEventListener("sim-glasses-pose", (e) => {
+    pose = e.detail || defaultPose();
+    if (!glasses || !glasses.usesAdaptLoop()) repaint();
+  });
+
   // Forward every emitted Intent to the live session bridge and dispatch the
-  // returned patch(es). A failed fetch leaves the scene unchanged (offline-safe).
+  // returned patch(es). A failed fetch leaves the scene unchanged and visible.
   document.addEventListener("sim-intent", async (e) => {
-    const patches = await postIntent(e.detail);
-    for (const patch of patches) {
+    const result = await postIntent(e.detail);
+    if (!result.ok) {
+      sessionError = result.error;
+      repaint();
+      return;
+    }
+    sessionError = null;
+    if (result.patches.length === 0) {
+      repaint();
+      return;
+    }
+    for (const patch of result.patches) {
       document.dispatchEvent(new CustomEvent("sim-scene-patch", { detail: patch }));
     }
   });
 
   // On load, prefer the server's initial Scene; fall back to the bootstrap.
-  openSession(SESSION_RESOURCE, SESSION_PANE).then((opened) => {
-    if (opened) {
-      scene = opened;
+  openSession(SESSION_RESOURCE, SESSION_PANE).then((result) => {
+    if (result.ok && result.scene) {
+      receiveScene(result.scene);
+      repaint();
+      return;
+    }
+    if (!result.ok) {
+      sessionError = result.error;
       repaint();
     }
   });
+
+  if (glasses && glasses.usesAdaptLoop() && typeof window.requestAnimationFrame === "function") {
+    const adapt = () => {
+      repaint();
+      window.requestAnimationFrame(adapt);
+    };
+    window.requestAnimationFrame(adapt);
+  }
 
   // eslint-disable-next-line no-console
   console.log("sim-web-shell: scene painter booted");

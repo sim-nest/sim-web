@@ -15,8 +15,12 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
+pub mod cookbook;
+mod device_peer;
 pub mod fabric;
 pub mod fixture;
+pub mod glasses;
+pub mod glasses_session;
 pub mod history;
 pub mod host;
 pub mod placement;
@@ -25,8 +29,12 @@ pub mod session;
 pub mod sync;
 pub mod transport;
 
+pub use cookbook::session_fixture_demo;
+pub use device_peer::{device_peer_surface, register_device_peer, register_device_peer_with_role};
 pub use fabric::{FabricTransport, operation_to_request};
 pub use fixture::FixtureTransport;
+pub use glasses::{GlassesViewport, HaloPreviewClient, VitureSceneClient};
+pub use glasses_session::{GlassesCoUseSession, glasses_surface};
 pub use history::{History, SessionLog, Snapshots, annotate};
 pub use host::{DesktopHost, PHONE_PANE, PhoneHost};
 pub use placement::{
@@ -37,7 +45,8 @@ pub use placement::{
 };
 pub use remote::RemoteTransport;
 pub use session::{SceneUpdate, Session};
-pub use sync::{Broadcast, EditRow, SurfaceHub, replay};
+pub use sim_lib_view_spatial::GlassesPeer;
+pub use sync::{Broadcast, EditRow, SurfaceBinding, SurfaceHub, SurfaceRole, replay};
 pub use transport::{
     BrowserStreamStatus, ChangeEvent, SessionStatus, StreamInspectorRecord, Transport,
     TransportKind, WebStreamOperation, web_stream_operation_capability_names,
@@ -51,6 +60,8 @@ pub const SESSION_CLASS: &str = "web:Session";
 pub static RECIPES: sim_cookbook::EmbeddedDir =
     include!(concat!(env!("OUT_DIR"), "/cookbook_recipes.rs"));
 
+#[cfg(test)]
+mod glasses_client_tests;
 #[cfg(test)]
 mod history_tests;
 #[cfg(test)]

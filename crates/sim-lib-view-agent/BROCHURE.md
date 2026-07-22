@@ -4,7 +4,7 @@ In one line: it lets you wire up and watch a network of agents on a canvas, live
 
 ## What it gives you
 
-This is the composer where you build a topology by hand: drop nodes, connect their ports, group them, move them around, and delete what you no longer need. The same canvas shows a run as it happens, so you can watch messages flow and replay what occurred. The striking part is that an automated agent can edit the very same graph you are looking at, at the same time, because you both act on one shared model. There is no separate copy that drifts out of step. What you draw is the actual system, and what runs is what you drew.
+This is the composer where you build a topology by hand: drop nodes, connect their ports, group them, move them around, and delete the pieces you do not need. The same canvas shows a run as it happens, so you can watch messages flow and replay what occurred. The striking part is that an automated agent can edit the very same graph you are looking at, at the same time, because you both act on one shared model. There is no separate copy that drifts out of step. What you draw is the actual system, and what runs is what you drew.
 
 ## Why you will be glad
 

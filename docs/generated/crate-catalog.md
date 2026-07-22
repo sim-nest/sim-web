@@ -9,11 +9,15 @@ Generated from Cargo metadata by `xtask crate-catalog v1`.
 | `sim-lib-intent` | `true` | `custom-build, lib` | Intent value model, gesture algebra, and codec:intent. |
 | `sim-lib-scene` | `true` | `custom-build, lib` | Scene value model and codec:scene for SIM Web. |
 | `sim-lib-view-agent` | `true` | `custom-build, lib` | Agent and topology composer lens plus the live monitor for SIM Web. |
+| `sim-lib-view-bridge` | `true` | `custom-build, lib` | Reversible BRIDGE packet review surface for SIM Web. |
 | `sim-lib-view-codec` | `true` | `custom-build, lib` | Codec-aware and Shape-aware lenses for SIM Web. |
 | `sim-lib-view-daw` | `true` | `custom-build, lib` | DAW timeline, mixer, plugin rack, and synth lenses for SIM Web. |
+| `sim-lib-view-device` | `true` | `custom-build, lib` | Device profiles, frame timing, and tier derivation for SIM Web surfaces. |
 | `sim-lib-view-doc` | `true` | `custom-build, lib` | Markup article workspace lens for SIM Web. |
 | `sim-lib-view-math` | `true` | `custom-build, lib` | Math, plotting, tensor, and symbolic lenses for SIM Web. |
+| `sim-lib-view-spatial` | `true` | `custom-build, lib` | Spatial glasses surface encoding over the shared SIM Web Scene and device adapters. |
 | `sim-lib-view-wasm-frame` | `true` | `custom-build, lib` | Host-side view frame facade for wasm-shaped view data. |
+| `sim-lib-view-wrist` | `true` | `custom-build, lib` | Round watch glance budgets over the shared SIM Web device adapter. |
 | `sim-lib-view` | `true` | `custom-build, lib` | View/editor codec contracts, Shape-based lens dispatch, lens stack, and the universal default lens for SIM Web. |
 | `sim-lib-web-bridge` | `true` | `custom-build, lib` | Session and transport bridge over realize/EvalFabric for the Intent/Scene bus. |
 | `sim-lib-web-layout` | `true` | `custom-build, lib` | Workspace value, panes, tabs, docks, and layout persistence. |

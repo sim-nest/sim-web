@@ -181,16 +181,18 @@ fn index_path(index: usize) -> Expr {
 /// The field's `target` is the root value and `path` scopes the edit, so an
 /// `edit-field` built from it sets only that leaf.
 fn editable_leaf(root: &Expr, path: Expr, leaf: &Expr) -> Expr {
-    node(
-        "field",
-        vec![
-            ("kind", sym("text")),
-            ("value", Expr::String(render_value(leaf))),
-            ("target", root.clone()),
-            ("path", path),
-            ("readonly", Expr::Bool(false)),
-        ],
-    )
+    let mut fields = vec![
+        ("input-kind", sym("text")),
+        ("value", Expr::String(render_value(leaf))),
+        ("value-kind", sym(expr_kind(leaf))),
+        ("target", root.clone()),
+        ("path", path),
+        ("readonly", Expr::Bool(false)),
+    ];
+    if let Ok(encoded) = sim_codec::encode_portable(CodecId(0), leaf) {
+        fields.push(("value-codec", Expr::String(encoded)));
+    }
+    node("field", fields)
 }
 
 /// Region 4: properties and actions as buttons emitting `intent/invoke`.
@@ -235,7 +237,7 @@ fn roundtrip_badge(value: &Expr) -> Expr {
 }
 
 /// The four universal regions in increasing-depth order: summary, canonical
-/// text, structure tree, operations. Mode-aware rendering (P9) takes a prefix.
+/// text, structure tree, operations. Mode-aware rendering takes a prefix.
 pub(crate) fn universal_regions(value: &Expr) -> Vec<Expr> {
     vec![
         summary_card(value),
