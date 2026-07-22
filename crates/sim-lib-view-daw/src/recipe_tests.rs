@@ -1,5 +1,7 @@
 use sim_kernel::Symbol;
 
+// conformance: DAW view surfaces expose checked recipe descriptors.
+
 use crate::{
     ARRANGER_OBJECT_ROLL_DEMO_FIXTURE, PERFORMANCE_KEYBOARD_DEMO_FIXTURE, PIANO_ROLL_DEMO_FIXTURE,
     arranger_object_roll_demo_scene, arranger_object_roll_demo_view,

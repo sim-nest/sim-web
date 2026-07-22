@@ -1,5 +1,7 @@
 //! Tests for the shell asset routing.
 
+// conformance: web shell host opens runtime-backed workspaces.
+
 use std::sync::Arc;
 
 use crate::{AtelierCliLib, BrowseCliLib, ServeConfig, assets::asset_for, serve_with_cx};

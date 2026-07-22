@@ -2,6 +2,8 @@ use sim_kernel::{Expr, Symbol};
 use sim_lib_view::SurfaceCaps;
 use sim_value::access;
 
+// conformance: device surfaces derive stable profiles and rate classes.
+
 use crate::{
     DegradationResolver, DeviceProfile, DeviceSurfaceCapsExt, DeviceTier, GlassesClass,
     ObservedRoute, RateClass, T_REX_3_PRO_48_CAPS_FIXTURE, WORN_CAPS_KIND, WORN_CAPS_NAMESPACE,

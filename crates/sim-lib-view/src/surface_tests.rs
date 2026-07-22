@@ -1,5 +1,7 @@
 use super::*;
 
+// conformance: view surfaces encode and decode reversible view payloads.
+
 #[test]
 fn every_preset_round_trips() {
     for name in SURFACE_PRESETS {
