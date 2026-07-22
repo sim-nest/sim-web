@@ -1,8 +1,6 @@
 //! Tests for the topology composer: build, edit, save/load, and the shared bus.
 
-use std::sync::Arc;
-
-use sim_kernel::{Cx, DefaultFactory, EagerPolicy, Expr};
+use sim_kernel::{Cx, Expr, testing::eager_cx};
 use sim_lib_intent::{Origin, intent};
 use sim_lib_topology::Graph;
 
@@ -11,7 +9,7 @@ use crate::persist::{composer_load, composer_save};
 use crate::view::composer_view;
 
 fn cx() -> Cx {
-    let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = eager_cx();
     sim_test_support::register_core_classes(&mut cx);
     // Editing a topology is a checked operation; the composer operator holds the
     // topology-write capability (gated exactly like any other caller).

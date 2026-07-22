@@ -3,7 +3,7 @@
 use std::sync::Arc;
 
 use sim_codec::{Input, Output, decode_with_codec, encode_with_codec};
-use sim_kernel::{Cx, DefaultFactory, EagerPolicy, EncodeOptions, Expr, ReadPolicy, Symbol};
+use sim_kernel::{Cx, EncodeOptions, Expr, ReadPolicy, Symbol, testing::eager_cx};
 
 use crate::gesture::{
     GestureRecognizer, Hit, HitRole, PointerEvent, PointerPhase, intent_from_gesture,
@@ -15,7 +15,7 @@ use crate::{
 };
 
 fn cx() -> Cx {
-    let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = eager_cx();
     sim_test_support::register_core_classes(&mut cx);
     let lib = IntentCodecLib::new(cx.registry_mut().fresh_codec_id());
     cx.load_lib(&lib).unwrap();

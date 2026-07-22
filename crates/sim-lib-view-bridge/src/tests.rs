@@ -1,11 +1,9 @@
-use std::sync::Arc;
-
 use sim_codec_bridge::{
     BridgeFramePayload, BridgeHeader, BridgePacket, BridgePart, BridgePatchPayload,
     BridgeProvenance, BridgeReceiptPayload, BridgeReviewPayload, BridgeScore, BridgeVotePayload,
     packet_to_expr, stamp_packet_cid,
 };
-use sim_kernel::{Cx, DefaultFactory, EagerPolicy, Expr, Symbol};
+use sim_kernel::{Expr, Symbol, testing::eager_cx as cx};
 use sim_lib_intent::Origin;
 use sim_lib_view::SurfaceCodec;
 use sim_value::access::field;
@@ -15,10 +13,6 @@ use crate::{
     BridgePacketSurfaceCodec, bridge_packet_edit, bridge_packet_view, patch_edit_intent,
     receipt_edit_intent, review_edit_intent, vote_edit_intent,
 };
-
-fn cx() -> Cx {
-    Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory))
-}
 
 fn packet() -> BridgePacket {
     stamp_packet_cid(&BridgePacket {

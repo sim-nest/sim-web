@@ -1,8 +1,6 @@
 //! Tests for the workspace value, layout engine, and persistence.
 
-use std::sync::Arc;
-
-use sim_kernel::{Cx, DefaultFactory, EagerPolicy, Expr, Symbol};
+use sim_kernel::{Cx, Expr, Symbol, testing::eager_cx};
 
 use crate::layout::{LayoutOp, apply_layout_op, layout_op_from_intent};
 use crate::pane::{pane_dock, pane_id};
@@ -10,7 +8,7 @@ use crate::value::{as_int, get, new_workspace, panes};
 use crate::{focus, workspace_scene};
 
 fn cx() -> Cx {
-    let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = eager_cx();
     sim_test_support::register_core_classes(&mut cx);
     let lisp = sim_codec_lisp::LispCodecLib::new(cx.registry_mut().fresh_codec_id()).unwrap();
     cx.load_lib(&lisp).unwrap();

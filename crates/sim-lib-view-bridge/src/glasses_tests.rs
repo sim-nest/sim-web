@@ -1,10 +1,8 @@
-use std::sync::Arc;
-
 use sim_codec_bridge::{
     BridgeBook, BridgeFramePayload, BridgeHeader, BridgePacket, BridgePart, BridgeProvenance,
     packet_to_expr, stamp_packet_cid, warrant_for_packet,
 };
-use sim_kernel::{Cx, DefaultFactory, EagerPolicy, Expr, Symbol};
+use sim_kernel::{Expr, Symbol, testing::eager_cx as cx};
 use sim_lib_intent::{Origin, field, intent_kind_of, validate_intent};
 use sim_lib_scene::GlanceCard;
 use sim_lib_view::{SurfaceCaps, SurfaceCodec};
@@ -18,10 +16,6 @@ use crate::{
     WarrantReviewDecision, halo_warrant_glance_pager, viture_warrant_review_panel,
     warrant_review_intent, warrant_review_intent_from_glasses_input, warrant_review_mission,
 };
-
-fn cx() -> Cx {
-    Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory))
-}
 
 fn packet_with_warrant() -> BridgePacket {
     let mut packet = BridgePacket {
