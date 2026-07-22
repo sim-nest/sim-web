@@ -12,6 +12,7 @@ use sim_lib_intent::{field, intent_kind_of};
 use sim_lib_topology::{
     Edge, EdgeId, Graph, Node, NodeId, PatchOp, PortRef, TopologyPatch, apply_topology_patch_ops,
 };
+use sim_value::access::field as sub_field;
 
 /// Apply a composer Intent to `graph`, returning the new graph.
 ///
@@ -131,14 +132,4 @@ fn require_symbol(intent: &Expr, name: &str) -> Result<Symbol> {
             "composer intent field '{name}' must be a symbol"
         ))),
     }
-}
-
-fn sub_field<'a>(map: &'a Expr, name: &str) -> Option<&'a Expr> {
-    let Expr::Map(entries) = map else {
-        return None;
-    };
-    entries.iter().find_map(|(key, value)| {
-        matches!(key, Expr::Symbol(symbol) if &*symbol.name == name && symbol.namespace.is_none())
-            .then_some(value)
-    })
 }
