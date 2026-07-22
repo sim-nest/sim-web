@@ -14,7 +14,7 @@ sim-cookbook = { version = "0.1.0" }
 sim-kernel = { version = "0.1.0" }
 sim-lib-scene = { version = "0.1.0", path = "../sim-lib-scene" }
 sim-lib-server = { version = "0.1.0" }
-sim-lib-stream-core = { version = "0.1.0" }
+sim-lib-stream-core = { version = "0.1.2" }
 sim-lib-stream-fabric = { version = "0.1.0" }
 sim-lib-intent = { version = "0.1.0", path = "../sim-lib-intent" }
 sim-lib-view = { version = "0.1.0", path = "../sim-lib-view" }
