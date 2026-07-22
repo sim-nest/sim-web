@@ -6,6 +6,7 @@ use sim_kernel::{Cx, DefaultFactory, EagerPolicy, Expr, Symbol};
 use sim_lib_view::{
     LensRegistry, UNIVERSAL_EDITOR_ID, UNIVERSAL_VIEW_ID, register_universal_default,
 };
+use sim_value::build::entry;
 
 use crate::{FixtureTransport, Session};
 
@@ -26,10 +27,10 @@ pub fn session_fixture_demo() -> Expr {
         .expect("fixture session opens");
     debug_assert!(sim_lib_scene::validate_scene(&scene).is_ok());
     Expr::Map(vec![
-        field("transport", Expr::Symbol(Symbol::new("fixture"))),
-        field("resource", Expr::Symbol(resource())),
-        field("pane", Expr::Symbol(Symbol::new("pane-1"))),
-        field("scene", scene),
+        entry("transport", Expr::Symbol(Symbol::new("fixture"))),
+        entry("resource", Expr::Symbol(resource())),
+        entry("pane", Expr::Symbol(Symbol::new("pane-1"))),
+        entry("scene", scene),
     ])
 }
 
@@ -41,17 +42,13 @@ fn registry() -> LensRegistry {
 
 fn sample_value() -> Expr {
     Expr::Map(vec![
-        field("title", Expr::String("Fixture-backed session".to_owned())),
-        field("status", Expr::Symbol(Symbol::new("modeled"))),
+        entry("title", Expr::String("Fixture-backed session".to_owned())),
+        entry("status", Expr::Symbol(Symbol::new("modeled"))),
     ])
 }
 
 fn resource() -> Symbol {
     Symbol::qualified("doc", "cookbook")
-}
-
-fn field(key: &str, value: Expr) -> (Expr, Expr) {
-    (Expr::Symbol(Symbol::new(key)), value)
 }
 
 #[cfg(test)]
@@ -71,5 +68,14 @@ mod tests {
             })
             .expect("scene field exists");
         sim_lib_scene::validate_scene(scene).expect("session scene validates");
+    }
+
+    #[test]
+    fn canonical_entry_matches_session_cookbook_field_shape() {
+        let value = Expr::Symbol(Symbol::new("fixture"));
+        assert_eq!(
+            entry("transport", value.clone()),
+            (Expr::Symbol(Symbol::new("transport")), value)
+        );
     }
 }

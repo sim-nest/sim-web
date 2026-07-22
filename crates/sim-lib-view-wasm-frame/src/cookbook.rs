@@ -1,6 +1,7 @@
 //! Deterministic cookbook builders for the local view host facade.
 
 use sim_kernel::{Expr, NumberLiteral, Symbol};
+use sim_value::build::entry;
 
 use crate::BrowserHost;
 
@@ -16,17 +17,17 @@ pub fn host_loop_demo() -> Expr {
         .expect("host demo edit applies")
         .expect("host demo mutates");
     Expr::Map(vec![
-        field("initial-scene", initial_scene),
-        field("updated-scene", update.scene),
-        field("diff", update.diff),
-        field("value", host.value().clone()),
+        entry("initial-scene", initial_scene),
+        entry("updated-scene", update.scene),
+        entry("diff", update.diff),
+        entry("value", host.value().clone()),
     ])
 }
 
 fn sample_value() -> Expr {
     Expr::Map(vec![
-        field("title", Expr::String("Host loop sample".to_owned())),
-        field("count", number("1")),
+        entry("title", Expr::String("Host loop sample".to_owned())),
+        entry("count", number("1")),
     ])
 }
 
@@ -42,10 +43,6 @@ fn number(value: &str) -> Expr {
         domain: Symbol::new("i64"),
         canonical: value.to_owned(),
     })
-}
-
-fn field(key: &str, value: Expr) -> (Expr, Expr) {
-    (Expr::Symbol(Symbol::new(key)), value)
 }
 
 #[cfg(test)]
@@ -64,6 +61,15 @@ mod tests {
         sim_lib_scene::validate_scene(initial).expect("initial scene validates");
         sim_lib_scene::validate_scene(updated).expect("updated scene validates");
         assert_eq!(sim_lib_scene::apply(initial, diff).unwrap(), *updated);
+    }
+
+    #[test]
+    fn canonical_entry_matches_host_cookbook_field_shape() {
+        let value = Expr::String("Host loop sample".to_owned());
+        assert_eq!(
+            entry("title", value.clone()),
+            (Expr::Symbol(Symbol::new("title")), value)
+        );
     }
 
     fn lookup<'a>(entries: &'a [(Expr, Expr)], key: &str) -> &'a Expr {
