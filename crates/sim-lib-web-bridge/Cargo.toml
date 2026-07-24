@@ -13,9 +13,9 @@ homepage = "https://github.com/sim-nest/sim-web"
 sim-cookbook = { version = "0.1.0" }
 sim-kernel = { version = "0.1.0" }
 sim-lib-scene = { version = "0.1.0", path = "../sim-lib-scene" }
-sim-lib-server = { version = "0.1.0" }
+sim-lib-server = { version = "0.1.0", git = "https://github.com/sim-nest/sim-agent-net", rev = "8e6cbfb6a1c31d26185b06a77e92f08d68f6d3c3" }
 sim-lib-stream-core = { version = "0.1.2" }
-sim-lib-stream-fabric = { version = "0.1.0" }
+sim-lib-stream-fabric = { version = "0.1.0", git = "https://github.com/sim-nest/sim-agent-net", rev = "8e6cbfb6a1c31d26185b06a77e92f08d68f6d3c3" }
 sim-lib-intent = { version = "0.1.0", path = "../sim-lib-intent" }
 sim-lib-view = { version = "0.1.0", path = "../sim-lib-view" }
 sim-lib-view-device = { version = "0.1.0", path = "../sim-lib-view-device" }

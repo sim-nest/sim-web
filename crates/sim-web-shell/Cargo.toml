@@ -22,7 +22,7 @@ sim-codec-lisp = { version = "0.1.0" }
 sim-kernel = { version = "0.1.0" }
 sim-lib-net-core = { version = "0.1.0" }
 sim-run-core = { version = "0.1.5" }
-sim-lib-server = { version = "0.1.8" }
+sim-lib-server = { version = "0.1.8", git = "https://github.com/sim-nest/sim-agent-net", rev = "8e6cbfb6a1c31d26185b06a77e92f08d68f6d3c3" }
 sim-lib-stream-core = { version = "0.1.0" }
 sim-lib-view = { version = "0.1.0", path = "../sim-lib-view" }
 sim-lib-web-bridge = { version = "0.1.0", path = "../sim-lib-web-bridge" }
