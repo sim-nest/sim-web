@@ -69,4 +69,6 @@ mod placement_tests;
 #[cfg(test)]
 mod replay_tests;
 #[cfg(test)]
+mod surface_session_tests;
+#[cfg(test)]
 mod tests;

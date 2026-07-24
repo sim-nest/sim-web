@@ -95,7 +95,6 @@ claims_surfaces = [
   "view-edit/sim-lib-view-spatial",
   "view-edit/sim-lib-view-wasm-frame",
   "view-edit/sim-lib-web-bridge",
-  "view-edit/sim-web-shell",
 ]
 claims_specimens = [
   "spec-test/sim-web/crates/sim-lib-view/src/surface_tests",
@@ -128,6 +127,29 @@ claims_surfaces = [
 ]
 claims_specimens = [
   "spec-test/sim-web/crates/sim-lib-view-device/src/profile_tests",
+]
+
+[[feature]]
+id = "feature/sim-web/codec-surface-sessions"
+title = "Surface codec sessions"
+summary = "Drive browser and server sessions through one reversible SurfaceCodec contract for encode, decode, commit, projection, and isolation."
+owner = "crate/sim-lib-web-bridge"
+audiences = ["code", "framework"]
+guidance = "Use this row when a server or browser session needs the canonical reversible SurfaceCodec bridge instead of separate view and editor protocol ownership."
+claims_anchors = [
+  "anchor/crate/sim-lib-view",
+  "anchor/crate/sim-lib-web-bridge",
+  "anchor/export/sim-lib-view/surface-default",
+]
+claims_surfaces = [
+  "view-edit/sim-lib-web-bridge",
+]
+claims_specimens = [
+  "spec-test/sim-web/crates/sim-lib-web-bridge/src/surface_session_tests",
+]
+supports = [
+  "feature/sim-web/view-surface",
+  "feature/sim-web/device-surfaces",
 ]
 
 [[feature]]
@@ -237,6 +259,7 @@ task = "Expose a view surface"
 audiences = ["code", "framework"]
 steps = [
   { feature = "feature/sim-web/view-surface", why = "The sim-lib-view row owns the default view and reversible edit surfaces." },
+  { feature = "feature/sim-web/codec-surface-sessions", why = "The bridge session consumes one SurfaceCodec for encode, decode, commit, projection, and isolated pane state." },
   { feature = "feature/sim-web/device-surfaces", why = "Device profiles show how projection adapts to concrete surface caps." },
   { feature = "feature/sim-web/web-shell-host", why = "The web shell row shows how a browser host loads those surfaces." },
 ]

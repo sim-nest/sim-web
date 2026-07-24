@@ -19,7 +19,7 @@ use std::collections::BTreeMap;
 
 use sim_kernel::{Cx, Error, Expr, Result, Symbol};
 use sim_lib_view::surface::SurfaceCaps;
-use sim_lib_view::{LensRegistry, UNIVERSAL_EDITOR_ID, UNIVERSAL_VIEW_ID, surface};
+use sim_lib_view::{LensRegistry, UNIVERSAL_SURFACE_CODEC_ID, surface};
 
 use crate::session::{SceneUpdate, Session};
 use crate::transport::{SessionStatus, Transport};
@@ -34,12 +34,8 @@ pub const PHONE_PANE: &str = "phone:main";
 /// The maximum number of offline Intents a phone host may buffer.
 pub const MAX_PHONE_OFFLINE_QUEUE: usize = 128;
 
-fn universal_view() -> Symbol {
-    Symbol::new(UNIVERSAL_VIEW_ID)
-}
-
-fn universal_editor() -> Symbol {
-    Symbol::new(UNIVERSAL_EDITOR_ID)
+fn universal_surface_codec() -> Symbol {
+    Symbol::new(UNIVERSAL_SURFACE_CODEC_ID)
 }
 
 /// A phone host facade: a single-pane [`Session`] that caches the last rendered
@@ -76,13 +72,13 @@ impl<T: Transport> PhoneHost<T> {
     /// caches the initial Scene, and returns it.
     pub fn open(&mut self, cx: &mut Cx, registry: &LensRegistry, resource: Symbol) -> Result<Expr> {
         let pane = Self::pane();
-        let scene = self.session.open(
+        let scene = self.session.open_codec(
             cx,
             registry,
             pane.clone(),
             resource,
-            universal_view(),
-            universal_editor(),
+            universal_surface_codec(),
+            self.caps.clone(),
         )?;
         self.scenes.insert(pane, scene.clone());
         Ok(scene)
@@ -223,13 +219,13 @@ impl<T: Transport> DesktopHost<T> {
         pane: Symbol,
         resource: Symbol,
     ) -> Result<Expr> {
-        let scene = self.session.open(
+        let scene = self.session.open_codec(
             cx,
             registry,
             pane.clone(),
             resource,
-            universal_view(),
-            universal_editor(),
+            universal_surface_codec(),
+            self.caps.clone(),
         )?;
         if !self.panes.contains(&pane) {
             self.panes.push(pane);

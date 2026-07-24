@@ -2,13 +2,15 @@
 //!
 //! A session ties panes to resources over a [`Transport`]. Opening a value
 //! renders its Scene and subscribes the pane; submitting an Intent decodes it
-//! through the pane's editor, commits the operation through `realize`, and the
-//! transport records a change; pumping re-renders only the affected panes and
-//! returns a Scene diff (from P1) for each. The session never speaks a
+//! through the pane's surface codec, commits the operation through `realize`,
+//! and the transport records a change; pumping re-renders only the affected
+//! panes and returns a Scene diff (from P1) for each. The session never speaks a
 //! transport-specific API.
 
 use sim_kernel::{Cx, Error, Expr, Result, Symbol};
-use sim_lib_view::{LensRegistry, Mode, universal_scene};
+use sim_lib_view::{
+    LensRegistry, Mode, SurfaceCaps, UNIVERSAL_SURFACE_CODEC_ID, surface, universal_scene,
+};
 
 use crate::transport::{SessionStatus, Transport};
 
@@ -60,8 +62,9 @@ fn validate_resource_name(resource: &Symbol) -> Result<()> {
 struct Subscription {
     pane: Symbol,
     resource: Symbol,
-    view_lens: Symbol,
-    editor_lens: Symbol,
+    codec: Symbol,
+    caps: SurfaceCaps,
+    rendered_value: Expr,
     last_scene: Expr,
 }
 
@@ -140,42 +143,68 @@ impl<T: Transport> Session<T> {
         &mut self.transport
     }
 
-    /// Open `resource` into `pane` with the given view and editor lenses; render
-    /// and subscribe. Returns the initial Scene.
-    pub fn open(
+    /// Open `resource` into `pane` with a canonical reversible surface codec;
+    /// render and subscribe. Returns the initial Scene.
+    pub fn open_codec(
         &mut self,
         cx: &mut Cx,
         registry: &LensRegistry,
         pane: Symbol,
         resource: Symbol,
-        view_lens: Symbol,
-        editor_lens: Symbol,
+        codec: Symbol,
+        caps: SurfaceCaps,
     ) -> Result<Expr> {
         validate_pane_name(&pane)?;
         validate_resource_name(&resource)?;
-        // Opening a brand-new pane (not re-opening an existing one) must not push
-        // the session past its pane cap.
         let replacing = self.subscriptions.iter().any(|sub| sub.pane == pane);
         if !replacing && self.subscriptions.len() >= MAX_PANES {
             return Err(Error::HostError(format!(
                 "session is at its pane limit ({MAX_PANES}); close a pane before opening another"
             )));
         }
+        let surface_codec = registry
+            .surface_codec(&codec)
+            .ok_or_else(|| Error::UnknownSymbol {
+                symbol: codec.clone(),
+            })?;
         let value = self.transport.read(&resource)?;
-        let scene = registry.render(cx, &view_lens, &value)?;
+        let scene = surface_codec.encode(cx, &value, &caps)?;
         self.subscriptions.retain(|sub| sub.pane != pane);
         self.subscriptions.push(Subscription {
             pane,
             resource,
-            view_lens,
-            editor_lens,
+            codec,
+            caps,
+            rendered_value: value,
             last_scene: scene.clone(),
         });
         Ok(scene)
     }
 
+    /// Compatibility adapter for callers that still pass split view/editor lens
+    /// ids. The bridge session itself stores the canonical
+    /// [`SurfaceCodec`](sim_lib_view::SurfaceCodec) id and surface caps.
+    pub fn open(
+        &mut self,
+        cx: &mut Cx,
+        registry: &LensRegistry,
+        pane: Symbol,
+        resource: Symbol,
+        _view_lens: Symbol,
+        _editor_lens: Symbol,
+    ) -> Result<Expr> {
+        self.open_codec(
+            cx,
+            registry,
+            pane,
+            resource,
+            Symbol::new(UNIVERSAL_SURFACE_CODEC_ID),
+            surface::preset("desktop").expect("desktop is a known surface preset"),
+        )
+    }
+
     /// Submit an Intent against the value shown in `pane`: decode through the
-    /// pane's editor and commit the operation through `realize`.
+    /// pane's surface codec and commit the operation through `realize`.
     pub fn submit_intent(
         &mut self,
         cx: &mut Cx,
@@ -183,17 +212,53 @@ impl<T: Transport> Session<T> {
         pane: &Symbol,
         intent: &Expr,
     ) -> Result<()> {
-        let (resource, editor) = {
+        self.submit_intent_with_policy(cx, registry, pane, intent, false)
+    }
+
+    /// Submit an Intent only if the pane still reflects the value rendered when
+    /// it was last opened or pumped. This is the optimistic revision path for
+    /// browser clients that include a rendered frame revision in their request.
+    pub fn submit_intent_at_rendered_revision(
+        &mut self,
+        cx: &mut Cx,
+        registry: &LensRegistry,
+        pane: &Symbol,
+        intent: &Expr,
+    ) -> Result<()> {
+        self.submit_intent_with_policy(cx, registry, pane, intent, true)
+    }
+
+    fn submit_intent_with_policy(
+        &mut self,
+        cx: &mut Cx,
+        registry: &LensRegistry,
+        pane: &Symbol,
+        intent: &Expr,
+        require_rendered_revision: bool,
+    ) -> Result<()> {
+        let (resource, codec, rendered_value) = {
             let sub = self
                 .subscriptions
                 .iter()
                 .find(|sub| &sub.pane == pane)
                 .ok_or_else(|| Error::HostError(format!("pane '{pane}' is not open")))?;
-            (sub.resource.clone(), sub.editor_lens.clone())
+            (
+                sub.resource.clone(),
+                sub.codec.clone(),
+                sub.rendered_value.clone(),
+            )
         };
         let value = self.transport.read(&resource)?;
-        let draft = registry.propose(cx, &editor, &value, intent)?;
-        let operation = registry.commit(cx, &editor, &draft)?;
+        if require_rendered_revision && value != rendered_value {
+            return Err(Error::HostError(format!(
+                "pane '{pane}' is stale; pump or reopen before committing"
+            )));
+        }
+        let surface_codec = registry
+            .surface_codec(&codec)
+            .ok_or(Error::UnknownSymbol { symbol: codec })?;
+        let draft = surface_codec.decode(cx, &value, intent)?;
+        let operation = surface_codec.commit(cx, &draft)?;
         self.transport.realize_operation(&resource, &operation)?;
         Ok(())
     }
@@ -214,8 +279,15 @@ impl<T: Transport> Session<T> {
                 .filter(|sub| sub.resource == event.resource)
             {
                 let value = transport.read(&sub.resource)?;
-                let scene = registry.render(cx, &sub.view_lens, &value)?;
+                let surface_codec =
+                    registry
+                        .surface_codec(&sub.codec)
+                        .ok_or_else(|| Error::UnknownSymbol {
+                            symbol: sub.codec.clone(),
+                        })?;
+                let scene = surface_codec.encode(cx, &value, &sub.caps)?;
                 let diff = sim_lib_scene::diff(&sub.last_scene, &scene);
+                sub.rendered_value = value;
                 sub.last_scene = scene.clone();
                 updates.push(SceneUpdate {
                     pane: sub.pane.clone(),
