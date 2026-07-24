@@ -79,7 +79,7 @@ fn replaying_an_intent_stream_reconstructs_value_and_scene() {
     let updates = session.pump(&mut cx, &registry).unwrap();
 
     // The resulting value reflects every Intent.
-    let value = session.transport_mut().read(&sym("doc")).unwrap();
+    let value = session.transport_mut().read(&mut cx, &sym("doc")).unwrap();
     assert_eq!(field(&value, "a"), Some(number("9")));
     assert_eq!(field(&value, "b"), Some(number("8")));
 

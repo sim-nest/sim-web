@@ -173,6 +173,26 @@ supports = [
 ]
 
 [[feature]]
+id = "feature/sim-web/server-backed-web-sessions"
+title = "Server-backed web sessions"
+summary = "Connect RemoteTransport to the existing SIM server transport so browser sessions read, commit, drain changes, reconnect, and report revision conflicts through ordinary server eval requests."
+owner = "crate/sim-lib-web-bridge"
+audiences = ["code", "framework"]
+guidance = "Use this row when a browser or wasm host needs the canonical web Session bridge backed by sim-lib-server rather than an in-memory fixture or local fabric."
+claims_anchors = [
+  "anchor/crate/sim-lib-web-bridge",
+]
+claims_surfaces = [
+  "view-edit/sim-lib-web-bridge",
+]
+claims_specimens = [
+  "spec-test/sim-web/crates/sim-lib-web-bridge/src/remote_tests",
+]
+supports = [
+  "feature/sim-web/codec-surface-sessions",
+]
+
+[[feature]]
 id = "feature/sim-web/web-shell-host"
 title = "Web shell host"
 summary = "Serve browser-facing surfaces through loaded web shell runtime libraries and command entry points."
@@ -282,6 +302,16 @@ steps = [
   { feature = "feature/sim-web/codec-surface-sessions", why = "The bridge session consumes one SurfaceCodec for encode, decode, commit, projection, and isolated pane state." },
   { feature = "feature/sim-web/device-surfaces", why = "Device profiles show how projection adapts to concrete surface caps." },
   { feature = "feature/sim-web/web-shell-host", why = "The web shell row shows how a browser host loads those surfaces." },
+]
+
+[[route]]
+id = "route/add-server-backed-web-session"
+task = "Add a server-backed web session"
+audiences = ["code", "framework"]
+steps = [
+  { feature = "feature/sim-web/codec-surface-sessions", why = "The bridge session owns reversible surface encode, decode, commit, and pane isolation." },
+  { feature = "feature/sim-web/server-backed-web-sessions", why = "RemoteTransport composes that session with sim-lib-server transport negotiation and eval request frames." },
+  { specimen = "spec-test/sim-web/crates/sim-lib-web-bridge/src/remote_tests", why = "The remote transport test performs real in-process server round trips, reconnect, close, and stale-revision failure." },
 ]
 
 [[route]]

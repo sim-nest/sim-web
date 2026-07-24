@@ -167,7 +167,7 @@ impl<T: Transport> Session<T> {
             .ok_or_else(|| Error::UnknownSymbol {
                 symbol: codec.clone(),
             })?;
-        let value = self.transport.read(&resource)?;
+        let value = self.transport.read(cx, &resource)?;
         let scene = surface_codec.encode(cx, &value, &caps)?;
         self.subscriptions.retain(|sub| sub.pane != pane);
         self.subscriptions.push(Subscription {
@@ -248,25 +248,29 @@ impl<T: Transport> Session<T> {
                 sub.rendered_value.clone(),
             )
         };
-        let value = self.transport.read(&resource)?;
-        if require_rendered_revision && value != rendered_value {
-            return Err(Error::HostError(format!(
-                "pane '{pane}' is stale; pump or reopen before committing"
-            )));
-        }
+        let value = if require_rendered_revision {
+            rendered_value.clone()
+        } else {
+            self.transport.read(cx, &resource)?
+        };
         let surface_codec = registry
             .surface_codec(&codec)
             .ok_or(Error::UnknownSymbol { symbol: codec })?;
         let draft = surface_codec.decode(cx, &value, intent)?;
         let operation = surface_codec.commit(cx, &draft)?;
-        self.transport.realize_operation(&resource, &operation)?;
+        self.transport.commit_operation(
+            cx,
+            &resource,
+            &operation,
+            require_rendered_revision.then_some(&rendered_value),
+        )?;
         Ok(())
     }
 
     /// Drain pending changes and re-render only the affected panes, returning a
     /// Scene update (with diff) for each.
     pub fn pump(&mut self, cx: &mut Cx, registry: &LensRegistry) -> Result<Vec<SceneUpdate>> {
-        let events = self.transport.drain_events();
+        let events = self.transport.drain_events(cx)?;
         let mut updates = Vec::new();
         let Self {
             transport,
@@ -278,7 +282,7 @@ impl<T: Transport> Session<T> {
                 .iter_mut()
                 .filter(|sub| sub.resource == event.resource)
             {
-                let value = transport.read(&sub.resource)?;
+                let value = transport.read(cx, &sub.resource)?;
                 let surface_codec =
                     registry
                         .surface_codec(&sub.codec)

@@ -119,7 +119,7 @@ fn open_render_edit_commit_and_observe_the_updated_scene() {
         .unwrap();
 
     // The runtime value changed.
-    let value = session.transport_mut().read(&sym("doc")).unwrap();
+    let value = session.transport_mut().read(&mut cx, &sym("doc")).unwrap();
     let Expr::Map(entries) = &value else {
         panic!("doc is a map")
     };
@@ -231,6 +231,7 @@ fn capability_denied_actions_are_never_silently_executed() {
 
 #[test]
 fn transports_are_interchangeable_behind_one_trait() {
+    let mut cx = cx();
     let fixture = FixtureTransport::new();
     assert_eq!(fixture.kind(), TransportKind::Fixture);
     assert_eq!(fixture.status(), SessionStatus::Connected);
@@ -240,16 +241,17 @@ fn transports_are_interchangeable_behind_one_trait() {
         RemoteTransport::local_server("http://localhost:8787"),
         RemoteTransport::remote_server("https://sim.example"),
     ] {
-        // Network transports report Disconnected and fail closed until wired.
+        // Remote transports start disconnected and fail closed until a real
+        // server endpoint is connected.
         assert_eq!(transport.status(), SessionStatus::Disconnected);
-        assert!(transport.read(&sym("doc")).is_err());
-        transport.connect();
+        assert!(transport.read(&mut cx, &sym("doc")).is_err());
+        assert!(transport.connect(&mut cx).is_err());
         assert_eq!(
             transport.status(),
             SessionStatus::Disconnected,
-            "placeholder remote transports must not report live until data operations exist"
+            "unavailable remote transports must not report live"
         );
-        assert!(transport.realize(&sym("doc"), &Expr::Nil).is_err());
+        assert!(transport.realize(&mut cx, &sym("doc"), &Expr::Nil).is_err());
     }
 }
 
@@ -322,11 +324,12 @@ fn web_stream_operation_names_map_to_fabric_controls() {
 
 #[test]
 fn fixture_transport_supports_deterministic_finite_streams() {
+    let mut cx = cx();
     let metadata = pcm_metadata("stream/web-finite", 4);
     let mut transport = FixtureTransport::new()
         .with_finite_stream(metadata.clone(), vec![pcm_item(1.0), pcm_item(2.0)]);
 
-    let inspector = transport.stream_subscribe(metadata.id()).unwrap();
+    let inspector = transport.stream_subscribe(&mut cx, metadata.id()).unwrap();
     assert_eq!(inspector.stream_id, metadata.id().clone());
     assert_eq!(inspector.status, BrowserStreamStatus::Live);
     assert_eq!(inspector.buffered, 2);
@@ -335,24 +338,37 @@ fn fixture_transport_supports_deterministic_finite_streams() {
     assert_eq!(inspector.snapshot.last_sequence, Some(1));
     assert_eq!(inspector.snapshot.status, StreamInspectorStatus::Live);
 
-    let first = transport.stream_read(metadata.id(), 1).unwrap();
+    let first = transport.stream_read(&mut cx, metadata.id(), 1).unwrap();
     assert_eq!(first.len(), 1);
-    assert_eq!(transport.stream_stats(metadata.id()).unwrap().yielded, 1);
     assert_eq!(
-        transport.stream_inspector(metadata.id()).unwrap().buffered,
+        transport
+            .stream_stats(&mut cx, metadata.id())
+            .unwrap()
+            .yielded,
+        1
+    );
+    assert_eq!(
+        transport
+            .stream_inspector(&mut cx, metadata.id())
+            .unwrap()
+            .buffered,
         1
     );
 
-    let rest = transport.stream_read(metadata.id(), 8).unwrap();
+    let rest = transport.stream_read(&mut cx, metadata.id(), 8).unwrap();
     assert_eq!(rest.len(), 1);
     assert_eq!(
-        transport.stream_inspector(metadata.id()).unwrap().status,
+        transport
+            .stream_inspector(&mut cx, metadata.id())
+            .unwrap()
+            .status,
         BrowserStreamStatus::Ended
     );
 }
 
 #[test]
 fn fixture_stream_inspector_reports_browser_statuses() {
+    let mut cx = cx();
     let finite_metadata = pcm_metadata("stream/status-finite", 4);
     let push_metadata = pcm_metadata_with_overflow("stream/status-push", 1);
     let mut transport = FixtureTransport::new()
@@ -360,7 +376,9 @@ fn fixture_stream_inspector_reports_browser_statuses() {
         .with_push_stream(push_metadata.clone());
 
     transport.disconnect();
-    let disconnected = transport.stream_inspector(finite_metadata.id()).unwrap();
+    let disconnected = transport
+        .stream_inspector(&mut cx, finite_metadata.id())
+        .unwrap();
     assert_eq!(disconnected.status, BrowserStreamStatus::Disconnected);
     assert_eq!(
         disconnected.snapshot.status,
@@ -369,7 +387,7 @@ fn fixture_stream_inspector_reports_browser_statuses() {
     transport.begin_reconnect();
     assert_eq!(
         transport
-            .stream_inspector(finite_metadata.id())
+            .stream_inspector(&mut cx, finite_metadata.id())
             .unwrap()
             .status,
         BrowserStreamStatus::Reconnecting
@@ -381,7 +399,9 @@ fn fixture_stream_inspector_reports_browser_statuses() {
             Symbol::qualified("stream/fabric", "RefusedProfile"),
         )
         .unwrap();
-    let inspector = transport.stream_inspector(finite_metadata.id()).unwrap();
+    let inspector = transport
+        .stream_inspector(&mut cx, finite_metadata.id())
+        .unwrap();
     assert_eq!(inspector.status, BrowserStreamStatus::RefusedProfile);
     assert_eq!(
         inspector.snapshot.status,
@@ -394,36 +414,46 @@ fn fixture_stream_inspector_reports_browser_statuses() {
 
     assert!(matches!(
         transport
-            .stream_push(push_metadata.id(), pcm_envelope(push_metadata.id(), 0, 1.0))
+            .stream_push(
+                &mut cx,
+                push_metadata.id(),
+                pcm_envelope(push_metadata.id(), 0, 1.0)
+            )
             .unwrap(),
         sim_lib_stream_core::PushResult::Accepted
     ));
     assert!(matches!(
         transport
-            .stream_push(push_metadata.id(), pcm_envelope(push_metadata.id(), 1, 2.0))
+            .stream_push(
+                &mut cx,
+                push_metadata.id(),
+                pcm_envelope(push_metadata.id(), 1, 2.0)
+            )
             .unwrap(),
         sim_lib_stream_core::PushResult::Rejected(_)
     ));
     assert_eq!(
         transport
-            .stream_inspector(push_metadata.id())
+            .stream_inspector(&mut cx, push_metadata.id())
             .unwrap()
             .status,
         BrowserStreamStatus::BufferOverflow
     );
     assert_eq!(
         transport
-            .stream_inspector(push_metadata.id())
+            .stream_inspector(&mut cx, push_metadata.id())
             .unwrap()
             .snapshot
             .status,
         StreamInspectorStatus::BufferOverflow
     );
 
-    transport.stream_cancel(push_metadata.id()).unwrap();
+    transport
+        .stream_cancel(&mut cx, push_metadata.id())
+        .unwrap();
     assert_eq!(
         transport
-            .stream_inspector(push_metadata.id())
+            .stream_inspector(&mut cx, push_metadata.id())
             .unwrap()
             .status,
         BrowserStreamStatus::Cancelled

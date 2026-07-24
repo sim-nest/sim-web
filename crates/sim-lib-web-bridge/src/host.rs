@@ -386,7 +386,7 @@ mod tests {
         assert_eq!(resumed.len(), 2, "one frame per replayed edit, in order");
 
         // The final value reflects BOTH queued edits (b := 8 then a := 30).
-        let value = phone.transport_mut().read(&sym("doc")).unwrap();
+        let value = phone.transport_mut().read(&mut cx, &sym("doc")).unwrap();
         assert_eq!(field_of(&value, "a"), Some(number("30")));
         assert_eq!(field_of(&value, "b"), Some(number("8")));
 
@@ -422,7 +422,7 @@ mod tests {
         );
 
         // Only the first edit took effect; the trailing edit never ran.
-        let value = phone.transport_mut().read(&sym("doc")).unwrap();
+        let value = phone.transport_mut().read(&mut cx, &sym("doc")).unwrap();
         assert_eq!(field_of(&value, "b"), Some(number("8")), "b := 8 applied");
         assert_eq!(
             field_of(&value, "a"),

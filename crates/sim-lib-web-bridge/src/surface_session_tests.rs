@@ -103,7 +103,10 @@ fn codec_session_encodes_decodes_commits_and_pumps() {
     let rebuilt = sim_lib_scene::apply(&initial, &updates[0].diff).unwrap();
     assert_eq!(rebuilt, updates[0].scene);
     assert_eq!(
-        sim_value::access::field(&session.transport_mut().read(&sym("doc")).unwrap(), "a"),
+        sim_value::access::field(
+            &session.transport_mut().read(&mut cx, &sym("doc")).unwrap(),
+            "a"
+        ),
         Some(&number("9"))
     );
 }
@@ -141,7 +144,7 @@ fn optimistic_revision_failure_requires_a_fresh_pump() {
 
     let updates = session.pump(&mut cx, &registry).unwrap();
     assert_eq!(updates.len(), 2, "both panes refresh to the new revision");
-    let fresh_value = session.transport_mut().read(&sym("doc")).unwrap();
+    let fresh_value = session.transport_mut().read(&mut cx, &sym("doc")).unwrap();
     session
         .submit_intent_at_rendered_revision(
             &mut cx,
@@ -219,7 +222,10 @@ fn sessions_are_isolated_by_transport_and_subscription_state() {
     assert_eq!(first_updates.len(), 1);
     assert!(second_updates.is_empty());
     assert_eq!(
-        sim_value::access::field(&second.transport_mut().read(&sym("doc")).unwrap(), "a"),
+        sim_value::access::field(
+            &second.transport_mut().read(&mut cx, &sym("doc")).unwrap(),
+            "a"
+        ),
         Some(&number("1"))
     );
 }

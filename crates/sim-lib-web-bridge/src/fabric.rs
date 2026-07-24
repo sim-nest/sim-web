@@ -12,15 +12,12 @@
 //!
 //! This transport does not provide streams; the stream methods fail closed.
 
-use std::collections::BTreeMap;
-use std::sync::Arc;
-
 use sim_kernel::{
-    Consistency, Cx, DefaultFactory, EagerPolicy, Error, EvalFabricRef, EvalMode, EvalRequest,
-    Expr, Result, Symbol,
+    Consistency, Cx, Error, EvalFabricRef, EvalMode, EvalRequest, Expr, Result, Symbol,
 };
 use sim_lib_stream_core::{PushResult, StreamEnvelope, StreamItem, StreamStats};
 use sim_lib_view::Operation;
+use std::collections::BTreeMap;
 
 use crate::transport::{
     ChangeEvent, SessionStatus, StreamInspectorRecord, Transport, TransportKind,
@@ -34,7 +31,6 @@ use crate::transport::{
 /// the new value of the realized resource.
 pub struct FabricTransport {
     fabric: EvalFabricRef,
-    cx: Cx,
     store: BTreeMap<Symbol, Expr>,
     events: Vec<ChangeEvent>,
     status: SessionStatus,
@@ -45,7 +41,6 @@ impl FabricTransport {
     pub fn new(fabric: EvalFabricRef) -> Self {
         Self {
             fabric,
-            cx: Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory)),
             store: BTreeMap::new(),
             events: Vec::new(),
             status: SessionStatus::Connected,
@@ -77,7 +72,7 @@ impl Transport for FabricTransport {
         self.status
     }
 
-    fn read(&self, resource: &Symbol) -> Result<Expr> {
+    fn read(&mut self, _cx: &mut Cx, resource: &Symbol) -> Result<Expr> {
         self.store
             .get(resource)
             .cloned()
@@ -86,11 +81,16 @@ impl Transport for FabricTransport {
             })
     }
 
-    fn realize_operation(&mut self, resource: &Symbol, operation: &Operation) -> Result<Expr> {
+    fn realize_operation(
+        &mut self,
+        cx: &mut Cx,
+        resource: &Symbol,
+        operation: &Operation,
+    ) -> Result<Expr> {
         let request = operation_to_request(operation);
-        let reply = self.fabric.realize(&mut self.cx, request)?;
-        let new_value = reply.value.object().as_expr(&mut self.cx)?;
-        validate_reply_shape(&mut self.cx, operation, &new_value)?;
+        let reply = self.fabric.realize(cx, request)?;
+        let new_value = reply.value.object().as_expr(cx)?;
+        validate_reply_shape(cx, operation, &new_value)?;
         self.store.insert(resource.clone(), new_value.clone());
         self.events.push(ChangeEvent {
             resource: resource.clone(),
@@ -98,35 +98,49 @@ impl Transport for FabricTransport {
         Ok(new_value)
     }
 
-    fn drain_events(&mut self) -> Vec<ChangeEvent> {
-        std::mem::take(&mut self.events)
+    fn drain_events(&mut self, _cx: &mut Cx) -> Result<Vec<ChangeEvent>> {
+        Ok(std::mem::take(&mut self.events))
     }
 
-    fn stream_subscribe(&mut self, _stream_id: &Symbol) -> Result<StreamInspectorRecord> {
+    fn stream_subscribe(
+        &mut self,
+        _cx: &mut Cx,
+        _stream_id: &Symbol,
+    ) -> Result<StreamInspectorRecord> {
         Err(self.no_streams())
     }
 
-    fn stream_read(&mut self, _stream_id: &Symbol, _limit: usize) -> Result<Vec<StreamItem>> {
+    fn stream_read(
+        &mut self,
+        _cx: &mut Cx,
+        _stream_id: &Symbol,
+        _limit: usize,
+    ) -> Result<Vec<StreamItem>> {
         Err(self.no_streams())
     }
 
     fn stream_push(
         &mut self,
+        _cx: &mut Cx,
         _stream_id: &Symbol,
         _envelope: StreamEnvelope,
     ) -> Result<PushResult> {
         Err(self.no_streams())
     }
 
-    fn stream_cancel(&mut self, _stream_id: &Symbol) -> Result<()> {
+    fn stream_cancel(&mut self, _cx: &mut Cx, _stream_id: &Symbol) -> Result<()> {
         Err(self.no_streams())
     }
 
-    fn stream_stats(&self, _stream_id: &Symbol) -> Result<StreamStats> {
+    fn stream_stats(&mut self, _cx: &mut Cx, _stream_id: &Symbol) -> Result<StreamStats> {
         Err(self.no_streams())
     }
 
-    fn stream_inspector(&self, _stream_id: &Symbol) -> Result<StreamInspectorRecord> {
+    fn stream_inspector(
+        &mut self,
+        _cx: &mut Cx,
+        _stream_id: &Symbol,
+    ) -> Result<StreamInspectorRecord> {
         Err(self.no_streams())
     }
 }
@@ -303,7 +317,7 @@ mod tests {
             .unwrap();
 
         // The fabric-stored value changed.
-        let value = session.transport_mut().read(&sym("doc")).unwrap();
+        let value = session.transport_mut().read(&mut cx, &sym("doc")).unwrap();
         assert_eq!(sim_value::access::field(&value, "a"), Some(&number("9")));
 
         // Pumping yields a diff that reconstructs the new Scene from the old one.
@@ -318,19 +332,20 @@ mod tests {
 
     #[test]
     fn direct_realize_returns_the_new_value_and_records_one_event() {
+        let mut cx = cx();
         let mut transport = FabricTransport::new(Arc::new(SetValueFabric));
         assert_eq!(transport.kind(), TransportKind::Fabric);
 
         let new_value = transport
-            .realize(&sym("x"), &set_value_op(number("42")))
+            .realize(&mut cx, &sym("x"), &set_value_op(number("42")))
             .unwrap();
         assert_eq!(new_value, number("42"));
-        assert_eq!(transport.read(&sym("x")).unwrap(), number("42"));
+        assert_eq!(transport.read(&mut cx, &sym("x")).unwrap(), number("42"));
 
-        let events = transport.drain_events();
+        let events = transport.drain_events(&mut cx).unwrap();
         assert_eq!(events.len(), 1);
         assert_eq!(events[0].resource, sym("x"));
-        assert!(transport.drain_events().is_empty());
+        assert!(transport.drain_events(&mut cx).unwrap().is_empty());
     }
 
     #[test]
@@ -355,12 +370,13 @@ mod tests {
 
     #[test]
     fn fabric_reply_must_match_the_operation_result_shape_before_storage_changes() {
+        let mut cx = cx();
         let mut transport =
             FabricTransport::new(Arc::new(StringReplyFabric)).with(sym("doc"), number("1"));
         let operation = Operation::new(set_value_op(number("2"))).with_result_shape(number_shape());
 
         let err = transport
-            .realize_operation(&sym("doc"), &operation)
+            .realize_operation(&mut cx, &sym("doc"), &operation)
             .unwrap_err();
 
         assert!(
@@ -368,7 +384,7 @@ mod tests {
                 .contains("fabric reply failed operation result_shape"),
             "unexpected error: {err}"
         );
-        assert_eq!(transport.read(&sym("doc")).unwrap(), number("1"));
-        assert!(transport.drain_events().is_empty());
+        assert_eq!(transport.read(&mut cx, &sym("doc")).unwrap(), number("1"));
+        assert!(transport.drain_events(&mut cx).unwrap().is_empty());
     }
 }

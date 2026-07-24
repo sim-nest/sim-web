@@ -6,19 +6,31 @@ use std::process::Command;
 
 pub fn run(args: Vec<String>) -> Result<(), String> {
     let program = args.first().map(String::as_str).unwrap_or("xtask");
-    if args.get(1).map(String::as_str) != Some("simdoc") {
-        return Err(format!("usage: {program} simdoc [--check]"));
-    }
+    let command_name = args.get(1).map(String::as_str);
 
     let root = env::current_dir().map_err(|err| format!("current dir: {err}"))?;
     let manifest = locate_sim_tooling_manifest(&root)?;
     let mut command = Command::new("cargo");
     command.args(["run", "--manifest-path"]);
     command.arg(manifest);
-    command.args(["--quiet", "--", "simdoc", "--repo-root"]);
-    command.arg(&root);
-    for arg in args.iter().skip(2) {
-        command.arg(arg);
+    command.args(["--quiet", "--"]);
+    match command_name {
+        Some("simdoc") => {
+            command.args(["simdoc", "--repo-root"]);
+            command.arg(&root);
+            for arg in args.iter().skip(2) {
+                command.arg(arg);
+            }
+        }
+        Some("check-file-sizes") if args.len() == 2 => {
+            command.args(["check-file-sizes", "--repo-root"]);
+            command.arg(&root);
+        }
+        _ => {
+            return Err(format!(
+                "usage: {program} simdoc [--check] | check-file-sizes"
+            ));
+        }
     }
 
     let status = command
