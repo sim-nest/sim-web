@@ -94,6 +94,14 @@ export function intentFromEmit(emit, pane, operator, tick) {
       ...fieldValueMetadata(emit),
     };
   }
+  if (emit.type === "tree-disclosure") {
+    return {
+      kind: "intent/tree-disclosure",
+      origin: o,
+      target: emit.target,
+      open: Boolean(emit.open),
+    };
+  }
   if (emit.type === "performance") {
     return {
       kind: "intent/performance-event",

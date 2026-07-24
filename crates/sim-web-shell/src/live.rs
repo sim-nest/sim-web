@@ -37,9 +37,7 @@ use std::sync::Arc;
 
 use sim_codec_json::{JsonProjectionMode, project_expr_to_json, project_json_to_expr};
 use sim_kernel::{Cx, DefaultFactory, EagerPolicy, Expr, Result as SimResult, Symbol};
-use sim_lib_view::{
-    LensRegistry, UNIVERSAL_EDITOR_ID, UNIVERSAL_VIEW_ID, register_universal_default,
-};
+use sim_lib_view::{LensRegistry, UNIVERSAL_SURFACE_CODEC_ID, register_universal_default, surface};
 use sim_lib_web_bridge::{FixtureTransport, SceneUpdate, Session};
 
 /// The namespace every Intent `kind` symbol lives in (mirrors `sim-lib-intent`).
@@ -78,13 +76,13 @@ impl LiveSession {
         // boot runtime (that goes through sim_run_core::Bootloader). It owns its cx.
         let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory)); // bin-boot-exempt
         let mut session = Session::new(transport);
-        session.open(
+        session.open_codec(
             &mut cx,
             &registry,
             Symbol::new(DEFAULT_PANE),
             Symbol::new(DEFAULT_RESOURCE),
-            Symbol::new(UNIVERSAL_VIEW_ID),
-            Symbol::new(UNIVERSAL_EDITOR_ID),
+            Symbol::new(UNIVERSAL_SURFACE_CODEC_ID),
+            surface::preset("webui").expect("webui is a known surface preset"),
         )?;
         Ok(Self {
             session,
@@ -96,13 +94,13 @@ impl LiveSession {
     /// Open `resource` into `pane` through the universal default lenses and
     /// return its initial Scene.
     pub fn open(&mut self, resource: &str, pane: &str) -> SimResult<Expr> {
-        self.session.open(
+        self.session.open_codec(
             &mut self.cx,
             &self.registry,
             Symbol::new(pane),
             Symbol::new(resource),
-            Symbol::new(UNIVERSAL_VIEW_ID),
-            Symbol::new(UNIVERSAL_EDITOR_ID),
+            Symbol::new(UNIVERSAL_SURFACE_CODEC_ID),
+            surface::preset("webui").expect("webui is a known surface preset"),
         )
     }
 

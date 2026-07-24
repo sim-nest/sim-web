@@ -9,7 +9,7 @@
 
 use std::collections::BTreeMap;
 
-use sim_kernel::{Error, Expr, Result, Symbol};
+use sim_kernel::{Cx, Error, Expr, Result, Symbol};
 
 use crate::transport::Transport;
 
@@ -48,12 +48,13 @@ impl History {
     /// forward and inverse operations. Clears the redo stack.
     pub fn commit<T: Transport>(
         &mut self,
+        cx: &mut Cx,
         transport: &mut T,
         resource: &Symbol,
         new_value: Expr,
     ) -> Result<()> {
-        let old_value = transport.read(resource)?;
-        transport.realize(resource, &set_value_op(new_value.clone()))?;
+        let old_value = transport.read(cx, resource)?;
+        transport.realize(cx, resource, &set_value_op(new_value.clone()))?;
         self.past.push(LedgerEntry {
             resource: resource.clone(),
             forward: set_value_op(new_value),
@@ -65,22 +66,22 @@ impl History {
 
     /// Undo the most recent edit by replaying its inverse operation. Returns the
     /// resource that changed, or `None` if there is nothing to undo.
-    pub fn undo<T: Transport>(&mut self, transport: &mut T) -> Result<Option<Symbol>> {
+    pub fn undo<T: Transport>(&mut self, cx: &mut Cx, transport: &mut T) -> Result<Option<Symbol>> {
         let Some(entry) = self.past.pop() else {
             return Ok(None);
         };
-        transport.realize(&entry.resource, &entry.inverse)?;
+        transport.realize(cx, &entry.resource, &entry.inverse)?;
         let resource = entry.resource.clone();
         self.future.push(entry);
         Ok(Some(resource))
     }
 
     /// Redo the most recently undone edit by replaying its forward operation.
-    pub fn redo<T: Transport>(&mut self, transport: &mut T) -> Result<Option<Symbol>> {
+    pub fn redo<T: Transport>(&mut self, cx: &mut Cx, transport: &mut T) -> Result<Option<Symbol>> {
         let Some(entry) = self.future.pop() else {
             return Ok(None);
         };
-        transport.realize(&entry.resource, &entry.forward)?;
+        transport.realize(cx, &entry.resource, &entry.forward)?;
         let resource = entry.resource.clone();
         self.past.push(entry);
         Ok(Some(resource))

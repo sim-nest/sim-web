@@ -6,6 +6,7 @@ use crate::fixture::FixtureTransport;
 use crate::history::{History, SessionLog, Snapshots, annotate};
 use crate::transport::Transport;
 
+use sim_kernel::testing::eager_cx as cx;
 use sim_value::build::keyword as sym;
 
 fn number(value: &str) -> Expr {
@@ -20,32 +21,36 @@ fn undo_and_redo_replay_real_inverse_operations() {
     let v0 = number("0");
     let v1 = number("1");
     let v2 = number("2");
+    let mut cx = cx();
     let mut transport = FixtureTransport::new().with(sym("doc"), v0.clone());
     let mut history = History::new();
 
     history
-        .commit(&mut transport, &sym("doc"), v1.clone())
+        .commit(&mut cx, &mut transport, &sym("doc"), v1.clone())
         .unwrap();
     history
-        .commit(&mut transport, &sym("doc"), v2.clone())
+        .commit(&mut cx, &mut transport, &sym("doc"), v2.clone())
         .unwrap();
-    assert_eq!(transport.read(&sym("doc")).unwrap(), v2);
+    assert_eq!(transport.read(&mut cx, &sym("doc")).unwrap(), v2);
 
     // Undo replays inverse operations, restoring prior states exactly.
-    assert_eq!(history.undo(&mut transport).unwrap(), Some(sym("doc")));
-    assert_eq!(transport.read(&sym("doc")).unwrap(), v1);
-    history.undo(&mut transport).unwrap();
-    assert_eq!(transport.read(&sym("doc")).unwrap(), v0);
+    assert_eq!(
+        history.undo(&mut cx, &mut transport).unwrap(),
+        Some(sym("doc"))
+    );
+    assert_eq!(transport.read(&mut cx, &sym("doc")).unwrap(), v1);
+    history.undo(&mut cx, &mut transport).unwrap();
+    assert_eq!(transport.read(&mut cx, &sym("doc")).unwrap(), v0);
     assert!(!history.can_undo());
 
     // Redo replays the forward operations.
-    history.redo(&mut transport).unwrap();
-    assert_eq!(transport.read(&sym("doc")).unwrap(), v1);
+    history.redo(&mut cx, &mut transport).unwrap();
+    assert_eq!(transport.read(&mut cx, &sym("doc")).unwrap(), v1);
     assert!(history.can_redo());
 
     // A fresh commit clears the redo stack.
     history
-        .commit(&mut transport, &sym("doc"), number("9"))
+        .commit(&mut cx, &mut transport, &sym("doc"), number("9"))
         .unwrap();
     assert!(!history.can_redo());
     // The ledger is a value.

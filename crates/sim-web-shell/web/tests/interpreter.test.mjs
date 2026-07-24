@@ -147,6 +147,42 @@ assert.equal(buttonIntent.value.replacement, "accepted");
 assert.equal(buttonIntent["value-codec"], "codec:bridge");
 
 // 2b. Performance emits become typed bus Intents for a bound performance source.
+captured = null;
+const disclosureTree = renderScene(doc2, {
+  kind: "scene/tree",
+  label: "value",
+  open: false,
+  "disclosure-target": ["root"],
+  nodes: [{ kind: "scene/text", text: "child" }],
+}, (event) => {
+  captured = event;
+});
+assert.equal(disclosureTree.open, false, "tree honors closed state");
+assert.equal(disclosureTree.getAttribute("aria-expanded"), "false");
+assert.equal(disclosureTree.children[0].getAttribute("aria-expanded"), "false");
+assert.equal(disclosureTree.children[0].getAttribute("tabindex"), "0");
+disclosureTree.open = true;
+disclosureTree._listeners.toggle();
+assert.equal(disclosureTree.getAttribute("aria-expanded"), "true");
+const disclosureIntent = intentFromEmit(captured, "pane-main", "human", 2);
+assert.equal(disclosureIntent.kind, "intent/tree-disclosure");
+assert.deepEqual(disclosureIntent.target, ["root"]);
+assert.equal(disclosureIntent.open, true);
+
+const budgeted = renderScene(doc2, {
+  kind: "scene/stack",
+  budget: { nodes: 2, depth: 8, "encoded-bytes": 4096, "face-bytes": 64 },
+  children: [
+    { kind: "scene/text", text: "one" },
+    { kind: "scene/text", text: "two" },
+    { kind: "scene/text", text: "three" },
+  ],
+}, () => {});
+const continuation = find(budgeted, (n) => n.className === "scene-continuation");
+assert.ok(continuation, "renderer emits a continuation when total node budget is exhausted");
+assert.equal(continuation.dataset.truncated, "true");
+assert.equal(continuation.dataset.reason, "nodes");
+
 const performanceIntent = intentFromEmit({
   type: "performance",
   target: "music/performance-source/keyboard",

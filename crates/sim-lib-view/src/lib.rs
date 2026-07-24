@@ -54,7 +54,10 @@ pub use bringup::{
     glasses_bringup_fixture, glasses_bringup_fixture_names,
 };
 pub use citizen::{ViewLensDescriptor, view_lens_descriptor_class_symbol};
-pub use codec::{PairCodec, SurfaceCodec, roundtrip_holds};
+pub use codec::{
+    PairCodec, SurfaceCodec, UNIVERSAL_SURFACE_CODEC_ID, roundtrip_holds,
+    universal_surface_codec_symbol,
+};
 pub use contract::{Draft, Editor, Lens, LensKind, LensMeta, Operation, View};
 pub use cookbook::universal_lens_demo;
 pub use dispatch::{DispatchContext, DispatchOutcome, DispatchReason, LensRegistry};

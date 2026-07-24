@@ -8,6 +8,7 @@ use std::sync::Arc;
 use sim_kernel::Symbol;
 use sim_shape::{AnyShape, shape_value};
 
+use crate::codec::{PairCodec, universal_surface_codec_symbol};
 use crate::contract::{Lens, LensKind, LensMeta};
 use crate::dispatch::LensRegistry;
 use crate::universal_editor::UniversalEditor;
@@ -29,23 +30,29 @@ fn any_shape() -> sim_kernel::Value {
 /// Register the universal default view and editor into `registry`. When
 /// `readonly` is set, the universal editor renders but never commits.
 pub fn register_universal_default(registry: &mut LensRegistry, readonly: bool) {
+    let view = Arc::new(UniversalView);
     registry.register(Lens::view(
         LensMeta::new(Symbol::new(UNIVERSAL_VIEW_ID), LensKind::View)
             .claiming_shape(any_shape())
             .with_quality_cost(LOWEST_QUALITY, 0)
             .as_universal_default(),
-        Arc::new(UniversalView),
+        view.clone(),
     ));
     let editor = if readonly {
         UniversalEditor::readonly()
     } else {
         UniversalEditor::writable()
     };
+    let editor = Arc::new(editor);
     registry.register(Lens::editor(
         LensMeta::new(Symbol::new(UNIVERSAL_EDITOR_ID), LensKind::Editor)
             .claiming_shape(any_shape())
             .with_quality_cost(LOWEST_QUALITY, 0)
             .as_universal_default(),
-        Arc::new(editor),
+        editor.clone(),
     ));
+    registry.register_surface_codec(
+        universal_surface_codec_symbol(),
+        Arc::new(PairCodec::new(view, editor)),
+    );
 }

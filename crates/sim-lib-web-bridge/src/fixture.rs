@@ -6,7 +6,7 @@
 
 use std::collections::BTreeMap;
 
-use sim_kernel::{Error, Expr, Result, Symbol};
+use sim_kernel::{Cx, Error, Expr, Result, Symbol};
 use sim_lib_stream_core::{
     PushResult, StreamEnvelope, StreamInspectorSnapshot, StreamItem, StreamMetadata, StreamPacket,
     StreamStats, StreamValue, TransportProfile, stream_inspector_route_local_symbol,
@@ -195,7 +195,7 @@ impl Transport for FixtureTransport {
         self.status
     }
 
-    fn read(&self, resource: &Symbol) -> Result<Expr> {
+    fn read(&mut self, _cx: &mut Cx, resource: &Symbol) -> Result<Expr> {
         self.ensure_live()?;
         self.store
             .get(resource)
@@ -205,7 +205,12 @@ impl Transport for FixtureTransport {
             })
     }
 
-    fn realize_operation(&mut self, resource: &Symbol, operation: &Operation) -> Result<Expr> {
+    fn realize_operation(
+        &mut self,
+        _cx: &mut Cx,
+        resource: &Symbol,
+        operation: &Operation,
+    ) -> Result<Expr> {
         self.ensure_live()?;
         let new_value = apply_operation(self.store.get(resource), &operation.form)?;
         self.store.insert(resource.clone(), new_value.clone());
@@ -215,16 +220,25 @@ impl Transport for FixtureTransport {
         Ok(new_value)
     }
 
-    fn drain_events(&mut self) -> Vec<ChangeEvent> {
-        std::mem::take(&mut self.events)
+    fn drain_events(&mut self, _cx: &mut Cx) -> Result<Vec<ChangeEvent>> {
+        Ok(std::mem::take(&mut self.events))
     }
 
-    fn stream_subscribe(&mut self, stream_id: &Symbol) -> Result<StreamInspectorRecord> {
+    fn stream_subscribe(
+        &mut self,
+        _cx: &mut Cx,
+        stream_id: &Symbol,
+    ) -> Result<StreamInspectorRecord> {
         self.ensure_live()?;
         self.inspector(stream_id)
     }
 
-    fn stream_read(&mut self, stream_id: &Symbol, limit: usize) -> Result<Vec<StreamItem>> {
+    fn stream_read(
+        &mut self,
+        _cx: &mut Cx,
+        stream_id: &Symbol,
+        limit: usize,
+    ) -> Result<Vec<StreamItem>> {
         self.ensure_live()?;
         let stream = self.stream_mut(stream_id)?;
         let items = stream.stream.take_packets(limit)?;
@@ -237,7 +251,12 @@ impl Transport for FixtureTransport {
         Ok(items)
     }
 
-    fn stream_push(&mut self, stream_id: &Symbol, envelope: StreamEnvelope) -> Result<PushResult> {
+    fn stream_push(
+        &mut self,
+        _cx: &mut Cx,
+        stream_id: &Symbol,
+        envelope: StreamEnvelope,
+    ) -> Result<PushResult> {
         self.ensure_live()?;
         if envelope.stream_id() != stream_id {
             return Err(Error::HostError(format!(
@@ -272,7 +291,7 @@ impl Transport for FixtureTransport {
         Ok(result)
     }
 
-    fn stream_cancel(&mut self, stream_id: &Symbol) -> Result<()> {
+    fn stream_cancel(&mut self, _cx: &mut Cx, stream_id: &Symbol) -> Result<()> {
         self.ensure_live()?;
         let stream = self.stream_mut(stream_id)?;
         stream.stream.cancel()?;
@@ -281,11 +300,15 @@ impl Transport for FixtureTransport {
         Ok(())
     }
 
-    fn stream_stats(&self, stream_id: &Symbol) -> Result<StreamStats> {
+    fn stream_stats(&mut self, _cx: &mut Cx, stream_id: &Symbol) -> Result<StreamStats> {
         self.stream_ref(stream_id)?.stream.stats()
     }
 
-    fn stream_inspector(&self, stream_id: &Symbol) -> Result<StreamInspectorRecord> {
+    fn stream_inspector(
+        &mut self,
+        _cx: &mut Cx,
+        stream_id: &Symbol,
+    ) -> Result<StreamInspectorRecord> {
         self.inspector(stream_id)
     }
 }

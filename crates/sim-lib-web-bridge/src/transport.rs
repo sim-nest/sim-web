@@ -8,7 +8,7 @@
 //! in-browser wasm, local server, and remote server -- so wasm, local, remote,
 //! and fixture sessions are interchangeable behind the session bridge.
 
-use sim_kernel::{CapabilityName, Expr, Result, Symbol};
+use sim_kernel::{CapabilityName, Cx, Expr, Result, Symbol};
 use sim_lib_stream_core::{
     PushResult, StreamEnvelope, StreamInspectorSnapshot, StreamInspectorStatus, StreamItem,
     StreamStats, stream_cancel_capability, stream_open_capability, stream_push_capability,
@@ -226,40 +226,85 @@ pub trait Transport {
     fn status(&self) -> SessionStatus;
 
     /// Read the current value of a resource.
-    fn read(&self, resource: &Symbol) -> Result<Expr>;
+    fn read(&mut self, cx: &mut Cx, resource: &Symbol) -> Result<Expr>;
 
     /// Realize a checked operation expression against a resource.
     ///
     /// This compatibility path wraps `operation` without authority metadata.
     /// Session commits should call [`Transport::realize_operation`] so required
     /// capabilities and result shapes are preserved.
-    fn realize(&mut self, resource: &Symbol, operation: &Expr) -> Result<Expr> {
-        self.realize_operation(resource, &Operation::new(operation.clone()))
+    fn realize(&mut self, cx: &mut Cx, resource: &Symbol, operation: &Expr) -> Result<Expr> {
+        self.realize_operation(cx, resource, &Operation::new(operation.clone()))
     }
 
     /// Realize a checked operation against a resource, returning the new value
     /// (the `realize_final` surface). Implementations also record a
     /// [`ChangeEvent`] for the resource.
-    fn realize_operation(&mut self, resource: &Symbol, operation: &Operation) -> Result<Expr>;
+    fn realize_operation(
+        &mut self,
+        cx: &mut Cx,
+        resource: &Symbol,
+        operation: &Operation,
+    ) -> Result<Expr> {
+        self.commit_operation(cx, resource, operation, None)
+    }
+
+    /// Commit an operation, optionally requiring the resource to still match
+    /// `expected_current` on the server side.
+    fn commit_operation(
+        &mut self,
+        cx: &mut Cx,
+        resource: &Symbol,
+        operation: &Operation,
+        expected_current: Option<&Expr>,
+    ) -> Result<Expr> {
+        if let Some(expected) = expected_current {
+            let current = self.read(cx, resource)?;
+            if &current != expected {
+                return Err(sim_kernel::Error::HostError(format!(
+                    "resource '{resource}' is stale; refresh before committing"
+                )));
+            }
+        }
+        self.realize_operation(cx, resource, operation)
+    }
 
     /// Drain the pending change events (the `realize_events` surface).
-    fn drain_events(&mut self) -> Vec<ChangeEvent>;
+    fn drain_events(&mut self, cx: &mut Cx) -> Result<Vec<ChangeEvent>>;
 
     /// Subscribe to a stream and return browser-visible inspector data.
-    fn stream_subscribe(&mut self, stream_id: &Symbol) -> Result<StreamInspectorRecord>;
+    fn stream_subscribe(
+        &mut self,
+        cx: &mut Cx,
+        stream_id: &Symbol,
+    ) -> Result<StreamInspectorRecord>;
 
     /// Read at most `limit` packets from a stream.
-    fn stream_read(&mut self, stream_id: &Symbol, limit: usize) -> Result<Vec<StreamItem>>;
+    fn stream_read(
+        &mut self,
+        cx: &mut Cx,
+        stream_id: &Symbol,
+        limit: usize,
+    ) -> Result<Vec<StreamItem>>;
 
     /// Push one stream envelope.
-    fn stream_push(&mut self, stream_id: &Symbol, envelope: StreamEnvelope) -> Result<PushResult>;
+    fn stream_push(
+        &mut self,
+        cx: &mut Cx,
+        stream_id: &Symbol,
+        envelope: StreamEnvelope,
+    ) -> Result<PushResult>;
 
     /// Cancel a stream.
-    fn stream_cancel(&mut self, stream_id: &Symbol) -> Result<()>;
+    fn stream_cancel(&mut self, cx: &mut Cx, stream_id: &Symbol) -> Result<()>;
 
     /// Return current stream stats.
-    fn stream_stats(&self, stream_id: &Symbol) -> Result<StreamStats>;
+    fn stream_stats(&mut self, cx: &mut Cx, stream_id: &Symbol) -> Result<StreamStats>;
 
     /// Return browser-visible inspector data without changing stream state.
-    fn stream_inspector(&self, stream_id: &Symbol) -> Result<StreamInspectorRecord>;
+    fn stream_inspector(
+        &mut self,
+        cx: &mut Cx,
+        stream_id: &Symbol,
+    ) -> Result<StreamInspectorRecord>;
 }

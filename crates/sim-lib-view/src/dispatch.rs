@@ -14,8 +14,12 @@
 //! Every candidate must pass capability filtering; a denied lens is skipped and
 //! resolution falls through, ending at the read-only universal default.
 
+use std::collections::BTreeMap;
+use std::sync::Arc;
+
 use sim_kernel::{CapabilityName, Cx, Error, Expr, Result, Symbol};
 
+use crate::codec::SurfaceCodec;
 use crate::contract::{Lens, LensKind};
 
 /// The context a dispatch runs in: operator choice, saved preference, active
@@ -74,6 +78,7 @@ pub struct DispatchOutcome {
 #[derive(Default)]
 pub struct LensRegistry {
     lenses: Vec<Lens>,
+    surface_codecs: BTreeMap<Symbol, Arc<dyn SurfaceCodec>>,
 }
 
 impl LensRegistry {
@@ -85,6 +90,16 @@ impl LensRegistry {
     /// Register a lens (last registration of an id wins on exact ties).
     pub fn register(&mut self, lens: Lens) {
         self.lenses.push(lens);
+    }
+
+    /// Register a reversible surface codec.
+    pub fn register_surface_codec(&mut self, id: Symbol, codec: Arc<dyn SurfaceCodec>) {
+        self.surface_codecs.insert(id, codec);
+    }
+
+    /// Look up a reversible surface codec by id.
+    pub fn surface_codec(&self, id: &Symbol) -> Option<Arc<dyn SurfaceCodec>> {
+        self.surface_codecs.get(id).cloned()
     }
 
     /// Look up a lens by id.
