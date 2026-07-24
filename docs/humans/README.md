@@ -18,6 +18,7 @@ This generated lane consumes `docs/generated/sim-index-fragment.sx`. Global inde
 | Feature | Subject | Specimens | Summary |
 | --- | --- | ---: | --- |
 | `feature/sim-web/view-surface` | `crate/sim-lib-view` | 1 | Expose view and edit surfaces so codecs, browser hosts, and device profiles can render and reverse surface data. |
+| `feature/sim-web/stateful-tree-scenes` | `crate/sim-lib-scene` | 2 | Render expandable Scene outlines with explicit disclosure state and total budgets for nodes, depth, encoded bytes, and visible faces. |
 | `feature/sim-web/device-surfaces` | `crate/sim-lib-view` | 1 | Rank and project view surfaces against desktop, phone, watch, and glasses device profiles. |
 | `feature/sim-web/codec-surface-sessions` | `crate/sim-lib-web-bridge` | 1 | Drive browser and server sessions through one reversible SurfaceCodec contract for encode, decode, commit, projection, and isolation. |
 | `feature/sim-web/web-shell-host` | `crate/sim-web-shell` | 1 | Serve browser-facing surfaces through loaded web shell runtime libraries and command entry points. |
@@ -287,6 +288,1046 @@ fn missing_output_and_stream_maps_default_to_empty_metadata() {
 
     assert_eq!(caps.output, build::map(Vec::new()));
     assert_eq!(caps.streams, build::map(Vec::new()));
+}
+```
+
+### `feature/sim-web/stateful-tree-scenes`
+
+Specimen `spec-test/sim-web/crates/sim-lib-scene/src/tests` is checked by `cargo test`.
+
+Source `crates/sim-lib-scene/src/tests.rs`:
+
+```rust
+//! Tests for the Scene value model, `codec:scene`, and scene diff/apply.
+//!
+//! conformance: scene/tree budgets and explicit scene/continuation truncation
+//! metadata fail closed instead of allowing unbounded scene growth.
+
+use sim_codec::{Input, Output, decode_with_codec, encode_with_codec};
+use sim_kernel::{Cx, EncodeOptions, Expr, NumberLiteral, ReadPolicy, Symbol, testing::eager_cx};
+
+use crate::{
+    Anchor, AnchorSpace, GlanceAction, GlanceCard, GlanceMetric, SceneBudget, SceneBudgetExhausted,
+    SceneBudgetState, SceneCodecLib, Transform3, apply, diff, gaze_cursor, hand_ray, map, node,
+    panel, scene_codec_symbol, scene_shape_specs, scene_shape_symbol, spatial, stereo, text,
+    validate_scene, world_plane,
+};
+
+fn cx() -> Cx {
+    let mut cx = eager_cx();
+    sim_test_support::register_core_classes(&mut cx);
+    let lib = SceneCodecLib::new(cx.registry_mut().fresh_codec_id());
+    cx.load_lib(&lib).unwrap();
+    cx
+}
+
+fn num(domain: &str, canonical: &str) -> Expr {
+    Expr::Number(NumberLiteral {
+        domain: Symbol::new(domain),
+        canonical: canonical.to_owned(),
+    })
+}
+
+use sim_value::build::sym;
+
+/// A representative scene exercising every atom and container kind.
+fn sample_scene() -> Expr {
+    node(
+        "graph",
+        vec![
+            ("id", sym("graph-main")),
+            (
+                "bounds",
+                map(vec![("w", num("i64", "1200")), ("h", num("i64", "700"))]),
+            ),
+            (
+                "nodes",
+                Expr::List(vec![
+                    node(
+                        "node",
+                        vec![
+                            ("id", sym("n1")),
+                            ("title", Expr::String("Planner".to_owned())),
+                            (
+                                "at",
+                                map(vec![("x", num("f64", "80")), ("y", num("f64", "120"))]),
+                            ),
+                            ("status", sym("ok")),
+                            (
+                                "target",
+                                Expr::List(vec![sym("ref"), sym("agent"), sym("planner")]),
+                            ),
+                        ],
+                    ),
+                    node(
+                        "node",
+                        vec![
+                            ("id", sym("n2")),
+                            ("title", Expr::String("Writer".to_owned())),
+                        ],
+                    ),
+                ]),
+            ),
+            ("flags", Expr::Set(vec![sym("a"), sym("b")])),
+            ("ports", Expr::Vector(vec![sym("in0"), sym("out0")])),
+            ("blob", Expr::Bytes(vec![0, 1, 2, 255, 16])),
+            (
+                "note",
+                Expr::String("quote \" and \\ and \n newline".to_owned()),
+            ),
+            ("nothing", Expr::Nil),
+            ("live", Expr::Bool(true)),
+            ("dead", Expr::Bool(false)),
+        ],
+    )
+}
+
+#[test]
+fn text_form_roundtrips_losslessly() {
+    let scene = sample_scene();
+    let encoded = text::encode(sim_kernel::CodecId(7), &scene).unwrap();
+    let decoded = text::decode(sim_kernel::CodecId(7), &encoded).unwrap();
+    assert_eq!(scene, decoded);
+}
+
+#[test]
+fn scene_roundtrips_through_codec_scene() {
+    let mut cx = cx();
+    let codec = scene_codec_symbol();
+    let scene = sample_scene();
+    let output = encode_with_codec(&mut cx, &codec, &scene, EncodeOptions::default()).unwrap();
+    let input = match output {
+        Output::Text(text) => Input::Text(text),
+        Output::Bytes(bytes) => Input::Bytes(bytes),
+    };
+    let decoded = decode_with_codec(&mut cx, &codec, input, ReadPolicy::default()).unwrap();
+    assert_eq!(scene, decoded);
+}
+
+#[test]
+fn encoding_a_non_scene_fails_closed() {
+    let mut cx = cx();
+    let codec = scene_codec_symbol();
+    // A map with no kind tag is not a scene node.
+    let not_a_scene = map(vec![("just", sym("data"))]);
+    let err = encode_with_codec(&mut cx, &codec, &not_a_scene, EncodeOptions::default());
+    assert!(err.is_err(), "a kindless map must not encode as a scene");
+}
+
+#[test]
+fn encoding_a_non_data_form_fails_closed() {
+    let mut cx = cx();
+    let codec = scene_codec_symbol();
+    // A scene carrying an eval-only Call form is not pure data.
+    let scene = node(
+        "box",
+        vec![(
+            "bad",
+            Expr::Call {
+                operator: Box::new(sym("f")),
+                args: vec![sym("x")],
+            },
+        )],
+    );
+    let err = encode_with_codec(&mut cx, &codec, &scene, EncodeOptions::default());
+    assert!(err.is_err(), "non-data forms must not encode as a scene");
+}
+
+#[test]
+fn decoding_malformed_text_yields_a_diagnostic_not_a_panic() {
+    let mut cx = cx();
+    let codec = scene_codec_symbol();
+    for bad in [
+        "",
+        "(",
+        "{ S U\"k\" }",
+        "Znonsense",
+        "%(",
+        "R\"unterminated",
+    ] {
+        let result = decode_with_codec(
+            &mut cx,
+            &codec,
+            Input::Text(bad.to_owned()),
+            ReadPolicy::default(),
+        );
+        assert!(
+            result.is_err(),
+            "malformed input {bad:?} must error, not panic"
+        );
+    }
+}
+
+#[test]
+fn validate_reports_a_structured_path() {
+    // A nested node with an unrecognized kind reports its address.
+    let scene = node(
+        "graph",
+        vec![("nodes", Expr::List(vec![node("not-a-real-kind", vec![])]))],
+    );
+    let error = validate_scene(&scene).expect_err("must reject unknown nested kind");
+    assert!(
+        error.path_string().contains("nodes"),
+        "path: {}",
+        error.path_string()
+    );
+    assert!(error.message.contains("unrecognized scene kind"));
+}
+
+#[test]
+fn validate_rejects_kindless_and_non_symbol_kinds() {
+    assert!(validate_scene(&map(vec![("x", sym("y"))])).is_err());
+    let bad_kind = Expr::Map(vec![(sym("kind"), Expr::String("graph".to_owned()))]);
+    assert!(validate_scene(&bad_kind).is_err());
+}
+
+#[test]
+fn kind_shapes_reject_wrong_kind_and_keep_dispatch_scores() {
+    let mut cx = cx();
+    let graph = node("graph", vec![("id", sym("graph-main"))]);
+    let box_node = node("box", vec![("id", sym("box-main"))]);
+    let graph_shape = scene_shape("Graph");
+    let umbrella = scene_shape_symbol_shape();
+
+    let graph_match = graph_shape.check_expr(&mut cx, &graph).unwrap();
+    assert!(graph_match.accepted);
+    assert_eq!(graph_match.score.value(), 20);
+
+    assert!(!graph_shape.check_expr(&mut cx, &box_node).unwrap().accepted);
+
+    let umbrella_match = umbrella.check_expr(&mut cx, &box_node).unwrap();
+    assert!(umbrella_match.accepted);
+    assert_eq!(umbrella_match.score.value(), 5);
+
+    let unknown = node("not-a-real-kind", vec![]);
+    assert!(!umbrella.check_expr(&mut cx, &unknown).unwrap().accepted);
+}
+
+#[test]
+fn validates_music_editor_scene_kinds() {
+    for kind in ["piano-roll", "player-rack", "object-roll"] {
+        validate_scene(&node(kind, vec![("target", sym("target"))]))
+            .unwrap_or_else(|err| panic!("{kind}: {err}"));
+    }
+}
+
+#[test]
+fn continuation_nodes_validate_and_budget_receipts_fail_closed() {
+    validate_scene(&node(
+        "continuation",
+        vec![
+            ("label", Expr::String("more not rendered".to_owned())),
+            ("truncated", Expr::Bool(true)),
+            ("reason", sym("nodes")),
+        ],
+    ))
+    .expect("scene/continuation validates as explicit truncation metadata");
+
+    let mut state = SceneBudgetState::new(SceneBudget::new(1, 0, 12, 4));
+    state.admit(0, Some("root"), 8).unwrap();
+    assert_eq!(
+        state.admit(0, Some("next"), 1),
+        Err(SceneBudgetExhausted::Nodes { limit: 1 })
+    );
+
+    let mut state = SceneBudgetState::new(SceneBudget::new(4, 0, 12, 4));
+    assert_eq!(
+        state.admit(1, Some("deep"), 1),
+        Err(SceneBudgetExhausted::Depth { limit: 0 })
+    );
+    assert_eq!(
+        state.admit(0, Some("too long"), 1),
+        Err(SceneBudgetExhausted::FaceBytes { limit: 4 })
+    );
+    assert_eq!(
+        state.admit(0, Some("ok"), 13),
+        Err(SceneBudgetExhausted::EncodedBytes { limit: 12 })
+    );
+}
+
+#[test]
+fn glance_card_is_a_scene_kind() {
+    let card = GlanceCard::new(
+        "Drive",
+        Some(GlanceMetric::new("speed", "42")),
+        Some(GlanceAction::new("Ack", sym("ack"))),
+        "info",
+        4,
+    )
+    .to_scene();
+
+    validate_scene(&card).expect("scene/glance validates");
+    let parsed = GlanceCard::from_scene(&card).expect("glance parses");
+
+    assert_eq!(parsed.title, "Drive");
+    assert_eq!(parsed.metric.unwrap().value, "42");
+    assert_eq!(parsed.action.unwrap().label, "Ack");
+}
+
+#[test]
+fn spatial_kinds_validate_and_no_scene_hud() {
+    let anchor = Anchor::new(AnchorSpace::World, "desk");
+    let transform = Transform3::identity();
+    let workspace = spatial(vec![
+        panel(
+            "editor",
+            node("text", vec![("text", Expr::String("focus".to_owned()))]),
+            anchor.clone(),
+            transform.clone(),
+        ),
+        gaze_cursor(Anchor::new(AnchorSpace::Head, "view"), transform.clone()),
+        hand_ray(
+            "right",
+            Anchor::new(AnchorSpace::Body, "hand"),
+            transform.clone(),
+        ),
+        world_plane(
+            "floor",
+            Anchor::new(AnchorSpace::World, "room"),
+            transform.clone(),
+            [2.0, 1.5],
+        ),
+    ]);
+
+    validate_scene(&workspace).expect("spatial scene validates");
+    assert_pose_free(&workspace);
+
+    let stereo_scene = stereo(
+        map(vec![("eye", sym("left")), ("children", Expr::List(vec![]))]),
+        map(vec![
+            ("eye", sym("right")),
+            ("children", Expr::List(vec![])),
+        ]),
+        12,
+    );
+    validate_scene(&stereo_scene).expect("stereo scene validates");
+
+    for space in [
+        AnchorSpace::Head,
+        AnchorSpace::World,
+        AnchorSpace::Screen,
+        AnchorSpace::Body,
+        AnchorSpace::Device,
+    ] {
+        let anchor_node = crate::build::anchor(space, space.as_name());
+        validate_scene(&anchor_node).expect("anchor scene validates");
+        assert_eq!(
+            Anchor::from_expr(&anchor_node)
+                .expect("anchor parses")
+                .space,
+            space
+        );
+    }
+
+    let decoded_anchor = Anchor::from_expr(&anchor.to_expr()).expect("anchor roundtrip");
+    let decoded_transform =
+        Transform3::from_expr(&transform.to_expr()).expect("transform roundtrip");
+    assert_eq!(decoded_anchor, anchor);
+    assert_eq!(decoded_transform, transform);
+
+    let mut cx = cx();
+    let codec = scene_codec_symbol();
+    let output = encode_with_codec(&mut cx, &codec, &workspace, EncodeOptions::default()).unwrap();
+    let input = match output {
+        Output::Text(text) => Input::Text(text),
+        Output::Bytes(bytes) => Input::Bytes(bytes),
+    };
+    let decoded = decode_with_codec(&mut cx, &codec, input, ReadPolicy::default()).unwrap();
+    assert_eq!(decoded, workspace);
+
+    let halo = GlanceCard::new(
+        "Halo",
+        Some(GlanceMetric::new("tap", "ack")),
+        Some(GlanceAction::new("Open", sym("open"))),
+        "info",
+        2,
+    )
+    .to_scene();
+    assert_eq!(
+        crate::model::node_kind(&halo).map(|kind| kind.as_qualified_str()),
+        Some("scene/glance".to_owned())
+    );
+    assert!(!crate::kinds::SCENE_KINDS.contains(&"hud"));
+    assert!(validate_scene(&node("hud", vec![])).is_err());
+
+    validate_scene(&node("box", vec![("children", Expr::List(vec![]))]))
+        .expect("flat scene remains valid");
+}
+
+fn assert_pose_free(expr: &Expr) {
+    match expr {
+        Expr::Map(entries) => {
+            for (key, value) in entries {
+                if matches!(key, Expr::Symbol(symbol) if symbol.namespace.is_none() && matches!(symbol.name.as_ref(), "pose" | "tick"))
+                {
+                    panic!("spatial scene must not carry live pose/tick fields");
+                }
+                assert_pose_free(value);
+            }
+        }
+        Expr::List(items) | Expr::Vector(items) | Expr::Set(items) => {
+            for item in items {
+                assert_pose_free(item);
+            }
+        }
+        _ => {}
+    }
+}
+
+#[test]
+fn diff_then_apply_reconstructs_exactly() {
+    let old = sample_scene();
+    let cases = [
+        edit_field_value(&old),
+        add_a_key(&old),
+        remove_a_key(&old),
+        change_list_length(&old),
+        replace_with_different_type(),
+        old.clone(),
+    ];
+    for new in cases {
+        let patch = diff(&old, &new);
+        let rebuilt = apply(&old, &patch).unwrap();
+        assert_eq!(
+            new, rebuilt,
+            "diff+apply must reconstruct the new scene exactly"
+        );
+    }
+}
+
+#[test]
+fn diff_of_identical_scenes_is_a_noop() {
+    let scene = sample_scene();
+    let patch = diff(&scene, &scene);
+    let rebuilt = apply(&scene, &patch).unwrap();
+    assert_eq!(scene, rebuilt);
+}
+
+#[test]
+fn reordering_map_keys_reconstructs_exact_key_order() {
+    let old = sample_scene();
+    let new = reorder_keys(&old);
+    // `Expr::Map` equality is canonical (order-insensitive), so `old == new`
+    // here; the defect is STRUCTURAL -- a key reorder emitted zero ops and
+    // `apply` kept the old order. Compare the order-preserving Debug form to
+    // catch it.
+    assert_eq!(old, new, "canonical equality ignores key order");
+    assert_ne!(
+        structural_repr(&old),
+        structural_repr(&new),
+        "the key ORDER must actually differ"
+    );
+    let patch = diff(&old, &new);
+    let rebuilt = apply(&old, &patch).unwrap();
+    assert_eq!(
+        structural_repr(&rebuilt),
+        structural_repr(&new),
+        "apply must reconstruct the exact key order of new, not the old order"
+    );
+}
+
+/// An order-preserving rendering of a value, for structural (not canonical)
+/// comparison in tests.
+fn structural_repr(value: &Expr) -> String {
+    format!("{value:?}")
+}
+
+#[test]
+fn a_scene_patch_is_itself_a_valid_scene() {
+    let old = sample_scene();
+    let new = edit_field_value(&old);
+    let patch = diff(&old, &new);
+    // The patch is a `scene/patch` node and round-trips through codec:scene.
+    let mut cx = cx();
+    let codec = scene_codec_symbol();
+    let output = encode_with_codec(&mut cx, &codec, &patch, EncodeOptions::default()).unwrap();
+    let input = match output {
+        Output::Text(text) => Input::Text(text),
+        Output::Bytes(bytes) => Input::Bytes(bytes),
+    };
+    let decoded = decode_with_codec(&mut cx, &codec, input, ReadPolicy::default()).unwrap();
+    assert_eq!(patch, decoded);
+    assert_eq!(new, apply(&old, &decoded).unwrap());
+}
+
+fn edit_field_value(scene: &Expr) -> Expr {
+    let mut new = scene.clone();
+    set_top_key(&mut new, "live", Expr::Bool(false));
+    new
+}
+
+fn add_a_key(scene: &Expr) -> Expr {
+    let mut new = scene.clone();
+    set_top_key(&mut new, "added", Expr::String("hello".to_owned()));
+    new
+}
+
+fn remove_a_key(scene: &Expr) -> Expr {
+    let Expr::Map(entries) = scene else {
+        unreachable!()
+    };
+    Expr::Map(
+        entries
+            .iter()
+            .filter(|(key, _)| !matches!(key, Expr::Symbol(s) if &*s.name == "flags"))
+            .cloned()
+            .collect(),
+    )
+}
+
+fn reorder_keys(scene: &Expr) -> Expr {
+    let Expr::Map(entries) = scene else {
+        unreachable!()
+    };
+    let mut reversed = entries.clone();
+    reversed.reverse();
+    Expr::Map(reversed)
+}
+
+fn change_list_length(scene: &Expr) -> Expr {
+    let mut new = scene.clone();
+    set_top_key(&mut new, "ports", Expr::Vector(vec![sym("only-one")]));
+    new
+}
+
+fn replace_with_different_type() -> Expr {
+    node(
+        "box",
+        vec![("label", Expr::String("totally different".to_owned()))],
+    )
+}
+
+fn set_top_key(scene: &mut Expr, key: &str, value: Expr) {
+    let Expr::Map(entries) = scene else {
+        unreachable!()
+    };
+    if let Some(slot) = entries
+        .iter_mut()
+        .find(|(entry_key, _)| matches!(entry_key, Expr::Symbol(s) if &*s.name == key))
+    {
+        slot.1 = value;
+    } else {
+        entries.push((Expr::Symbol(Symbol::new(key)), value));
+    }
+}
+
+fn scene_shape(name: &str) -> std::sync::Arc<dyn sim_kernel::Shape> {
+    let symbol = Symbol::qualified("scene", name);
+    shape_by_symbol(symbol)
+}
+
+fn scene_shape_symbol_shape() -> std::sync::Arc<dyn sim_kernel::Shape> {
+    shape_by_symbol(scene_shape_symbol())
+}
+
+fn shape_by_symbol(symbol: Symbol) -> std::sync::Arc<dyn sim_kernel::Shape> {
+    scene_shape_specs()
+        .into_iter()
+        .find(|(candidate, _)| candidate == &symbol)
+        .map(|(_, shape)| shape)
+        .unwrap_or_else(|| panic!("missing scene shape {symbol}"))
+}
+```
+
+Specimen `spec-test/sim-web/crates/sim-lib-view/src/universal_tests` is checked by `cargo test`.
+
+Source `crates/sim-lib-view/src/universal_tests.rs`:
+
+```rust
+//! Tests for the universal default view and editor.
+//!
+//! conformance: the universal structure tree carries disclosure state, routes
+//! disclosure targets, and truncates hostile deep/wide values through Scene
+//! metadata.
+
+use sim_kernel::{CodecId, Expr, NumberLiteral, Symbol};
+use sim_lib_intent::{Origin, intent};
+
+use crate::contract::{LensKind, View};
+use crate::dispatch::{DispatchContext, DispatchReason, LensRegistry};
+use crate::universal::{UNIVERSAL_EDITOR_ID, UNIVERSAL_VIEW_ID, register_universal_default};
+use crate::universal_editor::{EDIT_MODES, UniversalEditor, render_draft};
+use crate::universal_view::UniversalView;
+use crate::{Draft, Editor};
+
+use sim_kernel::testing::eager_cx as cx;
+
+use sim_value::build::sym;
+use sim_value::path::{Path, get};
+
+fn number(value: &str) -> Expr {
+    Expr::Number(NumberLiteral {
+        domain: Symbol::new("i64"),
+        canonical: value.to_owned(),
+    })
+}
+
+fn sample_map() -> Expr {
+    Expr::Map(vec![
+        (sym("a"), number("1")),
+        (sym("b"), number("2")),
+        (
+            sym("nested"),
+            Expr::List(vec![Expr::String("x".to_owned()), Expr::Bool(true)]),
+        ),
+    ])
+}
+
+fn scalar_map() -> Expr {
+    Expr::Map(vec![
+        (sym("n"), number("1")),
+        (sym("b"), Expr::Bool(true)),
+        (sym("s"), sym("ready")),
+        (sym("t"), Expr::String("raw".to_owned())),
+    ])
+}
+
+#[test]
+fn universal_view_renders_a_valid_four_region_scene() {
+    let mut cx = cx();
+    for value in [
+        Expr::Nil,
+        number("42"),
+        Expr::String("hello".to_owned()),
+        sample_map(),
+        Expr::List(vec![Expr::Nil, sym("z")]),
+    ] {
+        let scene = UniversalView.encode(&mut cx, &value).unwrap();
+        sim_lib_scene::validate_scene(&scene)
+            .unwrap_or_else(|err| panic!("scene invalid for {value:?}: {err}"));
+        // The root stack has exactly four regions.
+        let children = region_children(&scene);
+        assert_eq!(children, 4, "value {value:?} must open four regions");
+    }
+}
+
+fn region_children(scene: &Expr) -> usize {
+    let Expr::Map(entries) = scene else { return 0 };
+    for (key, value) in entries {
+        if matches!(key, Expr::Symbol(s) if &*s.name == "children")
+            && let Expr::List(items) = value
+        {
+            return items.len();
+        }
+    }
+    0
+}
+
+#[test]
+fn any_value_dispatches_to_the_universal_default() {
+    let mut cx = cx();
+    let mut registry = LensRegistry::new();
+    register_universal_default(&mut registry, false);
+    let grant = |_: &sim_kernel::CapabilityName| true;
+    let ctx = DispatchContext::permissive(&grant);
+    let outcome = registry.dispatch_view(&mut cx, &Expr::Nil, &ctx).unwrap();
+    assert_eq!(outcome.lens_id, Symbol::new(UNIVERSAL_VIEW_ID));
+    assert_eq!(outcome.reason, DispatchReason::UniversalDefault);
+}
+
+#[test]
+fn editing_a_field_commits_and_preserves_siblings() {
+    let mut cx = cx();
+    let editor = UniversalEditor::writable();
+    let value = sample_map();
+    // edit-field path [k a] := 9
+    let edit = intent(
+        "edit-field",
+        Origin::human(1),
+        vec![
+            ("target", value.clone()),
+            (
+                "path",
+                Expr::List(vec![Expr::Vector(vec![sym("k"), sym("a")])]),
+            ),
+            ("value", number("9")),
+        ],
+    );
+    let draft = editor.decode(&mut cx, &value, &edit).unwrap();
+    assert!(draft.committable, "a valid edit must be committable");
+    // The proposed value updated `a` and preserved `b` and `nested`.
+    let Expr::Map(entries) = &draft.proposed else {
+        panic!("proposed must be a map")
+    };
+    assert_eq!(entries.len(), 3, "unknown fields preserved");
+    let a = entries
+        .iter()
+        .find(|(k, _)| matches!(k, Expr::Symbol(s) if &*s.name == "a"))
+        .map(|(_, v)| v);
+    assert_eq!(a, Some(&number("9")));
+
+    let op = editor.commit(&mut cx, &draft).unwrap();
+    let Expr::Map(form) = &op.form else {
+        panic!("operation form must be a map")
+    };
+    assert!(
+        form.iter()
+            .any(|(k, _)| matches!(k, Expr::Symbol(s) if &*s.name == "op"))
+    );
+}
+
+#[test]
+fn an_unknown_path_is_a_field_anchored_diagnostic_not_a_commit() {
+    let mut cx = cx();
+    let editor = UniversalEditor::writable();
+    let value = sample_map();
+    let edit = intent(
+        "edit-field",
+        Origin::human(1),
+        vec![
+            ("target", value.clone()),
+            (
+                "path",
+                Expr::List(vec![
+                    Expr::Vector(vec![sym("k"), sym("missing")]),
+                    Expr::Vector(vec![sym("k"), sym("deep")]),
+                ]),
+            ),
+            ("value", number("9")),
+        ],
+    );
+    let draft = editor.decode(&mut cx, &value, &edit).unwrap();
+    assert!(!draft.committable, "an unknown nested path must not commit");
+    assert!(!draft.diagnostics.is_empty(), "must carry a diagnostic");
+    assert!(
+        editor.commit(&mut cx, &draft).is_err(),
+        "commit must fail closed"
+    );
+}
+
+#[test]
+fn readonly_editor_cannot_commit() {
+    let mut cx = cx();
+    let editor = UniversalEditor::readonly();
+    let value = sample_map();
+    let edit = intent(
+        "edit-field",
+        Origin::human(1),
+        vec![
+            ("target", value.clone()),
+            (
+                "path",
+                Expr::List(vec![Expr::Vector(vec![sym("k"), sym("a")])]),
+            ),
+            ("value", number("9")),
+        ],
+    );
+    let draft = editor.decode(&mut cx, &value, &edit).unwrap();
+    assert!(!draft.committable, "readonly edits never commit");
+    assert!(editor.commit(&mut cx, &draft).is_err());
+}
+
+#[test]
+fn cancel_reverts_to_the_base() {
+    let mut cx = cx();
+    let editor = UniversalEditor::writable();
+    let value = sample_map();
+    let cancel = intent("cancel", Origin::human(1), vec![("pane", sym("p"))]);
+    let draft = editor.decode(&mut cx, &value, &cancel).unwrap();
+    assert_eq!(draft.proposed, draft.base, "cancel discards pending edits");
+}
+
+#[test]
+fn every_advertised_edit_mode_renders_a_valid_scene_from_one_draft() {
+    let draft = Draft::clean(sample_map(), sample_map());
+    assert_eq!(
+        EDIT_MODES,
+        ["text", "raw"],
+        "only the real modes are advertised"
+    );
+    for mode in EDIT_MODES {
+        let scene = render_draft(&draft, mode).unwrap();
+        sim_lib_scene::validate_scene(&scene)
+            .unwrap_or_else(|err| panic!("mode {mode} scene invalid: {err}"));
+    }
+}
+
+/// Recursively collect the `path` attribute of every `field` node in a scene.
+fn field_paths(value: &Expr, out: &mut Vec<Expr>) {
+    match value {
+        Expr::Map(entries) => {
+            let is_field = entries.iter().any(|(k, v)| {
+                matches!(k, Expr::Symbol(s) if &*s.name == "kind")
+                    && matches!(v, Expr::Symbol(s) if &*s.name == "field")
+            });
+            if is_field
+                && let Some(path) = entries.iter().find_map(|(k, v)| {
+                    matches!(k, Expr::Symbol(s) if &*s.name == "path").then(|| v.clone())
+                })
+            {
+                out.push(path);
+            }
+            for (_, v) in entries {
+                field_paths(v, out);
+            }
+        }
+        Expr::List(items) | Expr::Vector(items) | Expr::Set(items) => {
+            for item in items {
+                field_paths(item, out);
+            }
+        }
+        _ => {}
+    }
+}
+
+/// Recursively collect every field node's map entries.
+fn field_nodes<'a>(value: &'a Expr, out: &mut Vec<&'a [(Expr, Expr)]>) {
+    match value {
+        Expr::Map(entries) => {
+            let is_field = entries.iter().any(|(k, v)| {
+                matches!(k, Expr::Symbol(s) if &*s.name == "kind")
+                    && matches!(v, Expr::Symbol(s) if &*s.name == "field")
+            });
+            if is_field {
+                out.push(entries);
+            }
+            for (_, v) in entries {
+                field_nodes(v, out);
+            }
+        }
+        Expr::List(items) | Expr::Vector(items) | Expr::Set(items) => {
+            for item in items {
+                field_nodes(item, out);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn attr<'a>(entries: &'a [(Expr, Expr)], name: &str) -> Option<&'a Expr> {
+    entries.iter().find_map(|(key, value)| {
+        matches!(key, Expr::Symbol(symbol) if &*symbol.name == name).then_some(value)
+    })
+}
+
+fn symbol_attr<'a>(entries: &'a [(Expr, Expr)], name: &str) -> Option<&'a str> {
+    match attr(entries, name) {
+        Some(Expr::Symbol(symbol)) => Some(&symbol.name),
+        _ => None,
+    }
+}
+
+fn string_attr<'a>(entries: &'a [(Expr, Expr)], name: &str) -> Option<&'a str> {
+    match attr(entries, name) {
+        Some(Expr::String(text)) => Some(text),
+        _ => None,
+    }
+}
+
+fn bool_attr(entries: &[(Expr, Expr)], name: &str) -> Option<bool> {
+    match attr(entries, name) {
+        Some(Expr::Bool(flag)) => Some(*flag),
+        _ => None,
+    }
+}
+
+fn collect_kind_nodes<'a>(value: &'a Expr, kind: &str, out: &mut Vec<&'a [(Expr, Expr)]>) {
+    match value {
+        Expr::Map(entries) => {
+            let is_kind = entries.iter().any(|(key, value)| {
+                matches!(key, Expr::Symbol(symbol) if &*symbol.name == "kind")
+                    && matches!(value, Expr::Symbol(symbol) if &*symbol.name == kind)
+            });
+            if is_kind {
+                out.push(entries);
+            }
+            for (_, value) in entries {
+                collect_kind_nodes(value, kind, out);
+            }
+        }
+        Expr::List(items) | Expr::Vector(items) | Expr::Set(items) => {
+            for item in items {
+                collect_kind_nodes(item, kind, out);
+            }
+        }
+        _ => {}
+    }
+}
+
+#[test]
+fn canonical_text_fields_scope_to_leaf_paths_and_preserve_siblings() {
+    let mut cx = cx();
+    let value = sample_map();
+    let scene = UniversalView.encode(&mut cx, &value).unwrap();
+
+    let mut paths = Vec::new();
+    field_paths(&scene, &mut paths);
+    assert!(!paths.is_empty(), "scalar leaves must be editable fields");
+    let root = Expr::List(vec![]);
+    for path in &paths {
+        assert_ne!(
+            *path, root,
+            "no canonical-text field may bind to the root path (that clobbers the whole value)"
+        );
+    }
+
+    // Driving an edit-field through one scoped path preserves every sibling key.
+    let path = paths[0].clone();
+    let edit = intent(
+        "edit-field",
+        Origin::human(1),
+        vec![
+            ("target", value.clone()),
+            ("path", path),
+            ("value", number("99")),
+        ],
+    );
+    let editor = UniversalEditor::writable();
+    let draft = editor.decode(&mut cx, &value, &edit).unwrap();
+    assert!(draft.committable, "a scoped leaf edit commits");
+    let Expr::Map(entries) = &draft.proposed else {
+        panic!("proposed must stay a map")
+    };
+    assert_eq!(
+        entries.len(),
+        3,
+        "the scoped edit preserved every sibling key"
+    );
+}
+
+#[test]
+fn structure_tree_carries_disclosure_state_and_targets() {
+    let mut cx = cx();
+    let scene = UniversalView.encode(&mut cx, &sample_map()).unwrap();
+
+    let mut trees = Vec::new();
+    collect_kind_nodes(&scene, "tree", &mut trees);
+    assert!(trees.len() >= 2, "nested values render as tree nodes");
+    assert_eq!(string_attr(trees[0], "label"), Some("value"));
+    assert_eq!(bool_attr(trees[0], "open"), Some(true));
+    assert_eq!(bool_attr(trees[0], "aria-expanded"), Some(true));
+    assert!(attr(trees[0], "disclosure-target").is_some());
+    assert!(
+        trees
+            .iter()
+            .skip(1)
+            .any(|entries| bool_attr(entries, "open") == Some(false)),
+        "nested tree nodes start collapsed but keep their children as data"
+    );
+}
+
+#[test]
+fn structure_tree_emits_explicit_continuation_metadata_when_bounded() {
+    let mut cx = cx();
+    let mut value = Expr::Nil;
+    for index in 0..600 {
+        value = Expr::List(vec![Expr::String(index.to_string()), value]);
+    }
+    let scene = UniversalView.encode(&mut cx, &value).unwrap();
+    sim_lib_scene::validate_scene(&scene).expect("truncated tree remains a valid scene");
+
+    let mut continuations = Vec::new();
+    collect_kind_nodes(&scene, "continuation", &mut continuations);
+    assert!(
+        !continuations.is_empty(),
+        "hostile deep values must be represented by explicit continuation nodes"
+    );
+    assert!(
+        continuations
+            .iter()
+            .any(|entries| bool_attr(entries, "truncated") == Some(true)
+                && symbol_attr(entries, "reason").is_some()),
+        "continuation nodes carry truncation reason metadata"
+    );
+}
+
+#[test]
+fn canonical_text_fields_carry_scalar_value_metadata() {
+    let mut cx = cx();
+    let value = scalar_map();
+    let scene = UniversalView.encode(&mut cx, &value).unwrap();
+
+    let mut fields = Vec::new();
+    field_nodes(&scene, &mut fields);
+    assert_eq!(fields.len(), 4, "each scalar leaf is rendered as a field");
+
+    let mut kinds = fields
+        .iter()
+        .map(|entries| symbol_attr(entries, "value-kind").unwrap_or(""))
+        .collect::<Vec<_>>();
+    kinds.sort_unstable();
+    assert_eq!(kinds, ["bool", "number", "string", "symbol"]);
+
+    for entries in fields {
+        let displayed = string_attr(entries, "value").expect("field carries display value");
+        let encoded = string_attr(entries, "value-codec").expect("field carries encoded value");
+        let decoded = sim_codec::decode_portable(CodecId(0), encoded).unwrap();
+        assert_eq!(
+            displayed,
+            crate::universal_view::render_value(&decoded),
+            "field metadata decodes to the displayed scalar"
+        );
+    }
+}
+
+#[test]
+fn scalar_text_edits_rehydrate_against_the_current_leaf_shape() {
+    let mut cx = cx();
+    let value = scalar_map();
+    let editor = UniversalEditor::writable();
+    let cases = [
+        ("n", "9", number("9")),
+        ("b", "false", Expr::Bool(false)),
+        ("s", "done", sym("done")),
+        ("t", "changed", Expr::String("changed".to_owned())),
+    ];
+
+    for (key, text, expected) in cases {
+        let path = Path::new().key(sym(key));
+        let edit = intent(
+            "edit-field",
+            Origin::human(1),
+            vec![
+                ("target", value.clone()),
+                ("path", path.to_expr()),
+                ("value", Expr::String(text.to_owned())),
+            ],
+        );
+        let draft = editor.decode(&mut cx, &value, &edit).unwrap();
+        assert!(draft.committable, "{key} edit must be committable");
+        assert_eq!(
+            get(&draft.proposed, &path),
+            Some(&expected),
+            "{key} edit preserves the leaf type"
+        );
+    }
+}
+
+#[test]
+fn invalid_scalar_text_edits_are_rejected() {
+    let mut cx = cx();
+    let editor = UniversalEditor::writable();
+    let value = scalar_map();
+    let path = Path::new().key(sym("n"));
+    let edit = intent(
+        "edit-field",
+        Origin::human(1),
+        vec![
+            ("target", value.clone()),
+            ("path", path.to_expr()),
+            ("value", Expr::String("not-a-number".to_owned())),
+        ],
+    );
+    let draft = editor.decode(&mut cx, &value, &edit).unwrap();
+    assert!(!draft.committable, "invalid number text must not commit");
+    assert_eq!(draft.proposed, value, "rejected edits preserve the base");
+    assert!(
+        draft
+            .diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.message.contains("cannot parse")),
+        "the rejection explains the scalar parse failure"
+    );
+}
+
+#[test]
+fn universal_default_lens_ids_are_distinct_kinds() {
+    let mut registry = LensRegistry::new();
+    register_universal_default(&mut registry, false);
+    let view = registry.get(&Symbol::new(UNIVERSAL_VIEW_ID)).unwrap();
+    let editor = registry.get(&Symbol::new(UNIVERSAL_EDITOR_ID)).unwrap();
+    assert_eq!(view.meta.kind, LensKind::View);
+    assert_eq!(editor.meta.kind, LensKind::Editor);
 }
 ```
 

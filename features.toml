@@ -101,6 +101,26 @@ claims_specimens = [
 ]
 
 [[feature]]
+id = "feature/sim-web/stateful-tree-scenes"
+title = "Stateful tree scenes"
+summary = "Render expandable Scene outlines with explicit disclosure state and total budgets for nodes, depth, encoded bytes, and visible faces."
+owner = "crate/sim-lib-scene"
+audiences = ["code", "framework"]
+guidance = "Use this row when a view needs a bounded outline instead of a product-specific tree widget or an unbounded recursive Scene."
+claims_anchors = [
+  "anchor/crate/sim-lib-scene",
+  "anchor/crate/sim-lib-view",
+  "anchor/crate/sim-web-shell",
+]
+claims_specimens = [
+  "spec-test/sim-web/crates/sim-lib-scene/src/tests",
+  "spec-test/sim-web/crates/sim-lib-view/src/universal_tests",
+]
+supports = [
+  "feature/sim-web/view-surface",
+]
+
+[[feature]]
 id = "feature/sim-web/device-surfaces"
 title = "Device surface profiles"
 summary = "Rank and project view surfaces against desktop, phone, watch, and glasses device profiles."

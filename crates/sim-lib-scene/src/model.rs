@@ -12,6 +12,161 @@ use sim_kernel::{Cx, DefaultFactory, Expr, NoopEvalPolicy, ShapeMatch, Symbol};
 
 use crate::kinds::{KIND_KEY, is_known_kind};
 
+/// One total budget for producing or rendering a Scene.
+///
+/// `nodes` and `depth` bound structural growth. `encoded_bytes` bounds the
+/// whole scene value as encoded data. `face_bytes` bounds any single rendered
+/// face such as a label, text run, title, or field value.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SceneBudget {
+    /// Maximum number of scene nodes.
+    pub nodes: usize,
+    /// Maximum nesting depth, with the root at depth 0.
+    pub depth: usize,
+    /// Maximum encoded bytes for the scene value.
+    pub encoded_bytes: usize,
+    /// Maximum bytes for one visible face.
+    pub face_bytes: usize,
+}
+
+impl SceneBudget {
+    /// Create a budget from explicit limits.
+    pub const fn new(nodes: usize, depth: usize, encoded_bytes: usize, face_bytes: usize) -> Self {
+        Self {
+            nodes,
+            depth,
+            encoded_bytes,
+            face_bytes,
+        }
+    }
+
+    /// Default browser-safe budget for generic views.
+    pub const fn interactive() -> Self {
+        Self::new(512, 32, 256 * 1024, 8 * 1024)
+    }
+
+    /// Smaller budget used by tests and compact previews.
+    pub const fn compact() -> Self {
+        Self::new(64, 12, 32 * 1024, 1024)
+    }
+}
+
+/// Mutable receipt for a [`SceneBudget`] as scene producers spend it.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SceneBudgetState {
+    budget: SceneBudget,
+    nodes_used: usize,
+    encoded_bytes_used: usize,
+}
+
+impl SceneBudgetState {
+    /// Start spending `budget`.
+    pub fn new(budget: SceneBudget) -> Self {
+        Self {
+            budget,
+            nodes_used: 0,
+            encoded_bytes_used: 0,
+        }
+    }
+
+    /// The immutable limits this state enforces.
+    pub fn budget(&self) -> &SceneBudget {
+        &self.budget
+    }
+
+    /// Number of scene nodes admitted so far.
+    pub fn nodes_used(&self) -> usize {
+        self.nodes_used
+    }
+
+    /// Number of approximate encoded bytes admitted so far.
+    pub fn encoded_bytes_used(&self) -> usize {
+        self.encoded_bytes_used
+    }
+
+    /// Try to admit one node at `depth` with a visible face and encoded-size
+    /// estimate. Returns a truncation reason when the budget is exhausted.
+    pub fn admit(
+        &mut self,
+        depth: usize,
+        face: Option<&str>,
+        encoded_bytes: usize,
+    ) -> Result<(), SceneBudgetExhausted> {
+        if self.nodes_used >= self.budget.nodes {
+            return Err(SceneBudgetExhausted::Nodes {
+                limit: self.budget.nodes,
+            });
+        }
+        if depth > self.budget.depth {
+            return Err(SceneBudgetExhausted::Depth {
+                limit: self.budget.depth,
+            });
+        }
+        if let Some(face) = face
+            && face.len() > self.budget.face_bytes
+        {
+            return Err(SceneBudgetExhausted::FaceBytes {
+                limit: self.budget.face_bytes,
+            });
+        }
+        if self.encoded_bytes_used.saturating_add(encoded_bytes) > self.budget.encoded_bytes {
+            return Err(SceneBudgetExhausted::EncodedBytes {
+                limit: self.budget.encoded_bytes,
+            });
+        }
+        self.nodes_used += 1;
+        self.encoded_bytes_used = self.encoded_bytes_used.saturating_add(encoded_bytes);
+        Ok(())
+    }
+}
+
+/// Reason a Scene budget refused another node.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum SceneBudgetExhausted {
+    /// The node count was exhausted.
+    Nodes {
+        /// Configured node limit.
+        limit: usize,
+    },
+    /// The depth limit was exhausted.
+    Depth {
+        /// Configured depth limit.
+        limit: usize,
+    },
+    /// The total encoded-byte limit was exhausted.
+    EncodedBytes {
+        /// Configured encoded-byte limit.
+        limit: usize,
+    },
+    /// A single visible face exceeded the per-face limit.
+    FaceBytes {
+        /// Configured per-face byte limit.
+        limit: usize,
+    },
+}
+
+impl SceneBudgetExhausted {
+    /// Stable reason token for scene truncation metadata.
+    pub fn reason(&self) -> &'static str {
+        match self {
+            Self::Nodes { .. } => "nodes",
+            Self::Depth { .. } => "depth",
+            Self::EncodedBytes { .. } => "encoded-bytes",
+            Self::FaceBytes { .. } => "face-bytes",
+        }
+    }
+
+    /// Configured limit that was exceeded.
+    pub fn limit(&self) -> usize {
+        match self {
+            Self::Nodes { limit }
+            | Self::Depth { limit }
+            | Self::EncodedBytes { limit }
+            | Self::FaceBytes { limit } => *limit,
+        }
+    }
+}
+
 /// A structured scene validation diagnostic: where the problem is and what it
 /// is. `path` is a human-readable address into the scene tree (for example
 /// `nodes[0].kind`); `message` describes the violation.

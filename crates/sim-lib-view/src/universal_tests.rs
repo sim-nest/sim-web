@@ -1,4 +1,8 @@
 //! Tests for the universal default view and editor.
+//!
+//! conformance: the universal structure tree carries disclosure state, routes
+//! disclosure targets, and truncates hostile deep/wide values through Scene
+//! metadata.
 
 use sim_kernel::{CodecId, Expr, NumberLiteral, Symbol};
 use sim_lib_intent::{Origin, intent};
@@ -274,6 +278,36 @@ fn string_attr<'a>(entries: &'a [(Expr, Expr)], name: &str) -> Option<&'a str> {
     }
 }
 
+fn bool_attr(entries: &[(Expr, Expr)], name: &str) -> Option<bool> {
+    match attr(entries, name) {
+        Some(Expr::Bool(flag)) => Some(*flag),
+        _ => None,
+    }
+}
+
+fn collect_kind_nodes<'a>(value: &'a Expr, kind: &str, out: &mut Vec<&'a [(Expr, Expr)]>) {
+    match value {
+        Expr::Map(entries) => {
+            let is_kind = entries.iter().any(|(key, value)| {
+                matches!(key, Expr::Symbol(symbol) if &*symbol.name == "kind")
+                    && matches!(value, Expr::Symbol(symbol) if &*symbol.name == kind)
+            });
+            if is_kind {
+                out.push(entries);
+            }
+            for (_, value) in entries {
+                collect_kind_nodes(value, kind, out);
+            }
+        }
+        Expr::List(items) | Expr::Vector(items) | Expr::Set(items) => {
+            for item in items {
+                collect_kind_nodes(item, kind, out);
+            }
+        }
+        _ => {}
+    }
+}
+
 #[test]
 fn canonical_text_fields_scope_to_leaf_paths_and_preserve_siblings() {
     let mut cx = cx();
@@ -312,6 +346,52 @@ fn canonical_text_fields_scope_to_leaf_paths_and_preserve_siblings() {
         entries.len(),
         3,
         "the scoped edit preserved every sibling key"
+    );
+}
+
+#[test]
+fn structure_tree_carries_disclosure_state_and_targets() {
+    let mut cx = cx();
+    let scene = UniversalView.encode(&mut cx, &sample_map()).unwrap();
+
+    let mut trees = Vec::new();
+    collect_kind_nodes(&scene, "tree", &mut trees);
+    assert!(trees.len() >= 2, "nested values render as tree nodes");
+    assert_eq!(string_attr(trees[0], "label"), Some("value"));
+    assert_eq!(bool_attr(trees[0], "open"), Some(true));
+    assert_eq!(bool_attr(trees[0], "aria-expanded"), Some(true));
+    assert!(attr(trees[0], "disclosure-target").is_some());
+    assert!(
+        trees
+            .iter()
+            .skip(1)
+            .any(|entries| bool_attr(entries, "open") == Some(false)),
+        "nested tree nodes start collapsed but keep their children as data"
+    );
+}
+
+#[test]
+fn structure_tree_emits_explicit_continuation_metadata_when_bounded() {
+    let mut cx = cx();
+    let mut value = Expr::Nil;
+    for index in 0..600 {
+        value = Expr::List(vec![Expr::String(index.to_string()), value]);
+    }
+    let scene = UniversalView.encode(&mut cx, &value).unwrap();
+    sim_lib_scene::validate_scene(&scene).expect("truncated tree remains a valid scene");
+
+    let mut continuations = Vec::new();
+    collect_kind_nodes(&scene, "continuation", &mut continuations);
+    assert!(
+        !continuations.is_empty(),
+        "hostile deep values must be represented by explicit continuation nodes"
+    );
+    assert!(
+        continuations
+            .iter()
+            .any(|entries| bool_attr(entries, "truncated") == Some(true)
+                && symbol_attr(entries, "reason").is_some()),
+        "continuation nodes carry truncation reason metadata"
     );
 }
 

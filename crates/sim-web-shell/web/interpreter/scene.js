@@ -38,11 +38,18 @@ function labelled(element, node) {
   return element;
 }
 
-function paintChildren(doc, node, emit) {
+const DEFAULT_SCENE_BUDGET = Object.freeze({
+  nodes: 4096,
+  depth: 64,
+  "encoded-bytes": 2 * 1024 * 1024,
+  "face-bytes": 64 * 1024,
+});
+
+function paintChildren(doc, node, emit, budget, state, depth) {
   const frag = [];
   const children = node.children || node.nodes || [];
   for (const child of children) {
-    frag.push(renderScene(doc, child, emit));
+    frag.push(renderSceneWithBudget(doc, child, emit, budget, state, depth + 1));
   }
   return frag;
 }
@@ -58,6 +65,64 @@ function asNumber(value, fallback) {
 
 function asBool(value) {
   return value === true || value === "true";
+}
+
+function mergedBudget(node) {
+  return { ...DEFAULT_SCENE_BUDGET, ...(node && typeof node.budget === "object" ? node.budget : {}) };
+}
+
+function budgetLimit(budget, name) {
+  const value = Number(budget[name]);
+  return Number.isFinite(value) && value >= 0 ? value : DEFAULT_SCENE_BUDGET[name];
+}
+
+function shallowEncodedBytes(node) {
+  if (!node || typeof node !== "object") return String(node ?? "").length;
+  let bytes = 2;
+  for (const [key, value] of Object.entries(node)) {
+    if (key === "children" || key === "nodes") continue;
+    bytes += String(key).length + 4;
+    if (value && typeof value === "object") {
+      bytes += Array.isArray(value) ? value.length * 4 : Object.keys(value).length * 4;
+    } else {
+      bytes += String(value ?? "").length;
+    }
+  }
+  return bytes;
+}
+
+function visibleFace(node) {
+  if (!node || typeof node !== "object") return "";
+  return String(node.label ?? node.text ?? node.title ?? node.value ?? "");
+}
+
+function admitNode(node, budget, state, depth) {
+  if (state.nodes >= budgetLimit(budget, "nodes")) {
+    return { ok: false, reason: "nodes", limit: budgetLimit(budget, "nodes") };
+  }
+  if (depth > budgetLimit(budget, "depth")) {
+    return { ok: false, reason: "depth", limit: budgetLimit(budget, "depth") };
+  }
+  const encoded = shallowEncodedBytes(node);
+  if (state.encoded + encoded > budgetLimit(budget, "encoded-bytes")) {
+    return { ok: false, reason: "encoded-bytes", limit: budgetLimit(budget, "encoded-bytes") };
+  }
+  if (visibleFace(node).length > budgetLimit(budget, "face-bytes")) {
+    return { ok: false, reason: "face-bytes", limit: budgetLimit(budget, "face-bytes") };
+  }
+  state.nodes += 1;
+  state.encoded += encoded;
+  return { ok: true };
+}
+
+function renderContinuation(doc, reason, label = "more not rendered", limit = "") {
+  const item = el(doc, "div", "scene-continuation");
+  item.dataset.truncated = "true";
+  item.dataset.reason = String(reason || "unknown");
+  if (limit !== "") item.dataset.limit = String(limit);
+  item.setAttribute("role", "status");
+  item.textContent = String(label);
+  return item;
 }
 
 function fieldEditEmit(node, input) {
@@ -714,18 +779,52 @@ function renderGlance(doc, node, emit) {
 }
 
 // Render a Scene node into a DOM element belonging to `doc`.
-export function renderScene(doc, node, emit) {
+function renderTree(doc, node, emit, budget, state, depth) {
+  const tree = el(doc, "details", "scene-tree");
+  tree.open = node.open == null ? true : asBool(node.open);
+  tree.dataset.disclosureTarget = JSON.stringify(node["disclosure-target"] || node.target || []);
+  tree.setAttribute("role", "treeitem");
+  tree.setAttribute("aria-expanded", String(tree.open));
+  labelled(tree, node);
+
+  const summary = el(doc, "summary");
+  summary.textContent = String(node.label != null ? node.label : "");
+  summary.setAttribute("role", "button");
+  summary.setAttribute("tabindex", "0");
+  summary.setAttribute("aria-expanded", String(tree.open));
+  tree.appendChild(summary);
+
+  tree.addEventListener("toggle", () => {
+    const open = Boolean(tree.open);
+    tree.setAttribute("aria-expanded", String(open));
+    summary.setAttribute("aria-expanded", String(open));
+    emit({
+      type: "tree-disclosure",
+      target: node["disclosure-target"] || node.target || [],
+      open,
+    });
+  });
+
+  for (const child of paintChildren(doc, node, emit, budget, state, depth)) tree.appendChild(child);
+  return tree;
+}
+
+function renderSceneWithBudget(doc, node, emit, budget, state, depth) {
+  const admitted = admitNode(node, budget, state, depth);
+  if (!admitted.ok) {
+    return renderContinuation(doc, admitted.reason, "scene budget exhausted", admitted.limit);
+  }
   const kind = kindOf(node);
   switch (kind) {
     case "scene/stack": {
       const box = el(doc, "div", "scene-stack");
       box.dataset.dir = String(node.dir || "column");
-      for (const child of paintChildren(doc, node, emit)) box.appendChild(child);
+      for (const child of paintChildren(doc, node, emit, budget, state, depth)) box.appendChild(child);
       return box;
     }
     case "scene/grid": {
       const box = el(doc, "div", "scene-grid");
-      for (const child of paintChildren(doc, node, emit)) box.appendChild(child);
+      for (const child of paintChildren(doc, node, emit, budget, state, depth)) box.appendChild(child);
       return box;
     }
     case "scene/box": {
@@ -734,7 +833,7 @@ export function renderScene(doc, node, emit) {
       }
       const box = el(doc, "div", "scene-box");
       if (node.role) box.dataset.role = String(node.role);
-      for (const child of paintChildren(doc, node, emit)) box.appendChild(child);
+      for (const child of paintChildren(doc, node, emit, budget, state, depth)) box.appendChild(child);
       return box;
     }
     case "scene/text": {
@@ -803,13 +902,10 @@ export function renderScene(doc, node, emit) {
       return meter;
     }
     case "scene/tree": {
-      const tree = el(doc, "details", "scene-tree");
-      tree.open = true;
-      const summary = el(doc, "summary");
-      summary.textContent = String(node.label != null ? node.label : "");
-      tree.appendChild(summary);
-      for (const child of paintChildren(doc, node, emit)) tree.appendChild(child);
-      return tree;
+      return renderTree(doc, node, emit, budget, state, depth);
+    }
+    case "scene/continuation": {
+      return renderContinuation(doc, node.reason, node.label, node.limit);
     }
     case "scene/keyboard":
       return renderKeyboard(doc, node, emit);
@@ -829,7 +925,7 @@ export function renderScene(doc, node, emit) {
       return renderGlance(doc, node, emit);
     case "scene/embed": {
       const wrap = el(doc, "div", "scene-embed");
-      if (node.scene) wrap.appendChild(renderScene(doc, node.scene, emit));
+      if (node.scene) wrap.appendChild(renderSceneWithBudget(doc, node.scene, emit, budget, state, depth + 1));
       return wrap;
     }
     default: {
@@ -839,6 +935,11 @@ export function renderScene(doc, node, emit) {
       return placeholder;
     }
   }
+}
+
+// Render a Scene node into a DOM element belonging to `doc`.
+export function renderScene(doc, node, emit) {
+  return renderSceneWithBudget(doc, node, emit, mergedBudget(node), { nodes: 0, encoded: 0 }, 0);
 }
 
 // Replace the contents of `mount` with the painted `scene`.

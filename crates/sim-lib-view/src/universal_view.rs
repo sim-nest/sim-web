@@ -7,7 +7,7 @@
 //! kinds, so it is shipped and polished rather than a stub.
 
 use sim_kernel::{CodecId, Cx, Expr, Result};
-use sim_lib_scene::{node, sym};
+use sim_lib_scene::{SceneBudget, SceneBudgetExhausted, SceneBudgetState, node, sym};
 
 use crate::contract::View;
 
@@ -71,27 +71,48 @@ fn summary_card(value: &Expr) -> Expr {
 
 /// Region 2: an expandable structure tree.
 fn structure_tree(value: &Expr) -> Expr {
+    let mut budget = SceneBudgetState::new(SceneBudget::interactive());
     node(
         "box",
         vec![
             ("role", sym("structure")),
-            ("children", Expr::List(vec![tree_of("value", value)])),
+            (
+                "children",
+                Expr::List(vec![tree_of("value", value, &mut budget, 0, Vec::new())]),
+            ),
         ],
     )
 }
 
-fn tree_of(label: &str, value: &Expr) -> Expr {
+fn tree_of(
+    label: &str,
+    value: &Expr,
+    budget: &mut SceneBudgetState,
+    depth: usize,
+    path: Vec<Expr>,
+) -> Expr {
+    let encoded_bytes = estimated_tree_bytes(label, value);
+    if let Err(exhausted) = budget.admit(depth, Some(label), encoded_bytes) {
+        return continuation_node(label, exhausted);
+    }
     match value {
         Expr::Map(entries) => node(
             "tree",
             vec![
                 ("label", Expr::String(label.to_owned())),
+                ("open", Expr::Bool(depth == 0)),
+                ("aria-expanded", Expr::Bool(depth == 0)),
+                ("disclosure-target", Expr::List(path.clone())),
                 (
                     "nodes",
                     Expr::List(
                         entries
                             .iter()
-                            .map(|(key, child)| tree_of(&render_value(key), child))
+                            .map(|(key, child)| {
+                                let mut child_path = path.clone();
+                                child_path.push(Expr::Vector(vec![sym("k"), key.clone()]));
+                                tree_of(&render_value(key), child, budget, depth + 1, child_path)
+                            })
                             .collect(),
                     ),
                 ),
@@ -101,13 +122,23 @@ fn tree_of(label: &str, value: &Expr) -> Expr {
             "tree",
             vec![
                 ("label", Expr::String(format!("{label} [{}]", items.len()))),
+                ("open", Expr::Bool(depth == 0)),
+                ("aria-expanded", Expr::Bool(depth == 0)),
+                ("disclosure-target", Expr::List(path.clone())),
                 (
                     "nodes",
                     Expr::List(
                         items
                             .iter()
                             .enumerate()
-                            .map(|(index, child)| tree_of(&format!("[{index}]"), child))
+                            .map(|(index, child)| {
+                                let mut child_path = path.clone();
+                                child_path.push(Expr::Vector(vec![
+                                    sym("i"),
+                                    Expr::String(index.to_string()),
+                                ]));
+                                tree_of(&format!("[{index}]"), child, budget, depth + 1, child_path)
+                            })
                             .collect(),
                     ),
                 ),
@@ -115,6 +146,18 @@ fn tree_of(label: &str, value: &Expr) -> Expr {
         ),
         atom => text_line(format!("{label}: {}", render_value(atom))),
     }
+}
+
+fn continuation_node(label: &str, exhausted: SceneBudgetExhausted) -> Expr {
+    node(
+        "continuation",
+        vec![
+            ("label", Expr::String(format!("{label}: more not rendered"))),
+            ("truncated", Expr::Bool(true)),
+            ("reason", sym(exhausted.reason())),
+            ("limit", Expr::String(exhausted.limit().to_string())),
+        ],
+    )
 }
 
 /// Region 3: the canonical text. Each SCALAR leaf is an editable text field
@@ -225,6 +268,9 @@ fn action_button(control: &str, label: &str, value: &Expr) -> Expr {
 }
 
 fn roundtrip_badge(value: &Expr) -> Expr {
+    if exceeds_depth(value, 64) {
+        return badge("info", "too deep to round-trip inline");
+    }
     let codec = CodecId(0);
     match sim_codec::encode_portable(codec, value) {
         Ok(text) => match sim_codec::decode_portable(codec, &text) {
@@ -234,6 +280,28 @@ fn roundtrip_badge(value: &Expr) -> Expr {
         },
         Err(_) => badge("info", "non-data value"),
     }
+}
+
+fn exceeds_depth(value: &Expr, max_depth: usize) -> bool {
+    let mut stack = vec![(value, 0usize)];
+    while let Some((value, depth)) = stack.pop() {
+        if depth > max_depth {
+            return true;
+        }
+        match value {
+            Expr::List(items) | Expr::Vector(items) | Expr::Set(items) => {
+                stack.extend(items.iter().map(|item| (item, depth + 1)));
+            }
+            Expr::Map(entries) => {
+                for (key, value) in entries {
+                    stack.push((key, depth + 1));
+                    stack.push((value, depth + 1));
+                }
+            }
+            _ => {}
+        }
+    }
+    false
 }
 
 /// The four universal regions in increasing-depth order: summary, canonical
@@ -261,6 +329,13 @@ fn short_label(value: &Expr) -> String {
 
 /// Render a value as compact, readable text for display.
 pub fn render_value(value: &Expr) -> String {
+    render_value_bounded(value, 0)
+}
+
+fn render_value_bounded(value: &Expr, depth: usize) -> String {
+    if depth >= 64 {
+        return "...".to_owned();
+    }
     match value {
         Expr::Nil => "nil".to_owned(),
         Expr::Bool(flag) => flag.to_string(),
@@ -268,21 +343,51 @@ pub fn render_value(value: &Expr) -> String {
         Expr::Symbol(symbol) | Expr::Local(symbol) => symbol.as_qualified_str(),
         Expr::String(text) => format!("{text:?}"),
         Expr::Bytes(bytes) => format!("#bytes({})", bytes.len()),
-        Expr::List(items) => format!("({})", render_items(items)),
-        Expr::Vector(items) => format!("[{}]", render_items(items)),
-        Expr::Set(items) => format!("#{{{}}}", render_items(items)),
+        Expr::List(items) => format!("({})", render_items(items, depth + 1)),
+        Expr::Vector(items) => format!("[{}]", render_items(items, depth + 1)),
+        Expr::Set(items) => format!("#{{{}}}", render_items(items, depth + 1)),
         Expr::Map(entries) => {
             let body = entries
                 .iter()
-                .map(|(key, value)| format!("{}: {}", render_value(key), render_value(value)))
+                .take(128)
+                .map(|(key, value)| {
+                    format!(
+                        "{}: {}",
+                        render_value_bounded(key, depth + 1),
+                        render_value_bounded(value, depth + 1)
+                    )
+                })
                 .collect::<Vec<_>>()
                 .join(", ");
-            format!("{{{body}}}")
+            if entries.len() > 128 {
+                format!("{{{body}, ...}}")
+            } else {
+                format!("{{{body}}}")
+            }
         }
         other => format!("<{}>", expr_kind(other)),
     }
 }
 
-fn render_items(items: &[Expr]) -> String {
-    items.iter().map(render_value).collect::<Vec<_>>().join(" ")
+fn render_items(items: &[Expr], depth: usize) -> String {
+    let rendered = items
+        .iter()
+        .take(128)
+        .map(|item| render_value_bounded(item, depth + 1))
+        .collect::<Vec<_>>()
+        .join(" ");
+    if items.len() > 128 {
+        format!("{rendered} ...")
+    } else {
+        rendered
+    }
+}
+
+fn estimated_tree_bytes(label: &str, value: &Expr) -> usize {
+    let body = match value {
+        Expr::Map(entries) => entries.len().saturating_mul(16),
+        Expr::List(items) | Expr::Vector(items) | Expr::Set(items) => items.len().saturating_mul(8),
+        atom => render_value(atom).len(),
+    };
+    label.len().saturating_add(body)
 }

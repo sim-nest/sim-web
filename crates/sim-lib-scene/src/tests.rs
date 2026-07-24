@@ -1,12 +1,16 @@
 //! Tests for the Scene value model, `codec:scene`, and scene diff/apply.
+//!
+//! conformance: scene/tree budgets and explicit scene/continuation truncation
+//! metadata fail closed instead of allowing unbounded scene growth.
 
 use sim_codec::{Input, Output, decode_with_codec, encode_with_codec};
 use sim_kernel::{Cx, EncodeOptions, Expr, NumberLiteral, ReadPolicy, Symbol, testing::eager_cx};
 
 use crate::{
-    Anchor, AnchorSpace, GlanceAction, GlanceCard, GlanceMetric, SceneCodecLib, Transform3, apply,
-    diff, gaze_cursor, hand_ray, map, node, panel, scene_codec_symbol, scene_shape_specs,
-    scene_shape_symbol, spatial, stereo, text, validate_scene, world_plane,
+    Anchor, AnchorSpace, GlanceAction, GlanceCard, GlanceMetric, SceneBudget, SceneBudgetExhausted,
+    SceneBudgetState, SceneCodecLib, Transform3, apply, diff, gaze_cursor, hand_ray, map, node,
+    panel, scene_codec_symbol, scene_shape_specs, scene_shape_symbol, spatial, stereo, text,
+    validate_scene, world_plane,
 };
 
 fn cx() -> Cx {
@@ -205,6 +209,40 @@ fn validates_music_editor_scene_kinds() {
         validate_scene(&node(kind, vec![("target", sym("target"))]))
             .unwrap_or_else(|err| panic!("{kind}: {err}"));
     }
+}
+
+#[test]
+fn continuation_nodes_validate_and_budget_receipts_fail_closed() {
+    validate_scene(&node(
+        "continuation",
+        vec![
+            ("label", Expr::String("more not rendered".to_owned())),
+            ("truncated", Expr::Bool(true)),
+            ("reason", sym("nodes")),
+        ],
+    ))
+    .expect("scene/continuation validates as explicit truncation metadata");
+
+    let mut state = SceneBudgetState::new(SceneBudget::new(1, 0, 12, 4));
+    state.admit(0, Some("root"), 8).unwrap();
+    assert_eq!(
+        state.admit(0, Some("next"), 1),
+        Err(SceneBudgetExhausted::Nodes { limit: 1 })
+    );
+
+    let mut state = SceneBudgetState::new(SceneBudget::new(4, 0, 12, 4));
+    assert_eq!(
+        state.admit(1, Some("deep"), 1),
+        Err(SceneBudgetExhausted::Depth { limit: 0 })
+    );
+    assert_eq!(
+        state.admit(0, Some("too long"), 1),
+        Err(SceneBudgetExhausted::FaceBytes { limit: 4 })
+    );
+    assert_eq!(
+        state.admit(0, Some("ok"), 13),
+        Err(SceneBudgetExhausted::EncodedBytes { limit: 12 })
+    );
 }
 
 #[test]
