@@ -33,8 +33,8 @@ const READ_TIMEOUT: Duration = Duration::from_secs(30);
 use crate::assets::asset_for;
 use crate::atelier::AtelierWebState;
 use crate::live::{
-    DEFAULT_PANE, DEFAULT_RESOURCE, LiveSession, decode_intent_body, encode_patches, encode_scene,
-    error_json,
+    DEFAULT_PANE, DEFAULT_RESOURCE, DefaultLiveSurfaceFactory, LiveSessionTable,
+    decode_intent_body, encode_patches, encode_scene, error_json,
 };
 use sim_kernel::Cx;
 use sim_lib_net_core::{CapOutcome, read_capped_line};
@@ -118,7 +118,7 @@ struct ShellState<'a> {
     atelier: AtelierWebState,
     cookbook: Arc<CookbookWebState>,
     cookbook_cx: &'a mut Cx,
-    live: LiveSession,
+    live: LiveSessionTable,
 }
 
 impl<'a> ShellState<'a> {
@@ -135,7 +135,7 @@ impl<'a> ShellState<'a> {
                 None => Arc::new(CookbookWebState::seeded().map_err(io_error)?),
             },
             cookbook_cx: cx,
-            live: LiveSession::new().map_err(io_error)?,
+            live: LiveSessionTable::new(Box::new(DefaultLiveSurfaceFactory)),
         })
     }
 }
@@ -187,6 +187,9 @@ fn handle(mut stream: TcpStream, state: &mut ShellState<'_>) -> std::io::Result<
     }
     if path_of(&request.target) == "/api/session/open" {
         return write_session_open(&mut stream, &request, &mut state.live);
+    }
+    if path_of(&request.target) == "/api/session/close" {
+        return write_session_close(&mut stream, &request, &mut state.live);
     }
     if request.target.starts_with("/api/cookbook") {
         // read-eval was granted to cookbook_cx by the bootloader (see cli.rs);
@@ -320,11 +323,16 @@ fn read_request_from(reader: &mut impl BufRead) -> std::io::Result<ReadOutcome> 
 fn write_session_intent(
     stream: &mut (impl Write + ?Sized),
     request: &RequestLine,
-    live: &mut LiveSession,
+    live: &mut LiveSessionTable,
 ) -> std::io::Result<()> {
     if request.method != "POST" {
         return write_json(stream, 405, &error_json("intent route requires POST"));
     }
+    let session_id = match query_value(&request.target, "session") {
+        Ok(Some(value)) => value,
+        Ok(None) => return write_json(stream, 400, &error_json("missing session id")),
+        Err(err) => return write_json(stream, 400, &error_json(&err.to_string())),
+    };
     let pane = match query_value(&request.target, "pane") {
         Ok(Some(value)) => value,
         Ok(None) => DEFAULT_PANE.to_owned(),
@@ -334,7 +342,7 @@ fn write_session_intent(
         Ok(intent) => intent,
         Err(err) => return write_json(stream, 400, &error_json(&err)),
     };
-    match live.submit(&pane, &intent) {
+    match live.submit(&session_id, &pane, &intent) {
         Ok(updates) => write_json(stream, 200, &encode_patches(&updates)),
         Err(err) => write_json(stream, 400, &error_json(&err.to_string())),
     }
@@ -345,11 +353,15 @@ fn write_session_intent(
 fn write_session_open(
     stream: &mut (impl Write + ?Sized),
     request: &RequestLine,
-    live: &mut LiveSession,
+    live: &mut LiveSessionTable,
 ) -> std::io::Result<()> {
     if request.method != "GET" {
         return write_json(stream, 405, &error_json("open route requires GET"));
     }
+    let session_id = match query_value(&request.target, "session") {
+        Ok(value) => value,
+        Err(err) => return write_json(stream, 400, &error_json(&err.to_string())),
+    };
     let resource = match query_value(&request.target, "resource") {
         Ok(Some(value)) => value,
         Ok(None) => DEFAULT_RESOURCE.to_owned(),
@@ -360,10 +372,45 @@ fn write_session_open(
         Ok(None) => DEFAULT_PANE.to_owned(),
         Err(err) => return write_json(stream, 400, &error_json(&err.to_string())),
     };
-    match live.open(&resource, &pane) {
-        Ok(scene) => write_json(stream, 200, &encode_scene(&scene)),
+    match live.open(session_id.as_deref(), &resource, &pane) {
+        Ok((session_id, scene)) => {
+            write_json(stream, 200, &encode_session_open(&session_id, &scene))
+        }
         Err(err) => write_json(stream, 400, &error_json(&err.to_string())),
     }
+}
+
+/// Handle `POST /api/session/close?session=...`: cancel and remove a browser
+/// session so its authority and connection state cannot be reused.
+fn write_session_close(
+    stream: &mut (impl Write + ?Sized),
+    request: &RequestLine,
+    live: &mut LiveSessionTable,
+) -> std::io::Result<()> {
+    if request.method != "POST" {
+        return write_json(stream, 405, &error_json("close route requires POST"));
+    }
+    let session_id = match query_value(&request.target, "session") {
+        Ok(Some(value)) => value,
+        Ok(None) => return write_json(stream, 400, &error_json("missing session id")),
+        Err(err) => return write_json(stream, 400, &error_json(&err.to_string())),
+    };
+    match live.close(&session_id) {
+        Ok(()) => write_json(stream, 200, r#"{"ok":true}"#),
+        Err(err) => write_json(stream, 400, &error_json(&err)),
+    }
+}
+
+fn encode_session_open(session_id: &str, scene: &sim_kernel::Expr) -> String {
+    let mut value: serde_json::Value =
+        serde_json::from_str(&encode_scene(scene)).expect("encode_scene emits JSON object");
+    if let Some(object) = value.as_object_mut() {
+        object.insert(
+            "session".to_owned(),
+            serde_json::Value::String(session_id.to_owned()),
+        );
+    }
+    value.to_string()
 }
 
 /// The path portion of a request target, with any query or fragment stripped.
@@ -538,9 +585,10 @@ fn status_text(status: u16) -> &'static str {
 mod tests {
     use super::{
         MAX_BODY_BYTES, MAX_HEAD_LINE_BYTES, MAX_HEADER_COUNT, ReadOutcome, RequestLine,
-        query_value, read_request_from, write_session_open,
+        query_value, read_request_from, write_session_close, write_session_intent,
+        write_session_open,
     };
-    use crate::live::LiveSession;
+    use crate::live::{DefaultLiveSurfaceFactory, LiveSessionTable, decode_intent_body};
     use std::io::{BufReader, Cursor};
 
     fn parse(raw: &str) -> ReadOutcome {
@@ -663,7 +711,7 @@ mod tests {
             body: String::new(),
         };
         let mut response = Vec::new();
-        let mut live = LiveSession::new().expect("live session");
+        let mut live = LiveSessionTable::new(Box::new(DefaultLiveSurfaceFactory));
         write_session_open(&mut response, &request, &mut live).expect("response");
         let text = String::from_utf8(response).expect("utf-8 response");
         assert!(
@@ -674,5 +722,126 @@ mod tests {
             text.contains("malformed query value"),
             "structured JSON error must describe the query problem: {text}"
         );
+    }
+
+    fn body(text: &str) -> &str {
+        text.split("\r\n\r\n").nth(1).unwrap_or("")
+    }
+
+    fn json_body(text: &str) -> serde_json::Value {
+        serde_json::from_str(body(text)).expect("json body")
+    }
+
+    fn session_from_open(text: &str) -> String {
+        json_body(text)["session"]
+            .as_str()
+            .expect("session id")
+            .to_owned()
+    }
+
+    fn open_request(target: &str, live: &mut LiveSessionTable) -> String {
+        let request = RequestLine {
+            method: "GET".to_owned(),
+            target: target.to_owned(),
+            body: String::new(),
+        };
+        let mut response = Vec::new();
+        write_session_open(&mut response, &request, live).expect("open response");
+        String::from_utf8(response).expect("utf-8 response")
+    }
+
+    fn intent_request(target: &str, live: &mut LiveSessionTable, value: &str) -> String {
+        let request = RequestLine {
+            method: "POST".to_owned(),
+            target: target.to_owned(),
+            body: format!(
+                r#"{{"kind":"intent/edit-field","origin":{{"operator":"human","at-tick":1}},"target":{{}},"path":[],"value":"{value}"}}"#
+            ),
+        };
+        let mut response = Vec::new();
+        write_session_intent(&mut response, &request, live).expect("intent response");
+        String::from_utf8(response).expect("utf-8 response")
+    }
+
+    #[test]
+    fn session_open_returns_an_opaque_session_id() {
+        let mut live = LiveSessionTable::new(Box::new(DefaultLiveSurfaceFactory));
+        let response = open_request("/api/session/open?resource=demo&pane=pane-main", &mut live);
+        assert!(response.starts_with("HTTP/1.1 200 OK"), "{response}");
+        let session_id = session_from_open(&response);
+        assert_eq!(session_id.len(), 32);
+        assert!(json_body(&response).get("scene").is_some());
+    }
+
+    #[test]
+    fn session_intent_requires_a_well_formed_session_id() {
+        let mut live = LiveSessionTable::new(Box::new(DefaultLiveSurfaceFactory));
+        let missing = intent_request("/api/session/intent", &mut live, "x");
+        assert!(missing.starts_with("HTTP/1.1 400 Bad Request"), "{missing}");
+        assert!(missing.contains("missing session id"));
+
+        let malformed = intent_request("/api/session/intent?session=bad", &mut live, "x");
+        assert!(
+            malformed.starts_with("HTTP/1.1 400 Bad Request"),
+            "{malformed}"
+        );
+        assert!(malformed.contains("malformed session id"));
+    }
+
+    #[test]
+    fn sessions_cannot_commit_across_browser_ids() {
+        let mut live = LiveSessionTable::new(Box::new(DefaultLiveSurfaceFactory));
+        let left = session_from_open(&open_request("/api/session/open", &mut live));
+        let right_open = open_request("/api/session/open", &mut live);
+        let right = session_from_open(&right_open);
+
+        let left_edit = intent_request(
+            &format!("/api/session/intent?session={left}&pane=pane-main"),
+            &mut live,
+            "left-only",
+        );
+        assert!(left_edit.starts_with("HTTP/1.1 200 OK"), "{left_edit}");
+
+        let right_reconnect = open_request(
+            &format!("/api/session/open?session={right}&resource=demo&pane=pane-main"),
+            &mut live,
+        );
+        assert_eq!(
+            json_body(&right_reconnect)["scene"],
+            json_body(&right_open)["scene"],
+            "one browser cannot read another browser's edited state"
+        );
+    }
+
+    #[test]
+    fn closed_session_ids_are_cancelled() {
+        let mut live = LiveSessionTable::new(Box::new(DefaultLiveSurfaceFactory));
+        let session_id = session_from_open(&open_request("/api/session/open", &mut live));
+        let request = RequestLine {
+            method: "POST".to_owned(),
+            target: format!("/api/session/close?session={session_id}"),
+            body: String::new(),
+        };
+        let mut response = Vec::new();
+        write_session_close(&mut response, &request, &mut live).expect("close response");
+        let text = String::from_utf8(response).expect("utf-8 response");
+        assert!(text.starts_with("HTTP/1.1 200 OK"), "{text}");
+
+        let after_close = intent_request(
+            &format!("/api/session/intent?session={session_id}"),
+            &mut live,
+            "after-close",
+        );
+        assert!(after_close.starts_with("HTTP/1.1 400 Bad Request"));
+        assert!(after_close.contains("unknown session id"));
+    }
+
+    #[test]
+    fn decoded_browser_intent_is_still_accepted_by_session_route() {
+        let intent = decode_intent_body(
+            r#"{"kind":"intent/edit-field","origin":{"operator":"human","at-tick":1},"target":{},"path":[],"value":"ok"}"#,
+        )
+        .expect("browser intent decodes");
+        assert!(format!("{intent:?}").contains("edit-field"));
     }
 }

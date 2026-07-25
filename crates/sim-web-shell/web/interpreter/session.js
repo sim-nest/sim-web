@@ -14,6 +14,9 @@
 
 const INTENT_URL = "/api/session/intent";
 const OPEN_URL = "/api/session/open";
+const CLOSE_URL = "/api/session/close";
+
+let currentSession = null;
 
 function fetchImpl(override) {
   if (typeof override === "function") return override;
@@ -40,8 +43,10 @@ export async function postIntent(intent, override) {
   const f = fetchImpl(override);
   if (!f) return { ok: false, patches: [], error: "session bridge unavailable" };
   if (!intent) return { ok: false, patches: [], error: "missing intent" };
+  if (!currentSession) return { ok: false, patches: [], error: "missing session id" };
   try {
-    const res = await f(INTENT_URL, {
+    const query = `?session=${encodeURIComponent(currentSession)}`;
+    const res = await f(INTENT_URL + query, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(intent),
@@ -65,15 +70,39 @@ export async function postIntent(intent, override) {
 export async function openSession(resource, pane, override) {
   const f = fetchImpl(override);
   if (!f) return { ok: false, scene: null, error: "session bridge unavailable" };
-  const query = `?resource=${encodeURIComponent(resource)}&pane=${encodeURIComponent(pane)}`;
+  const existing = currentSession ? `&session=${encodeURIComponent(currentSession)}` : "";
+  const query = `?resource=${encodeURIComponent(resource)}&pane=${encodeURIComponent(pane)}${existing}`;
   try {
     const res = await f(OPEN_URL + query, { method: "GET" });
     const data = await jsonBody(res);
     if (!res || !res.ok) {
       return { ok: false, scene: null, error: errorMessage(data, "session open failed") };
     }
-    return { ok: true, scene: (data && data.scene) || null, error: null };
+    currentSession = (data && data.session) || currentSession;
+    return { ok: true, session: currentSession, scene: (data && data.scene) || null, error: null };
   } catch (err) {
     return { ok: false, scene: null, error: errorMessage(null, err && err.message ? err.message : "session open failed") };
   }
+}
+
+export async function closeSession(override) {
+  const f = fetchImpl(override);
+  if (!f) return { ok: false, error: "session bridge unavailable" };
+  if (!currentSession) return { ok: true, error: null };
+  const closing = currentSession;
+  currentSession = null;
+  try {
+    const res = await f(`${CLOSE_URL}?session=${encodeURIComponent(closing)}`, { method: "POST" });
+    const data = await jsonBody(res);
+    if (!res || !res.ok) {
+      return { ok: false, error: errorMessage(data, "session close failed") };
+    }
+    return { ok: true, error: null };
+  } catch (err) {
+    return { ok: false, error: errorMessage(null, err && err.message ? err.message : "session close failed") };
+  }
+}
+
+export function resetSessionForTest(session = null) {
+  currentSession = session;
 }

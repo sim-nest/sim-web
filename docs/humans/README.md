@@ -22,7 +22,7 @@ This generated lane consumes `docs/generated/sim-index-fragment.sx`. Global inde
 | `feature/sim-web/device-surfaces` | `crate/sim-lib-view` | 1 | Rank and project view surfaces against desktop, phone, watch, and glasses device profiles. |
 | `feature/sim-web/codec-surface-sessions` | `crate/sim-lib-web-bridge` | 1 | Drive browser and server sessions through one reversible SurfaceCodec contract for encode, decode, commit, projection, and isolation. |
 | `feature/sim-web/server-backed-web-sessions` | `crate/sim-lib-web-bridge` | 1 | Connect RemoteTransport to the existing SIM server transport so browser sessions read, commit, drain changes, reconnect, and report revision conflicts through ordinary server eval requests. |
-| `feature/sim-web/web-shell-host` | `crate/sim-web-shell` | 1 | Serve browser-facing surfaces through loaded web shell runtime libraries and command entry points. |
+| `feature/sim-web/web-shell-host` | `crate/sim-web-shell` | 1 | Serve isolated, bounded browser-facing surfaces through loaded web shell runtime libraries and command entry points. |
 | `feature/sim-web/daw-view-surfaces` | `crate/sim-lib-view-daw` | 1 | Expose synth, stream, placement, and component views through the DAW view library. |
 | `feature/sim-web/generated-docs` | `crate/xtask` | 0 | Publish generated package, card, recipe, and index facts for browser and view crates. |
 
