@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" role="img" aria-label="SIM Web">
+  <rect width="192" height="192" rx="28" fill="#11151a"/>
+  <path d="M42 62h108v24H42zM42 102h72v24H42z" fill="#e6edf3"/>
+  <path d="M126 102h24v24h-24z" fill="#4aa3ff"/>
+  <path d="M42 142h108v12H42z" fill="#2ea043"/>
+</svg>

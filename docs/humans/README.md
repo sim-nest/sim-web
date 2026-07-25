@@ -22,7 +22,7 @@ This generated lane consumes `docs/generated/sim-index-fragment.sx`. Global inde
 | `feature/sim-web/device-surfaces` | `crate/sim-lib-view` | 1 | Rank and project view surfaces against desktop, phone, watch, and glasses device profiles. |
 | `feature/sim-web/codec-surface-sessions` | `crate/sim-lib-web-bridge` | 1 | Drive browser and server sessions through one reversible SurfaceCodec contract for encode, decode, commit, projection, and isolation. |
 | `feature/sim-web/server-backed-web-sessions` | `crate/sim-lib-web-bridge` | 1 | Connect RemoteTransport to the existing SIM server transport so browser sessions read, commit, drain changes, reconnect, and report revision conflicts through ordinary server eval requests. |
-| `feature/sim-web/web-shell-host` | `crate/sim-web-shell` | 1 | Serve isolated, bounded browser-facing surfaces through loaded web shell runtime libraries and command entry points. |
+| `feature/sim-web/web-shell-host` | `crate/sim-web-shell` | 1 | Serve isolated, bounded, phone-capable browser surfaces through loaded web shell runtime libraries, installable shell assets, and command entry points. |
 | `feature/sim-web/daw-view-surfaces` | `crate/sim-lib-view-daw` | 1 | Expose synth, stream, placement, and component views through the DAW view library. |
 | `feature/sim-web/generated-docs` | `crate/xtask` | 0 | Publish generated package, card, recipe, and index facts for browser and view crates. |
 
@@ -2313,6 +2313,8 @@ fn interpreter_modules_are_served_as_javascript() {
         "/interpreter/diff.js",
         "/interpreter/intent.js",
         "/interpreter/keymap.js",
+        "/interpreter/pwa.js",
+        "/sw.js",
     ] {
         let asset = asset_for(path).unwrap_or_else(|| panic!("{path} must be served"));
         assert_eq!(asset.content_type, "text/javascript; charset=utf-8");
@@ -2332,6 +2334,10 @@ fn interpreter_module_import_graph_is_served() {
     assert!(
         seen.contains("/interpreter/glasses.js"),
         "app.js imports the browser-local glasses client"
+    );
+    assert!(
+        seen.contains("/interpreter/pwa.js"),
+        "app.js imports the install profile"
     );
 }
 
@@ -2368,6 +2374,51 @@ fn the_shell_page_loads_the_interpreter_module() {
         body.contains("/interpreter/app.js"),
         "the shell page must load the interpreter entry module"
     );
+    assert!(
+        body.contains("manifest.webmanifest"),
+        "the shell page must link the install manifest"
+    );
+}
+
+#[test]
+fn install_manifest_and_icons_are_served() {
+    let manifest = asset_for("/manifest.webmanifest").expect("manifest");
+    assert_eq!(
+        manifest.content_type,
+        "application/manifest+json; charset=utf-8"
+    );
+    let body = std::str::from_utf8(manifest.body).unwrap();
+    assert!(body.contains("\"display\": \"standalone\""));
+    assert!(body.contains("\"start_url\": \"/\""));
+    assert!(body.contains("/assets/icon.svg"));
+    assert!(body.contains("/assets/icon-maskable.svg"));
+
+    for path in ["/assets/icon.svg", "/assets/icon-maskable.svg"] {
+        let icon = asset_for(path).unwrap_or_else(|| panic!("{path}"));
+        assert_eq!(icon.content_type, "image/svg+xml");
+        assert!(!icon.body.is_empty());
+    }
+}
+
+#[test]
+fn service_worker_names_shell_assets_only() {
+    let js = asset_text("/sw.js");
+    for expected in [
+        "sim-web-shell-v1",
+        "/index.html",
+        "/styles/theme.css",
+        "/interpreter/app.js",
+        "/interpreter/pwa.js",
+        "/manifest.webmanifest",
+    ] {
+        assert!(js.contains(expected), "missing {expected}");
+    }
+    for forbidden in ["/api/session", "/api/cookbook", "/api/atelier", "/cookbook"] {
+        assert!(
+            !js.contains(forbidden),
+            "service worker must not cache authored/server path {forbidden}"
+        );
+    }
 }
 
 #[test]

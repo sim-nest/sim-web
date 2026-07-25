@@ -74,6 +74,8 @@ fn interpreter_modules_are_served_as_javascript() {
         "/interpreter/diff.js",
         "/interpreter/intent.js",
         "/interpreter/keymap.js",
+        "/interpreter/pwa.js",
+        "/sw.js",
     ] {
         let asset = asset_for(path).unwrap_or_else(|| panic!("{path} must be served"));
         assert_eq!(asset.content_type, "text/javascript; charset=utf-8");
@@ -93,6 +95,10 @@ fn interpreter_module_import_graph_is_served() {
     assert!(
         seen.contains("/interpreter/glasses.js"),
         "app.js imports the browser-local glasses client"
+    );
+    assert!(
+        seen.contains("/interpreter/pwa.js"),
+        "app.js imports the install profile"
     );
 }
 
@@ -129,6 +135,51 @@ fn the_shell_page_loads_the_interpreter_module() {
         body.contains("/interpreter/app.js"),
         "the shell page must load the interpreter entry module"
     );
+    assert!(
+        body.contains("manifest.webmanifest"),
+        "the shell page must link the install manifest"
+    );
+}
+
+#[test]
+fn install_manifest_and_icons_are_served() {
+    let manifest = asset_for("/manifest.webmanifest").expect("manifest");
+    assert_eq!(
+        manifest.content_type,
+        "application/manifest+json; charset=utf-8"
+    );
+    let body = std::str::from_utf8(manifest.body).unwrap();
+    assert!(body.contains("\"display\": \"standalone\""));
+    assert!(body.contains("\"start_url\": \"/\""));
+    assert!(body.contains("/assets/icon.svg"));
+    assert!(body.contains("/assets/icon-maskable.svg"));
+
+    for path in ["/assets/icon.svg", "/assets/icon-maskable.svg"] {
+        let icon = asset_for(path).unwrap_or_else(|| panic!("{path}"));
+        assert_eq!(icon.content_type, "image/svg+xml");
+        assert!(!icon.body.is_empty());
+    }
+}
+
+#[test]
+fn service_worker_names_shell_assets_only() {
+    let js = asset_text("/sw.js");
+    for expected in [
+        "sim-web-shell-v1",
+        "/index.html",
+        "/styles/theme.css",
+        "/interpreter/app.js",
+        "/interpreter/pwa.js",
+        "/manifest.webmanifest",
+    ] {
+        assert!(js.contains(expected), "missing {expected}");
+    }
+    for forbidden in ["/api/session", "/api/cookbook", "/api/atelier", "/cookbook"] {
+        assert!(
+            !js.contains(forbidden),
+            "service worker must not cache authored/server path {forbidden}"
+        );
+    }
 }
 
 #[test]

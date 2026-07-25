@@ -10,6 +10,7 @@
 
 import assert from "node:assert";
 import { postIntent, openSession, closeSession, resetSessionForTest } from "../interpreter/session.js";
+import { applyPhoneProfile, bootPwa, registerShellServiceWorker, SERVICE_WORKER_URL } from "../interpreter/pwa.js";
 import { renderSessionError } from "../interpreter/app.js";
 import { applyPatch } from "../interpreter/diff.js";
 
@@ -19,6 +20,7 @@ function jsonResponse(value, ok = true, status = 200) {
 
 function makeDoc() {
   return {
+    body: { dataset: {} },
     createElement(tag) {
       return {
         tagName: tag,
@@ -134,6 +136,30 @@ async function main() {
   assert.equal(alert.className, "session-error", "session errors use the alert style");
   assert.equal(alert.getAttribute("role"), "alert", "session errors are announced");
   assert.equal(alert.textContent, "invalid edit", "session errors are visible");
+
+  const phoneDoc = makeDoc();
+  const narrow = applyPhoneProfile({ matchMedia: () => ({ matches: true }) }, phoneDoc);
+  assert.equal(narrow, true, "narrow viewport selects the phone profile");
+  assert.equal(phoneDoc.body.dataset.surfaceProfile, "phone", "phone profile is reflected on the body");
+
+  let registered = null;
+  const nav = {
+    serviceWorker: {
+      register: async (url, options) => {
+        registered = { url, options };
+        return { scope: options.scope };
+      },
+    },
+  };
+  const sw = await registerShellServiceWorker(nav);
+  assert.equal(sw.ok, true, "service worker registration succeeds");
+  assert.equal(registered.url, SERVICE_WORKER_URL, "registers the versioned shell worker");
+  assert.equal(registered.options.scope, "/", "worker owns the shell scope");
+  assert.equal(registered.options.type, "module", "worker loads as a module");
+
+  const pwa = bootPwa({ matchMedia: () => ({ matches: false }) }, makeDoc(), nav);
+  assert.equal(pwa.phone, false, "wide viewport stays desktop");
+  assert.ok(pwa.registered && typeof pwa.registered.then === "function", "bootPwa starts registration");
 
   // eslint-disable-next-line no-console
   console.log("session bridge smoke test: ok");

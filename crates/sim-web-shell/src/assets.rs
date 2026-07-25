@@ -28,8 +28,13 @@ const DIFF_JS: &str = include_str!("../web/interpreter/diff.js");
 const INTENT_JS: &str = include_str!("../web/interpreter/intent.js");
 const KEYMAP_JS: &str = include_str!("../web/interpreter/keymap.js");
 const SESSION_JS: &str = include_str!("../web/interpreter/session.js");
+const PWA_JS: &str = include_str!("../web/interpreter/pwa.js");
 const COOKBOOK_JS: &str = include_str!("../web/cookbook/cookbook.js");
 const ATELIER_JS: &str = include_str!("../web/atelier/atelier.js");
+const SERVICE_WORKER_JS: &str = include_str!("../web/sw.js");
+const WEB_MANIFEST: &str = include_str!("../web/manifest.webmanifest");
+const ICON_SVG: &str = include_str!("../web/assets/icon.svg");
+const ICON_MASKABLE_SVG: &str = include_str!("../web/assets/icon-maskable.svg");
 
 const JS_CONTENT_TYPE: &str = "text/javascript; charset=utf-8";
 
@@ -96,6 +101,26 @@ pub fn asset_for(path: &str) -> Option<Asset> {
         "/interpreter/session.js" => Some(Asset {
             body: SESSION_JS.as_bytes(),
             content_type: JS_CONTENT_TYPE,
+        }),
+        "/interpreter/pwa.js" => Some(Asset {
+            body: PWA_JS.as_bytes(),
+            content_type: JS_CONTENT_TYPE,
+        }),
+        "/sw.js" => Some(Asset {
+            body: SERVICE_WORKER_JS.as_bytes(),
+            content_type: JS_CONTENT_TYPE,
+        }),
+        "/manifest.webmanifest" => Some(Asset {
+            body: WEB_MANIFEST.as_bytes(),
+            content_type: "application/manifest+json; charset=utf-8",
+        }),
+        "/assets/icon.svg" => Some(Asset {
+            body: ICON_SVG.as_bytes(),
+            content_type: "image/svg+xml",
+        }),
+        "/assets/icon-maskable.svg" => Some(Asset {
+            body: ICON_MASKABLE_SVG.as_bytes(),
+            content_type: "image/svg+xml",
         }),
         "/cookbook/cookbook.js" => Some(Asset {
             body: COOKBOOK_JS.as_bytes(),

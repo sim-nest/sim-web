@@ -13,6 +13,14 @@ import vm from "node:vm";
 import { renderScene } from "../interpreter/scene.js";
 import { applyPatch } from "../interpreter/diff.js";
 import { intentFromEmit } from "../interpreter/intent.js";
+import {
+  SHELL_ASSETS,
+  SHELL_CACHE,
+  deleteStaleCaches,
+  installShell,
+  shellPath,
+  shellResponse,
+} from "../sw.js";
 
 function makeDoc() {
   function makeEl(tag) {
@@ -66,6 +74,77 @@ function find(node, predicate) {
 function keyEvent(code, key, repeat = false) {
   return { code, key, repeat, preventDefault() {} };
 }
+
+function makeCacheStorage(seed = {}) {
+  const stores = new Map(Object.entries(seed).map(([name, entries]) => [name, new Map(entries)]));
+  return {
+    stores,
+    async open(name) {
+      if (!stores.has(name)) stores.set(name, new Map());
+      const store = stores.get(name);
+      return {
+        async addAll(paths) {
+          for (const path of paths) store.set(path, { cached: path });
+        },
+      };
+    },
+    async keys() {
+      return [...stores.keys()];
+    },
+    async delete(name) {
+      return stores.delete(name);
+    },
+    async match(request) {
+      const path = new URL(request.url).pathname;
+      for (const store of stores.values()) {
+        if (store.has(path)) return store.get(path);
+      }
+      return null;
+    },
+  };
+}
+
+assert.ok(shellPath("/"), "root shell is cacheable");
+assert.ok(shellPath("/interpreter/app.js"), "interpreter shell asset is cacheable");
+assert.ok(!shellPath("/api/session/open"), "session API is never cacheable");
+assert.ok(!shellPath("/api/cookbook/search"), "authored cookbook data is never cacheable");
+assert.ok(!shellPath("/atelier"), "atelier authored shell is not part of the offline root shell");
+
+const shellInstallStorage = makeCacheStorage();
+await installShell(shellInstallStorage);
+const shellStore = shellInstallStorage.stores.get(SHELL_CACHE);
+assert.equal(shellStore.size, SHELL_ASSETS.length, "install caches the shell asset list");
+assert.ok(shellStore.has("/manifest.webmanifest"), "install caches the manifest");
+assert.ok(!shellStore.has("/api/session/open"), "install does not cache server APIs");
+assert.ok(!shellStore.has("/cookbook"), "install does not cache authored cookbook pages");
+
+const offlineShell = await shellResponse(
+  { url: "https://sim.local/index.html", method: "GET" },
+  makeCacheStorage({ [SHELL_CACHE]: [["/index.html", { cached: "index" }]] }),
+  async () => {
+    throw new Error("network must not be required for cached shell");
+  },
+);
+assert.deepEqual(offlineShell, { cached: "index" }, "cached shell works offline");
+
+let fetchedApi = false;
+const apiResponse = await shellResponse(
+  { url: "https://sim.local/api/session/open", method: "GET" },
+  makeCacheStorage({ [SHELL_CACHE]: [["/api/session/open", { cached: "forbidden" }]] }),
+  async (request) => {
+    fetchedApi = true;
+    return { network: new URL(request.url).pathname };
+  },
+);
+assert.equal(fetchedApi, true, "server APIs use network-first behavior");
+assert.deepEqual(apiResponse, { network: "/api/session/open" }, "server API cache entries are ignored");
+
+const stale = makeCacheStorage({
+  "sim-web-shell-v0": [["/index.html", { cached: "old" }]],
+  [SHELL_CACHE]: [["/index.html", { cached: "new" }]],
+});
+await deleteStaleCaches(stale);
+assert.deepEqual(await stale.keys(), [SHELL_CACHE], "stale asset-version caches are deleted");
 
 function paints(scene) {
   const doc = makeDoc();

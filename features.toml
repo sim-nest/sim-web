@@ -195,10 +195,10 @@ supports = [
 [[feature]]
 id = "feature/sim-web/web-shell-host"
 title = "Web shell host"
-summary = "Serve isolated, bounded browser-facing surfaces through loaded web shell runtime libraries and command entry points."
+summary = "Serve isolated, bounded, phone-capable browser surfaces through loaded web shell runtime libraries, installable shell assets, and command entry points."
 owner = "crate/sim-web-shell"
 audiences = ["user", "code", "framework"]
-guidance = "Use this row when starting the browser shell, browsing a repo, or opening the atelier workspace; the live shell host gives each browser an opaque, expiring surface session rather than shared edit state."
+guidance = "Use this row when starting the browser shell, browsing a repo, installing the phone profile, or opening the atelier workspace; the live shell host gives each browser an opaque, expiring surface session rather than shared edit state and keeps authored/server data out of Cache Storage."
 claims_anchors = [
   "anchor/cli/atelier",
   "anchor/cli/browse",
