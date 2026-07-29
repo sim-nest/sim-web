@@ -170,10 +170,11 @@ fn install_manifest_and_icons_are_served() {
 fn service_worker_names_shell_assets_only() {
     let js = asset_text("/sw.js");
     for expected in [
-        "sim-web-shell-v1",
+        "sim-web-shell-v2",
         "/index.html",
         "/styles/theme.css",
         "/interpreter/app.js",
+        "/interpreter/heatmap.js",
         "/interpreter/pwa.js",
         "/manifest.webmanifest",
     ] {
