@@ -1,6 +1,6 @@
 {
   "generator": "xtask crate-catalog v1",
-  "package_count": 17,
+  "package_count": 18,
   "packages": [
     {
       "description": "Intent value model, gesture algebra, and codec:intent.",
@@ -107,7 +107,21 @@
       ]
     },
     {
-      "description": "Math, plotting, tensor, and symbolic lenses for SIM Web.",
+      "description": "Reversible certified interference-study surface for SIM Web.",
+      "generated_readme": false,
+      "manifest": "crates/sim-lib-view-interference/Cargo.toml",
+      "name": "sim-lib-view-interference",
+      "publish": "true",
+      "readme": "crates/sim-lib-view-interference/README.md",
+      "root": "crates/sim-lib-view-interference",
+      "target_kinds": [
+        "custom-build",
+        "example",
+        "lib"
+      ]
+    },
+    {
+      "description": "Bounded heatmaps, plotting, tensor, and symbolic lenses for SIM Web.",
       "generated_readme": true,
       "manifest": "crates/sim-lib-view-math/Cargo.toml",
       "name": "sim-lib-view-math",
