@@ -1,7 +1,6 @@
 # sim-lib-view-interference
 
-In one line: it opens a solved interference field as an honest heatmap you can
-inspect, edit, and recompute without losing the evidence behind the picture.
+In one line: it opens a solved interference field as an honest heatmap you can inspect, edit, and recompute without losing the evidence behind the picture.
 
 ## What it gives you
 
