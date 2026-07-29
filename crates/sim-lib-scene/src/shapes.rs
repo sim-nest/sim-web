@@ -10,7 +10,10 @@
 use std::sync::Arc;
 
 use sim_kernel::{Cx, Expr, MatchScore, Result, Shape, ShapeDoc, ShapeMatch, Symbol, Value};
-use sim_shape::{ExactExprShape, OrShape, TableExtraPolicy, TableFieldSpec, TableShape};
+use sim_shape::{
+    ExactExprShape, ExprKind, ExprKindShape, NumberValueShape, OrShape, RepeatShape,
+    TableExtraPolicy, TableFieldSpec, TableShape,
+};
 
 use crate::kinds::{KIND_KEY, SCENE_KINDS, SCENE_NAMESPACE, scene_kind};
 
@@ -72,6 +75,62 @@ fn kind_field_shape(kind: Symbol) -> Arc<dyn Shape> {
     ))
 }
 
+fn field(key: &str, shape: Arc<dyn Shape>, required: bool) -> TableFieldSpec {
+    TableFieldSpec {
+        key: Symbol::new(key),
+        shape,
+        required,
+    }
+}
+
+fn expr_kind(kind: ExprKind) -> Arc<dyn Shape> {
+    Arc::new(ExprKindShape::new(kind))
+}
+
+fn heatmap_shape() -> Arc<dyn Shape> {
+    let number = || Arc::new(NumberValueShape) as Arc<dyn Shape>;
+    let footprint = Arc::new(TableShape::new(
+        vec![
+            field("cells", number(), true),
+            field("bytes", number(), true),
+        ],
+        TableExtraPolicy::Allow,
+    ));
+    Arc::new(TableShape::new(
+        vec![
+            field(
+                KIND_KEY,
+                Arc::new(ExactExprShape::new(Expr::Symbol(scene_kind("heatmap")))),
+                true,
+            ),
+            field("rows", number(), true),
+            field("cols", number(), true),
+            field("values", Arc::new(RepeatShape::new(number())), true),
+            field(
+                "valid",
+                Arc::new(RepeatShape::new(expr_kind(ExprKind::Bool))),
+                true,
+            ),
+            field("min", number(), true),
+            field("max", number(), true),
+            field("palette", expr_kind(ExprKind::Symbol), true),
+            field("label", expr_kind(ExprKind::String), true),
+            field("detector", expr_kind(ExprKind::String), true),
+            field("footprint", footprint, true),
+            field("advisory", expr_kind(ExprKind::String), false),
+        ],
+        TableExtraPolicy::Allow,
+    ))
+}
+
+fn kind_shape(name: &str) -> Arc<dyn Shape> {
+    if name == "heatmap" {
+        heatmap_shape()
+    } else {
+        kind_field_shape(scene_kind(name))
+    }
+}
+
 fn ranked_shape(
     symbol: Symbol,
     name: impl Into<String>,
@@ -94,10 +153,7 @@ pub fn scene_shape_symbol() -> Symbol {
 }
 
 pub(crate) fn scene_shape() -> Arc<dyn Shape> {
-    let choices = SCENE_KINDS
-        .iter()
-        .map(|name| kind_field_shape(scene_kind(name)))
-        .collect();
+    let choices = SCENE_KINDS.iter().map(|name| kind_shape(name)).collect();
     ranked_shape(
         scene_shape_symbol(),
         "Scene",
@@ -115,7 +171,7 @@ fn scene_node_shape(name: &str) -> (Symbol, Arc<dyn Shape>) {
         symbol.name.to_string(),
         format!("matches scene nodes tagged '{kind}'"),
         20,
-        kind_field_shape(kind),
+        kind_shape(name),
     );
     (symbol, shape)
 }

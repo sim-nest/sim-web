@@ -121,6 +121,28 @@ supports = [
 ]
 
 [[feature]]
+id = "feature/sim-web/heatmap-surface"
+title = "Bounded masked scalar heatmaps"
+summary = "Validate and project caller-prepared finite scalar grids into one budgeted Scene contract without inventing a domain reduction rule."
+owner = "crate/sim-lib-view-math"
+audiences = ["code", "framework"]
+guidance = "Use this row for a domain-neutral masked heatmap. Ask the owning domain to reduce values to the SurfaceCaps-derived cell and byte budget before projection; sim-lib-view-math never downsamples."
+claims_anchors = [
+  "anchor/crate/sim-lib-scene",
+  "anchor/crate/sim-lib-view-math",
+]
+claims_surfaces = [
+  "view/sim-lib-view-math",
+]
+claims_specimens = [
+  "spec-test/sim-web/crates/sim-lib-view-math/src/tests",
+]
+supports = [
+  "feature/sim-web/view-surface",
+  "feature/sim-web/device-surfaces",
+]
+
+[[feature]]
 id = "feature/sim-web/device-surfaces"
 title = "Device surface profiles"
 summary = "Rank and project view surfaces against desktop, phone, watch, and glasses device profiles."

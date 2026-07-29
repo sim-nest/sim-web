@@ -46,6 +46,7 @@ pub const SCENE_KINDS: &[&str] = &[
     "edge",
     "plot",
     "matrix",
+    "heatmap",
     "knob",
     "slider",
     "meter",

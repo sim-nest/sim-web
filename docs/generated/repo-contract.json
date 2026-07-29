@@ -77,7 +77,7 @@
       "id": "cookbook/view/math",
       "kind": "cookbook-recipe",
       "owner": "sim-lib-view-math",
-      "summary": "Plot, matrix, symbolic, and sweep lens descriptors."
+      "summary": "Bounded heatmap, plot, matrix, symbolic, and sweep lens descriptors."
     },
     {
       "id": "cookbook/view/wasm",
@@ -633,9 +633,16 @@
           "package": "sim-lib-scene",
           "rename": null,
           "target": null
+        },
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-lib-view",
+          "rename": null,
+          "target": null
         }
       ],
-      "description": "Math, plotting, tensor, and symbolic lenses for SIM Web.",
+      "description": "Bounded heatmaps, plotting, tensor, and symbolic lenses for SIM Web.",
       "features": [],
       "group": "workspace",
       "manifest": "crates/sim-lib-view-math/Cargo.toml",
@@ -1130,10 +1137,10 @@
     "generated_by": "cargo run -p xtask -- simdoc",
     "generation_timestamp": "2026-07-15T16:50:10+02:00",
     "generator": "xtask repo-contract v1",
-    "git_commit": "1bde1915b0220e5efc7bdf9453d8e04fda4132c8",
+    "git_commit": "1b910e6ed216bf7b3e99ffd3d490c0985f5e8568",
     "repo": "sim-web",
     "schema": "sim.provenance.v1",
-    "source_commit": "1bde1915b0220e5efc7bdf9453d8e04fda4132c8",
+    "source_commit": "1b910e6ed216bf7b3e99ffd3d490c0985f5e8568",
     "source_remote": "https://github.com/sim-nest/sim-web",
     "validation_commands": [
       "cargo fmt --all --check",
@@ -1146,9 +1153,9 @@
       "cargo run -p xtask -- validation-matrix --check --repo .",
       "cargo run -p xtask -- crate-catalog --check --repo ."
     ],
-    "workspace_hash": "488a50bc3f12bb26",
+    "workspace_hash": "41180ec7cd6cdc6b",
     "workspace_hash_algorithm": "fnv1a64",
-    "workspace_hash_input_count": 292,
+    "workspace_hash_input_count": 294,
     "workspace_hash_inputs": [
       "Cargo.toml",
       "crates/sim-lib-intent/Cargo.toml",
@@ -1325,9 +1332,11 @@
       "crates/sim-lib-view-doc/src/tests.rs",
       "crates/sim-lib-view-math/Cargo.toml",
       "crates/sim-lib-view-math/build.rs",
+      "crates/sim-lib-view-math/recipes/01-basics/heatmap-grid/recipe.toml",
       "crates/sim-lib-view-math/recipes/01-basics/plot-series/recipe.toml",
       "crates/sim-lib-view-math/recipes/book.toml",
       "crates/sim-lib-view-math/src/cookbook.rs",
+      "crates/sim-lib-view-math/src/heatmap.rs",
       "crates/sim-lib-view-math/src/lib.rs",
       "crates/sim-lib-view-math/src/matrix.rs",
       "crates/sim-lib-view-math/src/num.rs",
@@ -1664,8 +1673,16 @@
       "card_id": "cookbook/view/math",
       "group": "workspace",
       "package": "sim-lib-view-math",
-      "recipe_count": 1,
+      "recipe_count": 2,
       "recipes": [
+        {
+          "card_id": "view/math/01-basics/heatmap-grid",
+          "codec": "lisp",
+          "id": "heatmap-grid",
+          "package": "sim-lib-view-math",
+          "recipe_toml": "crates/sim-lib-view-math/recipes/01-basics/heatmap-grid/recipe.toml",
+          "title": "Bounded masked scalar heatmap"
+        },
         {
           "card_id": "view/math/01-basics/plot-series",
           "codec": "lisp",
@@ -1675,7 +1692,7 @@
           "title": "Plot series descriptor"
         }
       ],
-      "summary": "Plot, matrix, symbolic, and sweep lens descriptors.",
+      "summary": "Bounded heatmap, plot, matrix, symbolic, and sweep lens descriptors.",
       "title": "Math View"
     },
     {

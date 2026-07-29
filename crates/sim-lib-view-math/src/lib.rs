@@ -1,7 +1,8 @@
 //! Math, plotting, tensor, and symbolic lenses for SIM Web.
 //!
-//! This lens family makes graphical math first-class: `scene/plot` series and
-//! function plots, `scene/matrix` editable tensor/matrix slices, a
+//! This lens family makes graphical math first-class: bounded
+//! `scene/heatmap` scalar grids, `scene/plot` series and function plots,
+//! `scene/matrix` editable tensor/matrix slices, a
 //! symbolic-expression tree lens, and slider/knob-driven parameter sweeps
 //! (`intent/set-param`) with snapshot and compare. Numbers are read from the
 //! existing `sim-lib-numbers-*` domains for display; the runtime value stays the
@@ -20,16 +21,22 @@
 #![deny(missing_docs)]
 
 pub mod cookbook;
+pub mod heatmap;
 pub mod matrix;
 pub mod num;
 pub mod plot;
 pub mod sweep;
 pub mod symbolic;
 
-pub use cookbook::plot_series_demo;
+pub use cookbook::{heatmap_grid_demo, plot_series_demo};
+pub use heatmap::{
+    BLUE_RED_PALETTE, CYCLIC_PHASE_PALETTE, HeatmapBudget, HeatmapData, VIRIDIS_PALETTE,
+    heatmap_budget, heatmap_byte_budget, heatmap_cell_budget, heatmap_view,
+};
 pub use matrix::{MATRIX_LENS, cell, matrix, matrix_view, set_cell};
 pub use num::{as_f64, number, point};
 pub use plot::{PLOT_LENS, multi_plot_view, plot_view, series};
+pub use sim_lib_scene::HEATMAP_PALETTES;
 pub use sweep::Sweep;
 pub use symbolic::{SYMBOLIC_LENS, call, symbolic_tree};
 

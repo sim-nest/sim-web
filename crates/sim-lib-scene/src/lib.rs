@@ -41,8 +41,8 @@ pub use diff::{apply, diff};
 pub use glance::{GLANCE_KIND, GlanceAction, GlanceCard, GlanceMetric, glance_card};
 pub use kinds::{SCENE_KINDS, SCENE_NAMESPACE, is_known_kind, scene_kind};
 pub use model::{
-    SceneBudget, SceneBudgetExhausted, SceneBudgetState, SceneError, map, node, node_kind,
-    validate_scene,
+    HEATMAP_BYTES_PER_CELL, HEATMAP_PALETTES, SceneBudget, SceneBudgetExhausted, SceneBudgetState,
+    SceneError, heatmap_payload_bytes, map, node, node_kind, validate_scene,
 };
 pub use shapes::{scene_shape_specs, scene_shape_symbol};
 

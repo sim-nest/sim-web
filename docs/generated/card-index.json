@@ -77,7 +77,7 @@
       "id": "cookbook/view/math",
       "kind": "cookbook-recipe",
       "owner": "sim-lib-view-math",
-      "summary": "Plot, matrix, symbolic, and sweep lens descriptors."
+      "summary": "Bounded heatmap, plot, matrix, symbolic, and sweep lens descriptors."
     },
     {
       "id": "cookbook/view/wasm",

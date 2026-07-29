@@ -12,6 +12,40 @@ use sim_kernel::{Cx, DefaultFactory, Expr, NoopEvalPolicy, ShapeMatch, Symbol};
 
 use crate::kinds::{KIND_KEY, is_known_kind};
 
+const HEATMAP_KIND: &str = "heatmap";
+
+/// Palette names accepted by the domain-neutral `scene/heatmap` contract.
+///
+/// These names are data, not a Rust enum, so a browser renderer can implement
+/// them without introducing a closed device or domain vocabulary.
+pub const HEATMAP_PALETTES: &[&str] = &["viridis", "blue-red", "cyclic-phase"];
+
+/// Scalar payload bytes represented by one heatmap cell (`f64` plus mask bit
+/// stored as a Rust `bool`).
+pub const HEATMAP_BYTES_PER_CELL: u64 =
+    core::mem::size_of::<f64>() as u64 + core::mem::size_of::<bool>() as u64;
+
+/// Calculate the checked scalar-and-metadata payload footprint recorded in a
+/// `scene/heatmap` node.
+///
+/// The footprint intentionally describes the caller-prepared scalar payload,
+/// not a codec-specific serialized size. Surface projections use it as the
+/// stable byte budget across Scene codecs.
+pub fn heatmap_payload_bytes(
+    cells: u64,
+    label: &str,
+    detector: &str,
+    advisory: Option<&str>,
+) -> Option<u64> {
+    let cell_bytes = cells.checked_mul(HEATMAP_BYTES_PER_CELL)?;
+    [Some(label), Some(detector), advisory]
+        .into_iter()
+        .flatten()
+        .try_fold(cell_bytes, |total, text| {
+            total.checked_add(u64::try_from(text.len()).ok()?)
+        })
+}
+
 /// One total budget for producing or rendering a Scene.
 ///
 /// `nodes` and `depth` bound structural growth. `encoded_bytes` bounds the
@@ -276,7 +310,177 @@ fn validate_node(expr: &Expr, path: &mut Vec<String>) -> Result<(), SceneError> 
     if let Some(message) = shape_error {
         return Err(SceneError::at(path, message));
     }
+    if matches!(
+        node_kind(expr),
+        Some(kind)
+            if kind.namespace.as_deref() == Some(crate::kinds::SCENE_NAMESPACE)
+                && &*kind.name == HEATMAP_KIND
+    ) {
+        validate_heatmap(expr, path)?;
+    }
     validate_children(entries, path)
+}
+
+fn validate_heatmap(expr: &Expr, path: &[String]) -> Result<(), SceneError> {
+    let rows = heatmap_u64(expr, "rows", path)?;
+    let cols = heatmap_u64(expr, "cols", path)?;
+    if rows == 0 || cols == 0 {
+        return Err(SceneError::at(
+            path,
+            "scene/heatmap rows and cols must be non-zero",
+        ));
+    }
+    let cells = rows.checked_mul(cols).ok_or_else(|| {
+        SceneError::at(path, "scene/heatmap rows * cols overflows the cell count")
+    })?;
+    let cell_count = usize::try_from(cells).map_err(|_| {
+        SceneError::at(
+            path,
+            "scene/heatmap cell count cannot be represented on this host",
+        )
+    })?;
+
+    let values = heatmap_list(expr, "values", path)?;
+    let valid = heatmap_list(expr, "valid", path)?;
+    if values.len() != cell_count {
+        return Err(SceneError::at(
+            path,
+            format!(
+                "scene/heatmap rows * cols is {cells}, but values has {} entries",
+                values.len()
+            ),
+        ));
+    }
+    if valid.len() != cell_count {
+        return Err(SceneError::at(
+            path,
+            format!(
+                "scene/heatmap rows * cols is {cells}, but valid has {} entries",
+                valid.len()
+            ),
+        ));
+    }
+    for (index, value) in values.iter().enumerate() {
+        let Some(value) = sim_value::access::as_f64(value) else {
+            return Err(SceneError::at(
+                path,
+                format!("scene/heatmap values[{index}] must be a number"),
+            ));
+        };
+        if !value.is_finite() {
+            return Err(SceneError::at(
+                path,
+                format!("scene/heatmap values[{index}] must be finite"),
+            ));
+        }
+    }
+    if let Some(index) = valid
+        .iter()
+        .position(|value| !matches!(value, Expr::Bool(_)))
+    {
+        return Err(SceneError::at(
+            path,
+            format!("scene/heatmap valid[{index}] must be a bool"),
+        ));
+    }
+
+    let min = heatmap_f64(expr, "min", path)?;
+    let max = heatmap_f64(expr, "max", path)?;
+    if !min.is_finite() || !max.is_finite() || min > max {
+        return Err(SceneError::at(
+            path,
+            "scene/heatmap range must be finite with min <= max",
+        ));
+    }
+
+    let palette = sim_value::access::field_sym(expr, "palette")
+        .filter(|palette| palette.namespace.is_none())
+        .ok_or_else(|| {
+            SceneError::at(path, "scene/heatmap palette must be an unqualified symbol")
+        })?;
+    if !HEATMAP_PALETTES.contains(&palette.name.as_ref()) {
+        return Err(SceneError::at(
+            path,
+            format!("scene/heatmap palette '{}' is not recognized", palette.name),
+        ));
+    }
+
+    let label = heatmap_nonempty_text(expr, "label", path)?;
+    let detector = heatmap_nonempty_text(expr, "detector", path)?;
+    let advisory = sim_value::access::field(expr, "advisory")
+        .map(|_| heatmap_nonempty_text(expr, "advisory", path))
+        .transpose()?;
+
+    let footprint = sim_value::access::field(expr, "footprint")
+        .ok_or_else(|| SceneError::at(path, "scene/heatmap footprint is required"))?;
+    let footprint_cells = heatmap_u64(footprint, "cells", path)?;
+    if footprint_cells != cells {
+        return Err(SceneError::at(
+            path,
+            format!("scene/heatmap footprint cells is {footprint_cells}, expected {cells}"),
+        ));
+    }
+    let payload_bytes = heatmap_payload_bytes(cells, label, detector, advisory)
+        .ok_or_else(|| SceneError::at(path, "scene/heatmap byte footprint overflowed"))?;
+    let footprint_bytes = heatmap_u64(footprint, "bytes", path)?;
+    if footprint_bytes != payload_bytes {
+        return Err(SceneError::at(
+            path,
+            format!("scene/heatmap footprint bytes is {footprint_bytes}, expected {payload_bytes}"),
+        ));
+    }
+    Ok(())
+}
+
+fn heatmap_list<'a>(expr: &'a Expr, name: &str, path: &[String]) -> Result<&'a [Expr], SceneError> {
+    match sim_value::access::field(expr, name) {
+        Some(Expr::List(items)) => Ok(items),
+        _ => Err(SceneError::at(
+            path,
+            format!("scene/heatmap {name} must be a list"),
+        )),
+    }
+}
+
+fn heatmap_u64(expr: &Expr, name: &str, path: &[String]) -> Result<u64, SceneError> {
+    sim_value::access::field(expr, name)
+        .and_then(|value| match value {
+            Expr::Number(number)
+                if matches!(number.domain.name.as_ref(), "i64" | "u64")
+                    && number.domain.namespace.is_none() =>
+            {
+                number.canonical.parse::<u64>().ok()
+            }
+            _ => None,
+        })
+        .ok_or_else(|| {
+            SceneError::at(
+                path,
+                format!("scene/heatmap {name} must be a non-negative integer number"),
+            )
+        })
+}
+
+fn heatmap_f64(expr: &Expr, name: &str, path: &[String]) -> Result<f64, SceneError> {
+    sim_value::access::field(expr, name)
+        .and_then(sim_value::access::as_f64)
+        .ok_or_else(|| SceneError::at(path, format!("scene/heatmap {name} must be a number")))
+}
+
+fn heatmap_nonempty_text<'a>(
+    expr: &'a Expr,
+    name: &str,
+    path: &[String],
+) -> Result<&'a str, SceneError> {
+    let text = sim_value::access::field_str(expr, name)
+        .ok_or_else(|| SceneError::at(path, format!("scene/heatmap {name} must be a string")))?;
+    if text.trim().is_empty() {
+        return Err(SceneError::at(
+            path,
+            format!("scene/heatmap {name} must not be empty"),
+        ));
+    }
+    Ok(text)
 }
 
 fn check_scene_shape(expr: &Expr, path: &[String]) -> Result<Option<String>, SceneError> {

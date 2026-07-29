@@ -1,0 +1,8 @@
+id = "heatmap-grid"
+title = "Bounded masked scalar heatmap"
+codec = "lisp"
+setup = "setup.siml"
+purpose = "purpose.md"
+order = 20
+tags = ["view", "math", "heatmap", "masked-grid", "sandbox-descriptor"]
+requires = ["view/math", "codec/lisp"]
