@@ -35,6 +35,11 @@ function makeDoc(options = {}) {
       this.target = target;
     }
 
+    disconnect() {
+      this.disconnected = true;
+      this.target = null;
+    }
+
     trigger(width) {
       this.callback([{ target: this.target, contentRect: { width } }]);
     }
@@ -50,6 +55,12 @@ function makeDoc(options = {}) {
       clearRect(...args) {
         this.ops.push(["clearRect", ...args]);
       },
+      save() {
+        this.ops.push(["save"]);
+      },
+      restore() {
+        this.ops.push(["restore"]);
+      },
       fillRect(...args) {
         this.ops.push(["fillRect", this.fillStyle, ...args]);
       },
@@ -61,6 +72,12 @@ function makeDoc(options = {}) {
       },
       lineTo(...args) {
         this.ops.push(["lineTo", ...args]);
+      },
+      rect(...args) {
+        this.ops.push(["rect", ...args]);
+      },
+      clip() {
+        this.ops.push(["clip"]);
       },
       stroke() {
         this.ops.push(["stroke", this.strokeStyle, this.lineWidth]);
@@ -246,10 +263,8 @@ assert.equal(heatmapCanvas.width, 400, "DPR scales the canvas backing width");
 assert.equal(heatmapCanvas.height, 200, "DPR scales the canvas backing height");
 assert.equal(heatmapCanvas.style.width, "200px", "DPR does not inflate the CSS width");
 assert.equal(heatmapCanvas.style.height, "100px", "grid dimensions determine CSS aspect ratio");
-assert.equal(heatmapCanvas.getAttribute("role"), "grid", "the inspectable canvas has an accessible role");
+assert.equal(heatmapCanvas.getAttribute("role"), "img", "the canvas exposes truthful image semantics");
 assert.equal(heatmapCanvas.getAttribute("tabindex"), "0", "the inspectable canvas is keyboard focusable");
-assert.equal(heatmapCanvas.getAttribute("aria-rowcount"), "2");
-assert.equal(heatmapCanvas.getAttribute("aria-colcount"), "4");
 const heatmapSummary = find(heatmap, (node) => node.className === "scene-heatmap-summary");
 assert.ok(heatmapSummary.textContent.includes("2 rows by 4 columns"), "summary announces dimensions");
 assert.ok(heatmapSummary.textContent.includes("1 masked"), "summary announces the mask count");
@@ -266,6 +281,10 @@ assert.ok(maskFill, "masked cells receive the deterministic hatch background");
 assert.ok(
   heatmapCanvas._context.ops.some((op) => op[0] === "stroke" && op[1] === "#aeb8c2"),
   "masked cells receive deterministic diagonal hatch strokes",
+);
+assert.ok(
+  heatmapCanvas._context.ops.some((op) => op[0] === "clip"),
+  "masked hatch strokes are clipped to their own cell",
 );
 assert.ok(
   heatmapCanvas._context.ops.some((op) => op[0] === "fillRect" && op[1] === "#440154"),
@@ -325,6 +344,13 @@ assert.match(
   /grid-template-areas:\s*"summary"\s*"viewport"\s*"legend"\s*"inspector"\s*"metadata"/,
   "heatmap layout assigns every section its own non-overlapping grid row",
 );
+
+const cleanupDoc = makeDoc({ width: 200, dpr: 2 });
+const cleanupMount = cleanupDoc.createElement("main");
+paint(cleanupDoc, cleanupMount, heatmapScene, () => {});
+const heatmapObserver = cleanupDoc.resizeObservers[0];
+paint(cleanupDoc, cleanupMount, { kind: "scene/text", text: "replacement" }, () => {});
+assert.equal(heatmapObserver.disconnected, true, "repainting disconnects the detached heatmap observer");
 
 // 2. A field change emits an edit, which becomes an intent/edit-field.
 let captured = null;

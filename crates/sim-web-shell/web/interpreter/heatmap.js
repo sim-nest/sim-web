@@ -82,7 +82,11 @@ export function paletteColor(name, unit) {
   if (!definition) {
     throw new RangeError(`unknown heatmap palette '${String(name)}'`);
   }
-  const normalized = interpolationUnit(definition, Number(unit));
+  const numericUnit = Number(unit);
+  if (!Number.isFinite(numericUnit)) {
+    throw new TypeError("heatmap palette unit must be finite");
+  }
+  const normalized = interpolationUnit(definition, numericUnit);
   const stops = definition.stops;
   let upper = 1;
   while (upper < stops.length && normalized > stops[upper][0]) upper += 1;
@@ -236,6 +240,10 @@ function maskedHatch(context, x, y, width, height) {
   context.fillStyle = MASK_COLOR;
   context.fillRect(x, y, width, height);
   if (width <= 0 || height <= 0) return;
+  context.save();
+  context.beginPath();
+  context.rect(x, y, width, height);
+  context.clip();
   context.strokeStyle = MASK_HATCH_COLOR;
   context.lineWidth = 1;
   context.beginPath();
@@ -245,6 +253,7 @@ function maskedHatch(context, x, y, width, height) {
     context.lineTo(x + offset + height, y);
   }
   context.stroke();
+  context.restore();
 }
 
 /// Paint caller-prepared row-major cells into a bounded canvas backing store.
@@ -366,10 +375,8 @@ export function renderHeatmap(doc, node) {
 
   const viewport = element(doc, "div", "scene-heatmap-viewport");
   const canvas = element(doc, "canvas", "scene-heatmap-canvas");
-  canvas.setAttribute("role", "grid");
+  canvas.setAttribute("role", "img");
   canvas.setAttribute("tabindex", "0");
-  canvas.setAttribute("aria-rowcount", String(checked.rows));
-  canvas.setAttribute("aria-colcount", String(checked.cols));
   viewport.appendChild(canvas);
   root.appendChild(viewport);
 
@@ -450,7 +457,7 @@ export function renderHeatmap(doc, node) {
       repaint(Number.isFinite(width) && width > 0 ? width : availableCanvasWidth(viewport, checked));
     });
     observer.observe(viewport);
-    root.heatmapResizeObserver = observer;
+    root.disposeScene = () => observer.disconnect();
   }
   return root;
 }

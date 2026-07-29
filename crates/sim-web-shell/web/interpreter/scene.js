@@ -945,8 +945,17 @@ export function renderScene(doc, node, emit) {
   return renderSceneWithBudget(doc, node, emit, mergedBudget(node), { nodes: 0, encoded: 0 }, 0);
 }
 
+function disposeRenderedScene(node) {
+  if (!node) return;
+  if (typeof node.disposeScene === "function") node.disposeScene();
+  for (const child of node.children || []) disposeRenderedScene(child);
+}
+
 // Replace the contents of `mount` with the painted `scene`.
 export function paint(doc, mount, scene, emit) {
-  while (mount.firstChild) mount.removeChild(mount.firstChild);
+  while (mount.firstChild) {
+    disposeRenderedScene(mount.firstChild);
+    mount.removeChild(mount.firstChild);
+  }
   mount.appendChild(renderScene(doc, scene, emit));
 }
