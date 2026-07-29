@@ -128,6 +128,7 @@
       "sim-lib-view-daw",
       "sim-lib-view-device",
       "sim-lib-view-doc",
+      "sim-lib-view-interference",
       "sim-lib-view-math",
       "sim-lib-view-spatial",
       "sim-lib-view-wasm-frame",
@@ -140,7 +141,7 @@
   },
   "non_citizen_exemption_count": 0,
   "non_citizen_exemptions": [],
-  "package_count": 17,
+  "package_count": 18,
   "packages": [
     {
       "crate_name": "sim_lib_intent",
@@ -614,6 +615,62 @@
           ],
           "name": "build-script-build",
           "src": "crates/sim-lib-view-doc/build.rs"
+        }
+      ]
+    },
+    {
+      "crate_name": "sim_lib_view_interference",
+      "dependencies": [
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-lib-intent",
+          "rename": null,
+          "target": null
+        },
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-lib-scene",
+          "rename": null,
+          "target": null
+        },
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-lib-view",
+          "rename": null,
+          "target": null
+        },
+        {
+          "kind": "normal",
+          "optional": false,
+          "package": "sim-lib-view-math",
+          "rename": null,
+          "target": null
+        }
+      ],
+      "description": "Reversible certified interference-study surface for SIM Web.",
+      "features": [],
+      "group": "workspace",
+      "manifest": "crates/sim-lib-view-interference/Cargo.toml",
+      "name": "sim-lib-view-interference",
+      "publish": "true",
+      "root": "crates/sim-lib-view-interference",
+      "rustdoc_summary": "A reversible, evidence-preserving surface over solved interference studies.",
+      "target_kinds": [
+        "lib"
+      ],
+      "targets": [
+        {
+          "crate_types": [
+            "lib"
+          ],
+          "kind": [
+            "lib"
+          ],
+          "name": "sim_lib_view_interference",
+          "src": "crates/sim-lib-view-interference/src/lib.rs"
         }
       ]
     },
@@ -1137,10 +1194,10 @@
     "generated_by": "cargo run -p xtask -- simdoc",
     "generation_timestamp": "2026-07-15T16:50:10+02:00",
     "generator": "xtask repo-contract v1",
-    "git_commit": "b6079c4430b7a45f4466c3c87355db71e7bdc82f",
+    "git_commit": "29f98b46386226f15a549461e1822e357a800fee",
     "repo": "sim-web",
     "schema": "sim.provenance.v1",
-    "source_commit": "b6079c4430b7a45f4466c3c87355db71e7bdc82f",
+    "source_commit": "29f98b46386226f15a549461e1822e357a800fee",
     "source_remote": "https://github.com/sim-nest/sim-web",
     "validation_commands": [
       "cargo fmt --all --check",
@@ -1153,9 +1210,9 @@
       "cargo run -p xtask -- validation-matrix --check --repo .",
       "cargo run -p xtask -- crate-catalog --check --repo ."
     ],
-    "workspace_hash": "e0049449a74e48c6",
+    "workspace_hash": "0a3a4d75ad24bc00",
     "workspace_hash_algorithm": "fnv1a64",
-    "workspace_hash_input_count": 294,
+    "workspace_hash_input_count": 300,
     "workspace_hash_inputs": [
       "Cargo.toml",
       "crates/sim-lib-intent/Cargo.toml",
@@ -1330,6 +1387,12 @@
       "crates/sim-lib-view-doc/src/lens.rs",
       "crates/sim-lib-view-doc/src/lib.rs",
       "crates/sim-lib-view-doc/src/tests.rs",
+      "crates/sim-lib-view-interference/Cargo.toml",
+      "crates/sim-lib-view-interference/src/intent.rs",
+      "crates/sim-lib-view-interference/src/lib.rs",
+      "crates/sim-lib-view-interference/src/scene.rs",
+      "crates/sim-lib-view-interference/src/surface.rs",
+      "crates/sim-lib-view-interference/src/tests.rs",
       "crates/sim-lib-view-math/Cargo.toml",
       "crates/sim-lib-view-math/build.rs",
       "crates/sim-lib-view-math/recipes/01-basics/heatmap-grid/recipe.toml",

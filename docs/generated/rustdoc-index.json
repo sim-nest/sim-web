@@ -65,6 +65,13 @@
       "summary": "Markup article workspace lens for the SIM Web UI."
     },
     {
+      "crate_name": "sim_lib_view_interference",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-view-interference/Cargo.toml",
+      "package": "sim-lib-view-interference",
+      "summary": "A reversible, evidence-preserving surface over solved interference studies."
+    },
+    {
       "crate_name": "sim_lib_view_math",
       "group": "workspace",
       "manifest": "crates/sim-lib-view-math/Cargo.toml",
