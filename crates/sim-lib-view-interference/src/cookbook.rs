@@ -107,12 +107,15 @@ pub fn interference_study_demo() -> Result<Vec<String>> {
 }
 
 fn recipe_cx() -> Result<Cx> {
-    let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let (mut cx, seat) = Cx::new_seated(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
     cx.load_lib(&InterferenceRecordsLib)?;
     cx.load_lib(&InterferenceLib)?;
-    cx.grant(sim_kernel::read_construct_capability());
-    cx.grant(CapabilityName::new(INTERFERENCE_PROJECT_CAPABILITY));
-    cx.grant(CapabilityName::new(INTERFERENCE_SOLVE_CAPABILITY));
+    seat.grant(&mut cx, sim_kernel::read_construct_capability())?;
+    seat.grant(
+        &mut cx,
+        CapabilityName::new(INTERFERENCE_PROJECT_CAPABILITY),
+    )?;
+    seat.grant(&mut cx, CapabilityName::new(INTERFERENCE_SOLVE_CAPABILITY))?;
     Ok(cx)
 }
 

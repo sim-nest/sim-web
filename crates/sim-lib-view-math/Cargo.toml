@@ -1,6 +1,6 @@
 [package]
 name = "sim-lib-view-math"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2024"
 license = "MPL-2.0"
 description = "Bounded heatmaps, plotting, tensor, and symbolic lenses for SIM Web."
