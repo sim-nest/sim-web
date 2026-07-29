@@ -24,6 +24,7 @@ const BOOT_JS: &str = include_str!("../web/interpreter/boot.js");
 const APP_JS: &str = include_str!("../web/interpreter/app.js");
 const GLASSES_JS: &str = include_str!("../web/interpreter/glasses.js");
 const SCENE_JS: &str = include_str!("../web/interpreter/scene.js");
+const HEATMAP_JS: &str = include_str!("../web/interpreter/heatmap.js");
 const DIFF_JS: &str = include_str!("../web/interpreter/diff.js");
 const INTENT_JS: &str = include_str!("../web/interpreter/intent.js");
 const KEYMAP_JS: &str = include_str!("../web/interpreter/keymap.js");
@@ -84,6 +85,10 @@ pub fn asset_for(path: &str) -> Option<Asset> {
         }),
         "/interpreter/scene.js" => Some(Asset {
             body: SCENE_JS.as_bytes(),
+            content_type: JS_CONTENT_TYPE,
+        }),
+        "/interpreter/heatmap.js" => Some(Asset {
+            body: HEATMAP_JS.as_bytes(),
             content_type: JS_CONTENT_TYPE,
         }),
         "/interpreter/diff.js" => Some(Asset {

@@ -217,11 +217,98 @@ body[data-glasses-mode] .scene-spatial-mirror {
 .scene-object-roll,
 .scene-graph,
 .scene-plot,
+.scene-heatmap,
 .scene-timeline {
   display: flex;
   flex-direction: column;
   gap: 8px;
   width: min(100%, 760px);
+}
+
+.scene-heatmap {
+  display: grid;
+  grid-template-areas:
+    "summary"
+    "viewport"
+    "legend"
+    "inspector"
+    "metadata";
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  margin: 0;
+}
+
+.scene-heatmap-summary { grid-area: summary; font-weight: 600; }
+
+.scene-heatmap-viewport {
+  grid-area: viewport;
+  min-width: 0;
+  overflow: auto;
+}
+
+.scene-heatmap-canvas {
+  display: block;
+  max-width: 100%;
+  border: 1px solid #4b5968;
+  background: #202832;
+  image-rendering: pixelated;
+  touch-action: none;
+}
+
+.scene-heatmap-legend {
+  grid-area: legend;
+  display: grid;
+  grid-template-columns: max-content minmax(80px, 1fr) max-content max-content;
+  gap: 6px;
+  align-items: center;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.scene-heatmap-legend-bar {
+  display: block;
+  min-width: 80px;
+  height: 14px;
+  border: 1px solid #6f8295;
+}
+
+.scene-heatmap-mask-key {
+  display: inline-block;
+  border: 1px solid #6f8295;
+  padding: 0 4px 0 22px;
+  background:
+    repeating-linear-gradient(
+      135deg,
+      #202832 0,
+      #202832 4px,
+      #aeb8c2 4px,
+      #aeb8c2 6px
+    );
+  color: var(--fg);
+  text-shadow: 0 1px 1px #11151a;
+}
+
+.scene-heatmap-inspector {
+  grid-area: inspector;
+  min-height: 1.5em;
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+}
+
+.scene-heatmap-metadata {
+  grid-area: metadata;
+  display: grid;
+  gap: 4px;
+}
+
+.scene-heatmap-detector { color: var(--muted); }
+
+.scene-heatmap-advisory,
+.scene-heatmap-error {
+  border-left: 3px solid var(--warn);
+  background: #2a2417;
+  color: #ffe4a3;
+  padding: 6px 8px;
 }
 
 .scene-graph-nodes,

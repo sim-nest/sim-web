@@ -8,6 +8,7 @@
 "use strict";
 
 import { installKeyboardKeyMap } from "./keymap.js";
+import { renderHeatmap } from "./heatmap.js";
 
 // A Scene node is a plain object: { kind: "scene/<name>", ...fields }. Field
 // values are strings, numbers, booleans, arrays, or nested nodes/objects.
@@ -879,6 +880,8 @@ function renderSceneWithBudget(doc, node, emit, budget, state, depth) {
       return renderGraph(doc, node, emit);
     case "scene/plot":
       return renderPlot(doc, node);
+    case "scene/heatmap":
+      return renderHeatmap(doc, node);
     case "scene/matrix":
       return renderMatrix(doc, node);
     case "scene/timeline":

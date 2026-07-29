@@ -71,6 +71,7 @@ fn interpreter_modules_are_served_as_javascript() {
         "/interpreter/app.js",
         "/interpreter/glasses.js",
         "/interpreter/scene.js",
+        "/interpreter/heatmap.js",
         "/interpreter/diff.js",
         "/interpreter/intent.js",
         "/interpreter/keymap.js",
@@ -91,6 +92,10 @@ fn interpreter_module_import_graph_is_served() {
     assert!(
         seen.contains("/interpreter/keymap.js"),
         "scene.js imports keymap.js and the router must serve it"
+    );
+    assert!(
+        seen.contains("/interpreter/heatmap.js"),
+        "scene.js imports heatmap.js and the router must serve it"
     );
     assert!(
         seen.contains("/interpreter/glasses.js"),

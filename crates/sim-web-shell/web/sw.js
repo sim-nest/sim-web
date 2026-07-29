@@ -4,7 +4,7 @@
 // data, Atelier data, and any authored runtime payload use the network only.
 "use strict";
 
-export const SHELL_CACHE = "sim-web-shell-v1";
+export const SHELL_CACHE = "sim-web-shell-v2";
 
 export const SHELL_ASSETS = Object.freeze([
   "/",
@@ -16,6 +16,7 @@ export const SHELL_ASSETS = Object.freeze([
   "/interpreter/app.js",
   "/interpreter/diff.js",
   "/interpreter/glasses.js",
+  "/interpreter/heatmap.js",
   "/interpreter/intent.js",
   "/interpreter/keymap.js",
   "/interpreter/pwa.js",

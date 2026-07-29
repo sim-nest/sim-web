@@ -8,19 +8,73 @@
 // Run: node crates/sim-web-shell/web/tests/interpreter.test.mjs
 
 import assert from "node:assert";
+import { readFileSync } from "node:fs";
 import { renderScene, paint } from "../interpreter/scene.js";
 import { applyPatch } from "../interpreter/diff.js";
 import { BrowserGlassesClient } from "../interpreter/glasses.js";
 import { intentFromEmit } from "../interpreter/intent.js";
+import {
+  HEATMAP_PALETTES,
+  inspectHeatmapCell,
+  paletteColor,
+  paletteGradient,
+} from "../interpreter/heatmap.js";
 
 // Minimal DOM shim: just enough for the painter.
-function makeDoc() {
-  function makeEl(tag) {
+function makeDoc(options = {}) {
+  const resizeObservers = [];
+
+  class TestResizeObserver {
+    constructor(callback) {
+      this.callback = callback;
+      this.target = null;
+      resizeObservers.push(this);
+    }
+
+    observe(target) {
+      this.target = target;
+    }
+
+    trigger(width) {
+      this.callback([{ target: this.target, contentRect: { width } }]);
+    }
+  }
+
+  function makeCanvasContext() {
     return {
+      ops: [],
+      fillStyle: "",
+      strokeStyle: "",
+      lineWidth: 1,
+      imageSmoothingEnabled: true,
+      clearRect(...args) {
+        this.ops.push(["clearRect", ...args]);
+      },
+      fillRect(...args) {
+        this.ops.push(["fillRect", this.fillStyle, ...args]);
+      },
+      beginPath() {
+        this.ops.push(["beginPath"]);
+      },
+      moveTo(...args) {
+        this.ops.push(["moveTo", ...args]);
+      },
+      lineTo(...args) {
+        this.ops.push(["lineTo", ...args]);
+      },
+      stroke() {
+        this.ops.push(["stroke", this.strokeStyle, this.lineWidth]);
+      },
+    };
+  }
+
+  function makeEl(tag) {
+    const element = {
       tagName: tag,
       className: "",
       dataset: {},
       attributes: {},
+      style: {},
       children: [],
       textContent: "",
       value: "",
@@ -46,9 +100,26 @@ function makeDoc() {
       getAttribute(name) {
         return this.attributes[name];
       },
+      getBoundingClientRect() {
+        const width = Number.parseFloat(this.style.width) || options.width || 100;
+        const height = Number.parseFloat(this.style.height) || options.height || 100;
+        return { top: 0, bottom: height, height, left: 0, right: width, width };
+      },
     };
+    if (tag === "canvas") {
+      element._context = makeCanvasContext();
+      element.getContext = () => element._context;
+    }
+    return element;
   }
-  return { createElement: makeEl };
+  return {
+    createElement: makeEl,
+    defaultView: {
+      devicePixelRatio: options.dpr || 1,
+      ResizeObserver: TestResizeObserver,
+    },
+    resizeObservers,
+  };
 }
 
 function find(node, predicate) {
@@ -64,6 +135,19 @@ function findAll(node, predicate, found = []) {
   if (predicate(node)) found.push(node);
   for (const child of node.children || []) findAll(child, predicate, found);
   return found;
+}
+
+function domSnapshot(node) {
+  return {
+    tagName: node.tagName,
+    className: node.className,
+    dataset: node.dataset,
+    attributes: node.attributes,
+    style: node.style,
+    textContent: node.textContent,
+    canvasOps: node._context ? node._context.ops : undefined,
+    children: (node.children || []).map(domSnapshot),
+  };
 }
 
 const scene = {
@@ -104,6 +188,143 @@ assert.equal(button.getAttribute("aria-label"), "Save", "buttons are labelled");
 const graphNode = renderScene(doc, { kind: "scene/node", title: "Planner" }, () => {});
 assert.equal(graphNode.getAttribute("tabindex"), "0", "graph nodes are focusable");
 assert.equal(graphNode.getAttribute("aria-label"), "Planner", "graph nodes are labelled");
+
+// 1c. Heatmaps paint deterministically from one palette definition and remain
+// accessible through text, pointer, and keyboard inspection.
+assert.deepEqual(
+  Object.keys(HEATMAP_PALETTES),
+  ["viridis", "blue-red", "cyclic-phase"],
+  "the renderer accepts exactly the Scene contract palettes",
+);
+assert.equal(paletteColor("viridis", 0), "#440154", "viridis lower endpoint is exact");
+assert.equal(paletteColor("viridis", 1), "#fde725", "viridis upper endpoint is exact");
+assert.equal(paletteColor("blue-red", 0.5), "#f7f7f7", "blue-red midpoint is exact");
+assert.equal(
+  paletteColor("cyclic-phase", 0),
+  paletteColor("cyclic-phase", 1),
+  "the cyclic palette wraps its endpoint exactly",
+);
+assert.equal(
+  paletteGradient("blue-red"),
+  "linear-gradient(90deg, #2166ac 0%, #f7f7f7 50%, #b2182b 100%)",
+  "legend output comes from the exact palette stop records",
+);
+
+const heatmapScene = {
+  kind: "scene/heatmap",
+  rows: 2,
+  cols: 4,
+  values: [0, 0.25, 0.5, 1, 1, 0.5, 0.25, 0],
+  valid: [true, false, true, true, true, true, true, true],
+  min: 0,
+  max: 1,
+  palette: "viridis",
+  label: "Normalized intensity",
+  detector: "point samples",
+  advisory: "One cell is outside the detector support.",
+  footprint: { cells: 8, bytes: 128 },
+};
+const serializedHeatmap = JSON.stringify(heatmapScene);
+const heatmapDoc = makeDoc({ width: 200, dpr: 2 });
+const heatmap = renderScene(heatmapDoc, heatmapScene, () => {});
+assert.equal(JSON.stringify(heatmapScene), serializedHeatmap, "painting does not mutate serialized Scene bytes");
+assert.equal(heatmap.className, "scene-heatmap", "scene/heatmap uses the focused renderer");
+assert.equal(heatmap.dataset.layout, "flow", "heatmap sections use non-overlapping flow layout");
+assert.deepEqual(
+  heatmap.children.map((child) => child.className),
+  [
+    "scene-heatmap-summary",
+    "scene-heatmap-viewport",
+    "scene-heatmap-legend",
+    "scene-heatmap-inspector",
+    "scene-heatmap-metadata",
+  ],
+  "summary, canvas, legend, inspector, and metadata occupy separate layout rows",
+);
+const heatmapCanvas = find(heatmap, (node) => node.className === "scene-heatmap-canvas");
+assert.equal(heatmapCanvas.width, 400, "DPR scales the canvas backing width");
+assert.equal(heatmapCanvas.height, 200, "DPR scales the canvas backing height");
+assert.equal(heatmapCanvas.style.width, "200px", "DPR does not inflate the CSS width");
+assert.equal(heatmapCanvas.style.height, "100px", "grid dimensions determine CSS aspect ratio");
+assert.equal(heatmapCanvas.getAttribute("role"), "grid", "the inspectable canvas has an accessible role");
+assert.equal(heatmapCanvas.getAttribute("tabindex"), "0", "the inspectable canvas is keyboard focusable");
+assert.equal(heatmapCanvas.getAttribute("aria-rowcount"), "2");
+assert.equal(heatmapCanvas.getAttribute("aria-colcount"), "4");
+const heatmapSummary = find(heatmap, (node) => node.className === "scene-heatmap-summary");
+assert.ok(heatmapSummary.textContent.includes("2 rows by 4 columns"), "summary announces dimensions");
+assert.ok(heatmapSummary.textContent.includes("1 masked"), "summary announces the mask count");
+const detector = find(heatmap, (node) => node.className === "scene-heatmap-detector");
+assert.equal(detector.textContent, "Detector: point samples", "detector label is visible");
+const advisory = find(heatmap, (node) => node.className === "scene-heatmap-advisory");
+assert.equal(advisory.getAttribute("role"), "note", "advisory is exposed accessibly");
+const legend = find(heatmap, (node) => node.className === "scene-heatmap-legend");
+assert.ok(legend.getAttribute("aria-label").includes("viridis palette"), "legend is labelled");
+const maskFill = heatmapCanvas._context.ops.find(
+  (op) => op[0] === "fillRect" && op[1] === "#202832",
+);
+assert.ok(maskFill, "masked cells receive the deterministic hatch background");
+assert.ok(
+  heatmapCanvas._context.ops.some((op) => op[0] === "stroke" && op[1] === "#aeb8c2"),
+  "masked cells receive deterministic diagonal hatch strokes",
+);
+assert.ok(
+  heatmapCanvas._context.ops.some((op) => op[0] === "fillRect" && op[1] === "#440154"),
+  "valid cells paint exact palette colors",
+);
+
+const inspector = find(heatmap, (node) => node.className === "scene-heatmap-inspector");
+assert.equal(inspector.textContent, "Cell row 1, column 1: 0.", "initial inspection is deterministic");
+heatmapCanvas._listeners.keydown({ key: "ArrowRight", preventDefault() {} });
+assert.equal(inspector.textContent, "Cell row 1, column 2: masked.", "keyboard inspection announces masks");
+heatmapCanvas._listeners.pointermove({ clientX: 175, clientY: 75 });
+assert.equal(inspector.textContent, "Cell row 2, column 4: 0.", "pointer inspection uses row-major values");
+assert.equal(
+  inspectHeatmapCell(heatmapScene, 99, -4).text,
+  "Cell row 2, column 1: 1.",
+  "inspection clamps deterministically at grid bounds",
+);
+
+const repeatedHeatmap = renderScene(makeDoc({ width: 200, dpr: 2 }), heatmapScene, () => {});
+const pristineHeatmap = renderScene(makeDoc({ width: 200, dpr: 2 }), heatmapScene, () => {});
+assert.deepEqual(
+  domSnapshot(repeatedHeatmap),
+  domSnapshot(pristineHeatmap),
+  "identical Scene bytes produce identical DOM and canvas operations",
+);
+
+heatmapDoc.resizeObservers[0].trigger(120);
+assert.equal(heatmapCanvas.width, 240, "resize recomputes the DPR-scaled backing width");
+assert.equal(heatmapCanvas.height, 120, "resize preserves the bounded grid aspect ratio");
+assert.ok(
+  Number(heatmapCanvas.dataset.pixelWidth) * Number(heatmapCanvas.dataset.pixelHeight)
+    <= 4 * 1024 * 1024,
+  "canvas backing pixels remain bounded",
+);
+
+const badDimensions = renderScene(makeDoc(), { ...heatmapScene, rows: 0 }, () => {});
+assert.equal(badDimensions.className, "scene-heatmap-error", "invalid dimensions fail closed");
+assert.equal(badDimensions.getAttribute("role"), "alert");
+const unknownPalette = renderScene(
+  makeDoc(),
+  { ...heatmapScene, palette: "rainbow" },
+  () => {},
+);
+assert.equal(unknownPalette.className, "scene-heatmap-error", "unknown palettes fail closed");
+assert.ok(unknownPalette.textContent.includes("unknown heatmap palette"));
+
+const heatmapSource = readFileSync(
+  new URL("../interpreter/heatmap.js", import.meta.url),
+  "utf8",
+);
+assert.ok(!heatmapSource.includes("fetch("), "heatmap paint has no network dependency");
+assert.ok(!heatmapSource.includes("new Image"), "heatmap paint has no image dependency");
+assert.ok(!heatmapSource.includes("drawImage"), "heatmap paint does not load image pixels");
+const themeCss = readFileSync(new URL("../styles/theme.css", import.meta.url), "utf8");
+assert.match(
+  themeCss,
+  /grid-template-areas:\s*"summary"\s*"viewport"\s*"legend"\s*"inspector"\s*"metadata"/,
+  "heatmap layout assigns every section its own non-overlapping grid row",
+);
 
 // 2. A field change emits an edit, which becomes an intent/edit-field.
 let captured = null;
