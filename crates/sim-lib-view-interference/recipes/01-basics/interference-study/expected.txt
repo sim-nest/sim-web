@@ -1,0 +1,6 @@
+encode=scene/stack evidence=Study/interference/resolved
+project-edit=project realized=interference/Projection target=96x96
+model-edit=solve frequency-hz=2 refreshed=scene/stack
+surface=desktop source=96x96 target=32x32 cells=1024/1024 detector=detector-scalar-area-mean
+surface=phone source=96x96 target=16x16 cells=256/256 detector=detector-scalar-area-mean
+surface=glance source=96x96 target=8x8 cells=64/64 detector=detector-scalar-area-mean

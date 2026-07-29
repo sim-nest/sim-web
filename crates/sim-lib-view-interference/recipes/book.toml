@@ -1,0 +1,5 @@
+book = "view/interference"
+title = "Interference Study Surface"
+summary = "Reversible, evidence-preserving views over solved interference studies."
+order = 97
+chapters = ["01-basics"]

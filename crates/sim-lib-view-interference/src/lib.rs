@@ -10,6 +10,7 @@
 //! `interference/project` or `interference/solve` forms; no propagation,
 //! resampling equation, Tensor store, or device API lives here.
 
+pub mod cookbook;
 mod intent;
 mod scene;
 mod surface;
@@ -19,6 +20,10 @@ pub use surface::{
     InterferenceSurfaceCodec, MAX_ANIMATION_FRAMES, register_interference_surface,
     surface_interference_codec_symbol,
 };
+
+/// Checked interference-surface recipes embedded with this library.
+pub static RECIPES: sim_cookbook::EmbeddedDir =
+    include!(concat!(env!("OUT_DIR"), "/cookbook_recipes.rs"));
 
 #[cfg(test)]
 mod tests;

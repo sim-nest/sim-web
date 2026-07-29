@@ -9,8 +9,11 @@ changing it, and seeing each committed change appear everywhere that same work i
 open. It turns gestures into checked requests before anything changes, keeps the
 picture on screen as ordinary data, and gives every value a usable fallback view
 even when no specialist view is available. The same workspace can show agent
-activity, documents, math, codecs, layouts, and music sessions without each one
-needing a separate browser application.
+activity, documents, math, certified interference fields, codecs, layouts, and
+music sessions without each one needing a separate browser application. A solved
+interference Study opens as a bounded detector heatmap without dropping its
+sampling or solver evidence; projection and model edits use the same checked
+operations as every other runtime caller.
 
 ## Why you will be glad
 

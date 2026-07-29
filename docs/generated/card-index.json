@@ -1,5 +1,5 @@
 {
-  "card_count": 18,
+  "card_count": 19,
   "cards": [
     {
       "id": "browse/catalog",
@@ -72,6 +72,12 @@
       "kind": "cookbook-recipe",
       "owner": "sim-lib-view-doc",
       "summary": "Scientific article values, source lenses, and export descriptors."
+    },
+    {
+      "id": "cookbook/view/interference",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-view-interference",
+      "summary": "Reversible, evidence-preserving views over solved interference studies."
     },
     {
       "id": "cookbook/view/math",

@@ -314,13 +314,23 @@ fn identical_study_and_caps_produce_identical_scene() {
 }
 
 fn assert_form_head(expr: &Expr, namespace: &str, name: &str) {
-    let Expr::List(items) = expr else {
-        panic!("operation is not a call list: {expr:?}");
+    let Expr::Call { operator, .. } = expr else {
+        panic!("operation is not an evaluable call: {expr:?}");
     };
     assert!(
-        matches!(&items[0], Expr::Symbol(symbol) if symbol.namespace.as_deref() == Some(namespace) && symbol.name.as_ref() == name),
-        "unexpected operation head: {:?}",
-        items[0]
+        matches!(operator.as_ref(), Expr::Symbol(symbol) if symbol.namespace.as_deref() == Some(namespace) && symbol.name.as_ref() == name),
+        "unexpected operation head: {operator:?}",
+    );
+}
+
+#[test]
+fn checked_recipe_realizes_edits_and_bounds_device_variants() {
+    assert_eq!(
+        crate::cookbook::interference_study_demo().unwrap(),
+        include_str!("../recipes/01-basics/interference-study/expected.txt")
+            .lines()
+            .map(str::to_owned)
+            .collect::<Vec<_>>()
     );
 }
 

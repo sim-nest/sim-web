@@ -143,6 +143,31 @@ supports = [
 ]
 
 [[feature]]
+id = "feature/sim-web/interference-surface"
+title = "Reversible certified interference surface"
+summary = "Encode complete interference Studies as evidence-preserving heatmap Scenes and compile projection or model edits to the existing interference operations."
+owner = "crate/sim-lib-view-interference"
+audiences = ["code", "framework"]
+guidance = "Use this row to explore an interference/Study through a bounded surface. Detector integration is a domain projection over every covered source cell; detail preserves source cells and refuses a smaller target. The Scene inherits scientific evidence from Study and creates none."
+claims_anchors = [
+  "anchor/crate/sim-lib-view-interference",
+  "anchor/export/sim-lib-view-interference/surface-interference",
+  "anchor/rustdoc/sim-lib-view-interference/crate-root",
+]
+claims_surfaces = [
+  "view/sim-lib-view-interference",
+  "view-edit/sim-lib-view-interference",
+]
+claims_specimens = [
+  "recipe/sim-web/crates/sim-lib-view-interference/01-basics/interference-study",
+]
+supports = [
+  "feature/sim-web/heatmap-surface",
+  "feature/sim-web/view-surface",
+  "feature/sim-web/device-surfaces",
+]
+
+[[feature]]
 id = "feature/sim-web/device-surfaces"
 title = "Device surface profiles"
 summary = "Rank and project view surfaces against desktop, phone, watch, and glasses device profiles."
@@ -333,6 +358,16 @@ audiences = ["code", "framework"]
 steps = [
   { feature = "feature/sim-web/heatmap-surface", why = "The heatmap row validates caller-prepared finite values, masks, metadata, and SurfaceCaps-derived cell and byte budgets without applying a domain reduction rule." },
   { specimen = "recipe/sim-web/crates/sim-lib-view-math/01-basics/heatmap-grid", why = "The checked recipe projects a bounded masked scalar grid into the domain-neutral scene/heatmap contract." },
+]
+
+[[route]]
+id = "route/explore-interference-field"
+task = "Explore an interference field"
+audiences = ["code", "framework"]
+steps = [
+  { feature = "feature/sim-web/heatmap-surface", why = "The domain-neutral math view validates the already reduced finite scalar grid, mask, detector label, advisory, and SurfaceCaps budget." },
+  { feature = "feature/sim-web/interference-surface", why = "The reversible surface selects the detector reduction, preserves Study evidence, and compiles edits to interference/project or interference/solve." },
+  { specimen = "recipe/sim-web/crates/sim-lib-view-interference/01-basics/interference-study", why = "The checked recipe encodes a Study, realizes projection and model Operations, refreshes the Scene, and proves desktop, phone, and glance budgets." },
 ]
 
 [[route]]

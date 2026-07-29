@@ -15,6 +15,12 @@
 //! - a lossless canonical [`text`] form for the scene-data subset of `Expr`;
 //! - the [`codec`] `codec:scene` (a domain codec) plus scene node [`shapes`];
 //! - a [`diff()`]/apply pair over scenes (scene diffs are themselves values).
+//!
+//! A `scene/heatmap` carries caller-supplied grid, mask, detector, footprint,
+//! and advisory data. Scene validates and transports those fields; it does not
+//! perform detector integration, interpret `detail`, or promote view metadata
+//! into scientific evidence. Domain views keep evidence attached to their
+//! source value and place only the exact projection certificate on the Scene.
 
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]

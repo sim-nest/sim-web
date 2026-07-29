@@ -1,5 +1,5 @@
 {
-  "card_count": 18,
+  "card_count": 19,
   "cards": [
     {
       "id": "browse/catalog",
@@ -72,6 +72,12 @@
       "kind": "cookbook-recipe",
       "owner": "sim-lib-view-doc",
       "summary": "Scientific article values, source lenses, and export descriptors."
+    },
+    {
+      "id": "cookbook/view/interference",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-view-interference",
+      "summary": "Reversible, evidence-preserving views over solved interference studies."
     },
     {
       "id": "cookbook/view/math",
@@ -659,6 +665,8 @@
       "root": "crates/sim-lib-view-interference",
       "rustdoc_summary": "A reversible, evidence-preserving surface over solved interference studies.",
       "target_kinds": [
+        "custom-build",
+        "example",
         "lib"
       ],
       "targets": [
@@ -671,6 +679,26 @@
           ],
           "name": "sim_lib_view_interference",
           "src": "crates/sim-lib-view-interference/src/lib.rs"
+        },
+        {
+          "crate_types": [
+            "bin"
+          ],
+          "kind": [
+            "example"
+          ],
+          "name": "interference-study",
+          "src": "crates/sim-lib-view-interference/examples/interference_study.rs"
+        },
+        {
+          "crate_types": [
+            "bin"
+          ],
+          "kind": [
+            "custom-build"
+          ],
+          "name": "build-script-build",
+          "src": "crates/sim-lib-view-interference/build.rs"
         }
       ]
     },
@@ -1194,10 +1222,10 @@
     "generated_by": "cargo run -p xtask -- simdoc",
     "generation_timestamp": "2026-07-15T16:50:10+02:00",
     "generator": "xtask repo-contract v1",
-    "git_commit": "29f98b46386226f15a549461e1822e357a800fee",
+    "git_commit": "96d40f6db688094d08aa4cbb9bd85eddd318eb51",
     "repo": "sim-web",
     "schema": "sim.provenance.v1",
-    "source_commit": "29f98b46386226f15a549461e1822e357a800fee",
+    "source_commit": "96d40f6db688094d08aa4cbb9bd85eddd318eb51",
     "source_remote": "https://github.com/sim-nest/sim-web",
     "validation_commands": [
       "cargo fmt --all --check",
@@ -1210,9 +1238,9 @@
       "cargo run -p xtask -- validation-matrix --check --repo .",
       "cargo run -p xtask -- crate-catalog --check --repo ."
     ],
-    "workspace_hash": "0a3a4d75ad24bc00",
+    "workspace_hash": "d87e68fd9533730d",
     "workspace_hash_algorithm": "fnv1a64",
-    "workspace_hash_input_count": 300,
+    "workspace_hash_input_count": 306,
     "workspace_hash_inputs": [
       "Cargo.toml",
       "crates/sim-lib-intent/Cargo.toml",
@@ -1388,6 +1416,12 @@
       "crates/sim-lib-view-doc/src/lib.rs",
       "crates/sim-lib-view-doc/src/tests.rs",
       "crates/sim-lib-view-interference/Cargo.toml",
+      "crates/sim-lib-view-interference/build.rs",
+      "crates/sim-lib-view-interference/examples/interference_study.rs",
+      "crates/sim-lib-view-interference/recipes/01-basics/interference-study/main.rs",
+      "crates/sim-lib-view-interference/recipes/01-basics/interference-study/recipe.toml",
+      "crates/sim-lib-view-interference/recipes/book.toml",
+      "crates/sim-lib-view-interference/src/cookbook.rs",
       "crates/sim-lib-view-interference/src/intent.rs",
       "crates/sim-lib-view-interference/src/lib.rs",
       "crates/sim-lib-view-interference/src/scene.rs",
@@ -1516,7 +1550,7 @@
       "xtask/Cargo.toml"
     ]
   },
-  "recipe_book_count": 16,
+  "recipe_book_count": 17,
   "recipes": [
     {
       "book": "intent",
@@ -1729,6 +1763,26 @@
       ],
       "summary": "Scientific article values, source lenses, and export descriptors.",
       "title": "Document View"
+    },
+    {
+      "book": "view/interference",
+      "book_toml": "crates/sim-lib-view-interference/recipes/book.toml",
+      "card_id": "cookbook/view/interference",
+      "group": "workspace",
+      "package": "sim-lib-view-interference",
+      "recipe_count": 1,
+      "recipes": [
+        {
+          "card_id": "view/interference/01-basics/interference-study",
+          "codec": "rust",
+          "id": "interference-study",
+          "package": "sim-lib-view-interference",
+          "recipe_toml": "crates/sim-lib-view-interference/recipes/01-basics/interference-study/recipe.toml",
+          "title": "Explore and edit a solved interference field"
+        }
+      ],
+      "summary": "Reversible, evidence-preserving views over solved interference studies.",
+      "title": "Interference Study Surface"
     },
     {
       "book": "view/math",

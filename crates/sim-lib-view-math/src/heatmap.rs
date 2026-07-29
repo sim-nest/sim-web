@@ -3,7 +3,12 @@
 //! The caller owns detector semantics and prepares the exact values and mask
 //! that may be displayed. This module derives a display budget from open
 //! [`SurfaceCaps`] metadata, refuses data that exceeds it, and never
-//! downsamples or otherwise changes the caller's grid.
+//! downsamples or otherwise changes the caller's grid. A domain's `detail`
+//! projection preserves source cells and must refuse an undersized target;
+//! detector integration is a separate upstream operation that integrates every
+//! covered source cell before this module sees the result. Detector labels,
+//! advisories, and evidence remain caller-owned metadata rather than claims
+//! manufactured by the generic view.
 
 use sim_kernel::{Error, Expr, Result};
 use sim_lib_scene::{HEATMAP_PALETTES, data_map, heatmap_payload_bytes, node, sym, validate_scene};

@@ -79,6 +79,10 @@ ledgered edit to every open surface.
 - `sim-lib-view-math` -- math, plotting, tensor, and symbolic lenses: function
   and series plots, editable matrix/tensor slices, a symbolic-expression tree,
   and parameter sweeps reading the `sim-lib-numbers-*` domains for display.
+- `sim-lib-view-interference` -- a reversible surface over certified
+  `interference/Study` values: evidence-preserving controls, bounded detector
+  heatmaps, cross-sections, and edits compiled to `interference/project` or
+  `interference/solve`.
 - `sim-lib-view-wasm-frame` -- host-side view frame facade for wasm-shaped view data:
   ordinary Rust glue that renders values to Scenes, folds raw gestures into
   Intents, and commits edits against an in-process value.
@@ -116,6 +120,25 @@ from the same input. Edits commit through `realize` on an `EvalFabric`, and the
 applied to the canonical store and broadcast -- as a Scene plus a Scene diff --
 to every surface viewing that resource, recorded in an append-only, replayable
 ledger carrying the issuing operator and logical tick.
+
+## Explore a solved interference field
+
+Open an `interference/Study` to see its controls, sampling status, sources,
+solver evidence, bounded heatmap, detector certificate, and cross-section in
+one Scene. Projection edits realize `interference/project`; model edits realize
+`interference/solve` and the returned Study refreshes the Scene.
+
+The surface keeps detail and detector integration explicit. Detail preserves
+the source grid and refuses a smaller target. Detector integration covers every
+source cell under the domain's declared rule before the general math view
+validates the resulting grid. Sampling and solver evidence are inherited from
+Study rather than invented by the view.
+
+Run the checked path:
+
+```bash
+cargo run -p sim-lib-view-interference --example interference-study
+```
 
 ## Validation
 

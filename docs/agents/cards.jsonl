@@ -51,6 +51,12 @@
 {"kind":"recipe","path":"crates/sim-lib-view-doc/recipes/01-basics/latex-view-lens/recipe.toml"}
 {"kind":"recipe","path":"crates/sim-lib-view-doc/recipes/01-basics/latex-view-lens/setup.siml"}
 {"kind":"recipe","path":"crates/sim-lib-view-doc/recipes/book.toml"}
+{"kind":"recipe","path":"crates/sim-lib-view-interference/recipes/01-basics/chapter.toml"}
+{"kind":"recipe","path":"crates/sim-lib-view-interference/recipes/01-basics/interference-study/expected.txt"}
+{"kind":"recipe","path":"crates/sim-lib-view-interference/recipes/01-basics/interference-study/main.rs"}
+{"kind":"recipe","path":"crates/sim-lib-view-interference/recipes/01-basics/interference-study/purpose.md"}
+{"kind":"recipe","path":"crates/sim-lib-view-interference/recipes/01-basics/interference-study/recipe.toml"}
+{"kind":"recipe","path":"crates/sim-lib-view-interference/recipes/book.toml"}
 {"kind":"recipe","path":"crates/sim-lib-view-math/recipes/01-basics/chapter.toml"}
 {"kind":"recipe","path":"crates/sim-lib-view-math/recipes/01-basics/heatmap-grid/purpose.md"}
 {"kind":"recipe","path":"crates/sim-lib-view-math/recipes/01-basics/heatmap-grid/recipe.toml"}

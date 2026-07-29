@@ -1,6 +1,6 @@
 //! Intent classification and compilation to existing interference operations.
 
-use sim_citizen::CitizenRuntime;
+use sim_citizen::{CitizenField, CitizenRuntime};
 use sim_kernel::{Cx, Error, Expr, Result, Symbol};
 use sim_lib_interference_runtime::{
     EmitterDescriptor, MediumDescriptor, PlaneDescriptor, ProblemDescriptor,
@@ -299,34 +299,35 @@ pub(crate) fn project_form(base: &Expr, edit: &ProjectionEdit) -> Expr {
             "observable",
             Expr::Symbol(Symbol::new(observable_token(edit.observable))),
         ),
-        ("phase-floor", build::float(edit.phase_floor)),
-        ("target-rows", build::uint(edit.target_rows as u64)),
-        ("target-cols", build::uint(edit.target_columns as u64)),
+        ("phase-floor", edit.phase_floor.encode_field()),
+        ("target-rows", edit.target_rows.encode_field()),
+        ("target-cols", edit.target_columns.encode_field()),
         (
             "reduction",
             Expr::Symbol(Symbol::new(reduction_token(edit.reduction))),
         ),
     ];
     if let Some(wt) = observable_wt(edit.observable) {
-        request.push(("wt", build::float(wt)));
+        request.push(("wt", wt.encode_field()));
     }
-    Expr::List(vec![
-        Expr::Symbol(project_function_symbol()),
-        base.clone(),
-        build::map(request),
-    ])
+    Expr::Call {
+        operator: Box::new(Expr::Symbol(project_function_symbol())),
+        args: vec![base.clone(), build::map(request)],
+    }
 }
 
 pub(crate) fn solve_form(cx: &mut Cx, edit: &ModelEdit) -> Result<Expr> {
-    Ok(Expr::List(vec![
-        Expr::Symbol(solve_function_symbol()),
-        sim_citizen::constructor_expr(cx, &edit.problem)?,
-        sim_citizen::constructor_expr(cx, &edit.plane)?,
-        build::map(vec![
-            ("sampling", Expr::Symbol(edit.sampling.clone())),
-            ("work-budget", Expr::Symbol(Symbol::new("default"))),
-        ]),
-    ]))
+    Ok(Expr::Call {
+        operator: Box::new(Expr::Symbol(solve_function_symbol())),
+        args: vec![
+            sim_citizen::constructor_expr(cx, &edit.problem)?,
+            sim_citizen::constructor_expr(cx, &edit.plane)?,
+            build::map(vec![
+                ("sampling", Expr::Symbol(edit.sampling.clone())),
+                ("work-budget", Expr::Symbol(Symbol::new("default"))),
+            ]),
+        ],
+    })
 }
 
 fn validate_projection(edit: &ProjectionEdit, study: &StudyDescriptor) -> Result<()> {

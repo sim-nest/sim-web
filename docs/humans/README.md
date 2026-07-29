@@ -20,6 +20,7 @@ This generated lane consumes `docs/generated/sim-index-fragment.sx`. Global inde
 | `feature/sim-web/view-surface` | `crate/sim-lib-view` | 1 | Expose view and edit surfaces so codecs, browser hosts, and device profiles can render and reverse surface data. |
 | `feature/sim-web/stateful-tree-scenes` | `crate/sim-lib-scene` | 2 | Render expandable Scene outlines with explicit disclosure state and total budgets for nodes, depth, encoded bytes, and visible faces. |
 | `feature/sim-web/heatmap-surface` | `crate/sim-lib-view-math` | 1 | Validate and project caller-prepared finite scalar grids into one budgeted Scene contract without inventing a domain reduction rule. |
+| `feature/sim-web/interference-surface` | `crate/sim-lib-view-interference` | 1 | Encode complete interference Studies as evidence-preserving heatmap Scenes and compile projection or model edits to the existing interference operations. |
 | `feature/sim-web/device-surfaces` | `crate/sim-lib-view` | 1 | Rank and project view surfaces against desktop, phone, watch, and glasses device profiles. |
 | `feature/sim-web/codec-surface-sessions` | `crate/sim-lib-web-bridge` | 1 | Drive browser and server sessions through one reversible SurfaceCodec contract for encode, decode, commit, projection, and isolation. |
 | `feature/sim-web/server-backed-web-sessions` | `crate/sim-lib-web-bridge` | 1 | Connect RemoteTransport to the existing SIM server transport so browser sessions read, commit, drain changes, reconnect, and report revision conflicts through ordinary server eval requests. |
@@ -126,6 +127,12 @@ This generated lane consumes `docs/generated/sim-index-fragment.sx`. Global inde
 - `crates/sim-lib-view-doc/recipes/01-basics/latex-view-lens/recipe.toml`
 - `crates/sim-lib-view-doc/recipes/01-basics/latex-view-lens/setup.siml`
 - `crates/sim-lib-view-doc/recipes/book.toml`
+- `crates/sim-lib-view-interference/recipes/01-basics/chapter.toml`
+- `crates/sim-lib-view-interference/recipes/01-basics/interference-study/expected.txt`
+- `crates/sim-lib-view-interference/recipes/01-basics/interference-study/main.rs`
+- `crates/sim-lib-view-interference/recipes/01-basics/interference-study/purpose.md`
+- `crates/sim-lib-view-interference/recipes/01-basics/interference-study/recipe.toml`
+- `crates/sim-lib-view-interference/recipes/book.toml`
 - `crates/sim-lib-view-math/recipes/01-basics/chapter.toml`
 - `crates/sim-lib-view-math/recipes/01-basics/heatmap-grid/purpose.md`
 - `crates/sim-lib-view-math/recipes/01-basics/heatmap-grid/recipe.toml`
@@ -1810,6 +1817,26 @@ fn bool_values(scene: &Expr) -> Vec<bool> {
         _ => Vec::new(),
     }
 }
+```
+
+### `feature/sim-web/interference-surface`
+
+Specimen `recipe/sim-web/crates/sim-lib-view-interference/01-basics/interference-study` is checked by `xtask check-recipes`.
+
+Source `crates/sim-lib-view-interference/recipes/01-basics/interference-study/recipe.toml`:
+
+```toml
+id = "interference-study"
+title = "Explore and edit a solved interference field"
+codec = "rust"
+setup = "main.rs"
+purpose = "purpose.md"
+expected = "expected.txt"
+order = 10
+tags = ["interference", "view", "heatmap", "edit", "realize", "detector"]
+harness = "cargo-example"
+package = "sim-lib-view-interference"
+example = "interference-study"
 ```
 
 ### `feature/sim-web/device-surfaces`
