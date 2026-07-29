@@ -327,6 +327,15 @@ steps = [
 ]
 
 [[route]]
+id = "route/project-masked-scalar-heatmap"
+task = "Project a masked scalar grid as a heatmap"
+audiences = ["code", "framework"]
+steps = [
+  { feature = "feature/sim-web/heatmap-surface", why = "The heatmap row validates caller-prepared finite values, masks, metadata, and SurfaceCaps-derived cell and byte budgets without applying a domain reduction rule." },
+  { specimen = "recipe/sim-web/crates/sim-lib-view-math/01-basics/heatmap-grid", why = "The checked recipe projects a bounded masked scalar grid into the domain-neutral scene/heatmap contract." },
+]
+
+[[route]]
 id = "route/add-server-backed-web-session"
 task = "Add a server-backed web session"
 audiences = ["code", "framework"]
