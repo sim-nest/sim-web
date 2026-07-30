@@ -849,6 +849,15 @@ function renderSceneWithBudget(doc, node, emit, budget, state, depth) {
       badge.textContent = String(node.label != null ? node.label : node.status || "");
       return badge;
     }
+    case "scene/badge-cluster": {
+      const cluster = el(doc, "div", "scene-badge-cluster");
+      cluster.setAttribute("role", "status");
+      labelled(cluster, node);
+      for (const badge of asArray(node.badges)) {
+        cluster.appendChild(renderSceneWithBudget(doc, badge, emit, budget, state, depth + 1));
+      }
+      return cluster;
+    }
     case "scene/button": {
       return renderButton(doc, node, () => emit(buttonEmit(node)));
     }

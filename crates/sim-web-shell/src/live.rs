@@ -111,15 +111,43 @@ impl LiveSession {
     /// Submit a decoded Intent against `pane`, then pump and return the Scene
     /// update(s) (each carrying the diff that reconstructs its new Scene).
     pub fn submit(&mut self, pane: &str, intent: &Expr) -> SimResult<Vec<SceneUpdate>> {
-        self.session
-            .submit_intent(&mut self.cx, &self.registry, &Symbol::new(pane), intent)?;
+        self.session.submit_intent_at_rendered_revision(
+            &mut self.cx,
+            &self.registry,
+            &Symbol::new(pane),
+            intent,
+        )?;
         self.session.pump(&mut self.cx, &self.registry)
     }
 }
 
-/// Object-safe factory for browser-owned live surfaces.
+/// One browser-owned reversible surface.
+///
+/// The shell owns lifecycle and opaque browser ids; a product supplies one of
+/// these objects per browser when it needs a non-fixture transport or codec.
+pub trait LiveSurface {
+    /// Open `resource` in `pane` and return its initial Scene.
+    fn open(&mut self, resource: &str, pane: &str) -> SimResult<Expr>;
+
+    /// Submit one Intent and return the resulting Scene updates.
+    fn submit(&mut self, pane: &str, intent: &Expr) -> SimResult<Vec<SceneUpdate>>;
+}
+
+impl LiveSurface for LiveSession {
+    fn open(&mut self, resource: &str, pane: &str) -> SimResult<Expr> {
+        Self::open(self, resource, pane)
+    }
+
+    fn submit(&mut self, pane: &str, intent: &Expr) -> SimResult<Vec<SceneUpdate>> {
+        Self::submit(self, pane, intent)
+    }
+}
+
+/// Object-safe factory for isolated browser-owned live surfaces.
 pub trait LiveSurfaceFactory {
-    fn create(&self) -> SimResult<LiveSession>;
+    /// Construct one fresh surface, including its transport, authority, and
+    /// session-local presentation state.
+    fn create(&self) -> SimResult<Box<dyn LiveSurface>>;
 }
 
 /// Default shell surface factory.
@@ -127,15 +155,17 @@ pub trait LiveSurfaceFactory {
 pub struct DefaultLiveSurfaceFactory;
 
 impl LiveSurfaceFactory for DefaultLiveSurfaceFactory {
-    fn create(&self) -> SimResult<LiveSession> {
-        LiveSession::new()
+    fn create(&self) -> SimResult<Box<dyn LiveSurface>> {
+        LiveSession::new().map(|surface| Box::new(surface) as Box<dyn LiveSurface>)
     }
 }
 
 /// Capacity and expiry policy for live browser sessions.
 #[derive(Debug, Clone)]
 pub struct LiveSessionTableConfig {
+    /// Maximum number of browser-owned live surfaces retained at once.
     pub capacity: usize,
+    /// Maximum idle duration before an opaque browser session is evicted.
     pub idle_ttl: Duration,
 }
 
@@ -149,7 +179,7 @@ impl Default for LiveSessionTableConfig {
 }
 
 struct LiveSessionEntry {
-    live: LiveSession,
+    live: Box<dyn LiveSurface>,
     last_used: Instant,
     ordinal: u64,
 }
@@ -163,10 +193,12 @@ pub struct LiveSessionTable {
 }
 
 impl LiveSessionTable {
+    /// Creates a bounded session table with the default capacity and idle TTL.
     pub fn new(factory: Box<dyn LiveSurfaceFactory + Send + Sync>) -> Self {
         Self::with_config(factory, LiveSessionTableConfig::default())
     }
 
+    /// Creates a session table with explicit capacity and idle-expiry policy.
     pub fn with_config(
         factory: Box<dyn LiveSurfaceFactory + Send + Sync>,
         config: LiveSessionTableConfig,
@@ -184,6 +216,7 @@ impl LiveSessionTable {
         self.sessions.len()
     }
 
+    /// Opens a resource in a new or existing opaque browser session.
     pub fn open(
         &mut self,
         session_id: Option<&str>,
@@ -193,6 +226,7 @@ impl LiveSessionTable {
         self.open_at(session_id, resource, pane, Instant::now())
     }
 
+    /// Submits one reversible Intent through an existing browser session.
     pub fn submit(
         &mut self,
         session_id: &str,
@@ -202,6 +236,7 @@ impl LiveSessionTable {
         self.submit_at(session_id, pane, intent, Instant::now())
     }
 
+    /// Closes an opaque browser session and releases its live surface.
     pub fn close(&mut self, session_id: &str) -> Result<(), String> {
         validate_session_id(session_id)?;
         if self.sessions.remove(session_id).is_some() {
@@ -211,6 +246,7 @@ impl LiveSessionTable {
         }
     }
 
+    /// Opens a resource using an explicit clock instant for deterministic hosts.
     pub fn open_at(
         &mut self,
         session_id: Option<&str>,
@@ -247,6 +283,7 @@ impl LiveSessionTable {
         Ok((session_id, scene))
     }
 
+    /// Submits an Intent using an explicit clock instant for deterministic hosts.
     pub fn submit_at(
         &mut self,
         session_id: &str,

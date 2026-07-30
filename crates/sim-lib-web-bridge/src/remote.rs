@@ -37,6 +37,7 @@ pub struct RemoteTransport {
     offered_codecs: Vec<Symbol>,
     codec: Option<Symbol>,
     site: Option<Arc<dyn EvalSite>>,
+    resources: BTreeSet<Symbol>,
     next_msg_id: u64,
     in_flight: BTreeSet<u64>,
     max_in_flight: usize,
@@ -94,6 +95,7 @@ impl RemoteTransport {
             offered_codecs: vec![Symbol::qualified("codec", "binary")],
             codec: None,
             site: None,
+            resources: BTreeSet::new(),
             next_msg_id: 1,
             in_flight: BTreeSet::new(),
             max_in_flight: 8,
@@ -171,6 +173,7 @@ impl RemoteTransport {
             site.close_connection(cx)?;
         }
         self.codec = None;
+        self.resources.clear();
         self.in_flight.clear();
         self.status = SessionStatus::Closed;
         Ok(())
@@ -272,7 +275,9 @@ impl Transport for RemoteTransport {
     }
 
     fn read(&mut self, cx: &mut Cx, resource: &Symbol) -> Result<Expr> {
-        self.request(cx, web_session_read(resource))
+        let value = self.request(cx, web_session_read(resource))?;
+        self.resources.insert(resource.clone());
+        Ok(value)
     }
 
     fn realize_operation(
@@ -281,7 +286,9 @@ impl Transport for RemoteTransport {
         resource: &Symbol,
         operation: &Operation,
     ) -> Result<Expr> {
-        self.request(cx, web_session_realize(resource, operation))
+        let value = self.request(cx, web_session_realize(resource, operation))?;
+        self.resources.insert(resource.clone());
+        Ok(value)
     }
 
     fn commit_operation(
@@ -291,14 +298,23 @@ impl Transport for RemoteTransport {
         operation: &Operation,
         expected_current: Option<&Expr>,
     ) -> Result<Expr> {
-        self.request(
+        let value = self.request(
             cx,
             web_session_commit(resource, operation, expected_current),
-        )
+        )?;
+        self.resources.insert(resource.clone());
+        Ok(value)
     }
 
     fn drain_events(&mut self, cx: &mut Cx) -> Result<Vec<ChangeEvent>> {
-        parse_changes(self.request(cx, web_session_changes())?)
+        let resources = self.resources.iter().cloned().collect::<Vec<_>>();
+        let mut events = Vec::new();
+        for resource in resources {
+            events.extend(parse_changes(
+                self.request(cx, web_session_changes(&resource))?,
+            )?);
+        }
+        Ok(events)
     }
 
     fn stream_subscribe(
@@ -474,11 +490,17 @@ fn web_session_commit(
     ])
 }
 
-fn web_session_changes() -> Expr {
-    Expr::Map(vec![(
-        Expr::Symbol(Symbol::new("op")),
-        Expr::Symbol(Symbol::qualified("web-session", "changes")),
-    )])
+fn web_session_changes(resource: &Symbol) -> Expr {
+    Expr::Map(vec![
+        (
+            Expr::Symbol(Symbol::new("op")),
+            Expr::Symbol(Symbol::qualified("web-session", "changes")),
+        ),
+        (
+            Expr::Symbol(Symbol::new("resource")),
+            Expr::Symbol(resource.clone()),
+        ),
+    ])
 }
 
 fn parse_changes(expr: Expr) -> Result<Vec<ChangeEvent>> {

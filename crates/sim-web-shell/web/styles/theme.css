@@ -311,6 +311,115 @@ body[data-glasses-mode] .scene-spatial-mirror {
   padding: 6px 8px;
 }
 
+/* Baseline Scene vocabulary. Domain lenses compose these nodes, so the shell
+ * owns their one responsive visual language. */
+.scene-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.scene-stack[data-dir="row"] {
+  flex-direction: row;
+  align-items: flex-start;
+}
+
+.scene-box {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid #2c3640;
+  border-radius: var(--radius);
+  background: #151c24;
+}
+
+.scene-box[data-role="source"],
+.scene-box[data-role="result"] {
+  flex: 1 1 0;
+}
+
+.scene-text {
+  min-width: 0;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.scene-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 26px;
+  padding: 2px 8px;
+  border: 1px solid #4b5968;
+  border-radius: 999px;
+  background: #202832;
+  color: var(--fg);
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.scene-badge[data-status="ok"] { border-color: var(--ok); }
+.scene-badge[data-status="warning"] { border-color: var(--warn); }
+.scene-badge[data-status="error"] { border-color: var(--error); }
+.scene-badge[data-status="policy"] { border-color: var(--accent); }
+
+.scene-badge-cluster {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.scene-button,
+.scene-field {
+  min-height: 40px;
+  border: 1px solid #4b5968;
+  border-radius: 6px;
+  color: var(--fg);
+  font: inherit;
+}
+
+.scene-button {
+  padding: 7px 11px;
+  background: #1b2835;
+  cursor: pointer;
+}
+
+.scene-button:hover { border-color: var(--accent); }
+
+.scene-field {
+  width: 100%;
+  min-width: 0;
+  padding: 7px 9px;
+  background: #0d1218;
+}
+
+.scene-tree {
+  min-width: 0;
+  padding: 8px 8px 8px 12px;
+  border-left: 2px solid #344252;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background: #121921;
+}
+
+.scene-tree > summary {
+  min-height: 40px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  color: var(--fg);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.scene-tree > summary:hover { background: #1b2835; }
+
+.scene-tree[open] > summary {
+  margin-bottom: 8px;
+  color: #d7eaff;
+}
+
 .scene-graph-nodes,
 .scene-graph-edges,
 .scene-plot-series,
@@ -535,6 +644,16 @@ body[data-surface-profile="phone"] .scene-object-roll-placement {
   grid-template-columns: 1fr;
 }
 
+body[data-surface-profile="phone"] .scene-stack[data-dir="row"] {
+  flex-direction: column;
+}
+
+body[data-surface-profile="phone"] .scene-button,
+body[data-surface-profile="phone"] .scene-field,
+body[data-surface-profile="phone"] .scene-tree > summary {
+  min-height: 44px;
+}
+
 @media (max-width: 520px) {
   :root {
     --gap: 12px;
@@ -557,5 +676,9 @@ body[data-surface-profile="phone"] .scene-object-roll-placement {
   .scene-keyboard-keys,
   .scene-keyboard-controls {
     overflow-x: auto;
+  }
+
+  .scene-stack[data-dir="row"] {
+    flex-direction: column;
   }
 }

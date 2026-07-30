@@ -196,6 +196,19 @@ const root = renderScene(doc, scene, () => {});
 assert.equal(root.className, "scene-stack");
 const badge = find(root, (n) => n.className === "scene-badge");
 assert.ok(badge && badge.textContent === "round-trips", "badge carries a text token");
+const badgeCluster = renderScene(doc, {
+  kind: "scene/badge-cluster",
+  badges: [
+    { kind: "scene/badge", status: "ok", label: "Fresh" },
+    { kind: "scene/badge", status: "policy", label: "automatic" },
+  ],
+}, () => {});
+assert.equal(badgeCluster.getAttribute("role"), "status");
+assert.deepEqual(
+  badgeCluster.children.map((child) => child.textContent),
+  ["Fresh", "automatic"],
+  "badge clusters render their standard badge list",
+);
 const unknown = renderScene(doc, { kind: "scene/does-not-exist" }, () => {});
 assert.ok(unknown.textContent.includes("unsupported"), "unknown kinds fail closed");
 

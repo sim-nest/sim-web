@@ -22,10 +22,10 @@ pub use cli::{
     configure_web_bootloader_with_cookbook, web_bootloader, web_serve_entrypoint_symbol,
 };
 pub use live::{
-    DEFAULT_PANE, DEFAULT_RESOURCE, LiveSession, decode_intent_body, encode_patches, encode_scene,
-    error_json,
+    DEFAULT_PANE, DEFAULT_RESOURCE, LiveSession, LiveSessionTable, LiveSessionTableConfig,
+    LiveSurface, LiveSurfaceFactory, decode_intent_body, encode_patches, encode_scene, error_json,
 };
-pub use serve::{ServeConfig, serve_with_cx};
+pub use serve::{ServeConfig, serve_with_cx, serve_with_surface_factory};
 
 #[cfg(test)]
 mod glasses_asset_tests;

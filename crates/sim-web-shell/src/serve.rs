@@ -34,7 +34,7 @@ use crate::assets::asset_for;
 use crate::atelier::AtelierWebState;
 use crate::live::{
     DEFAULT_PANE, DEFAULT_RESOURCE, DefaultLiveSurfaceFactory, LiveSessionTable,
-    decode_intent_body, encode_patches, encode_scene, error_json,
+    LiveSurfaceFactory, decode_intent_body, encode_patches, encode_scene, error_json,
 };
 use sim_kernel::Cx;
 use sim_lib_net_core::{CapOutcome, read_capped_line};
@@ -85,6 +85,20 @@ impl Default for ServeConfig {
 /// session's host GrantSeat), not self-granted here; `run_recipe` gates each run
 /// on it.
 pub fn serve_with_cx(cx: &mut Cx, config: &ServeConfig) -> std::io::Result<()> {
+    serve_with_surface_factory(cx, config, Box::new(DefaultLiveSurfaceFactory))
+}
+
+/// Bind and serve the shell with a caller-provided browser surface factory.
+///
+/// Domain products use this composition point to supply their own
+/// `SurfaceCodec`, transport, resource, and diminished authority while retaining
+/// the shell's HTTP lifecycle, opaque browser-session table, and one generic
+/// Scene interpreter.
+pub fn serve_with_surface_factory(
+    cx: &mut Cx,
+    config: &ServeConfig,
+    surface_factory: Box<dyn LiveSurfaceFactory + Send + Sync>,
+) -> std::io::Result<()> {
     if config.dry_run {
         println!("sim-web-shell: dry-run OK");
         return Ok(());
@@ -92,7 +106,7 @@ pub fn serve_with_cx(cx: &mut Cx, config: &ServeConfig) -> std::io::Result<()> {
 
     let listener = bind(&config.addr)?;
     let local = listener.local_addr()?;
-    let mut state = ShellState::new(config, cx)?;
+    let mut state = ShellState::with_surface_factory(config, cx, surface_factory)?;
     println!("sim-web-shell: serving shell on http://{local}");
     for stream in listener.incoming() {
         match stream {
@@ -122,7 +136,16 @@ struct ShellState<'a> {
 }
 
 impl<'a> ShellState<'a> {
+    #[cfg(test)]
     fn new(config: &ServeConfig, cx: &'a mut Cx) -> std::io::Result<Self> {
+        Self::with_surface_factory(config, cx, Box::new(DefaultLiveSurfaceFactory))
+    }
+
+    fn with_surface_factory(
+        config: &ServeConfig,
+        cx: &'a mut Cx,
+        surface_factory: Box<dyn LiveSurfaceFactory + Send + Sync>,
+    ) -> std::io::Result<Self> {
         // The cookbook eval sandbox is the bootloader-provided `cx`, which already
         // carries the standard distribution the recipes require and read-eval,
         // granted by the bootloader at the web-serve composition point. run_recipe
@@ -135,7 +158,7 @@ impl<'a> ShellState<'a> {
                 None => Arc::new(CookbookWebState::seeded().map_err(io_error)?),
             },
             cookbook_cx: cx,
-            live: LiveSessionTable::new(Box::new(DefaultLiveSurfaceFactory)),
+            live: LiveSessionTable::new(surface_factory),
         })
     }
 }

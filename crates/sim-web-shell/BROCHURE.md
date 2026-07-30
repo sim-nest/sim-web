@@ -9,6 +9,8 @@ This is the server that serves the SIM browser workspace. It bundles the browser
 ## Why you will be glad
 
 - One program to start, and the browser workspace is open and ready.
+- Products can inject a fresh transport, codec, resource alias, and diminished
+  authority per opaque browser session.
 - The browser side stays light, so it paints and sends edits without extra baggage.
 - Site graph, index, radar, and firewall reports are all viewable in one place.
 

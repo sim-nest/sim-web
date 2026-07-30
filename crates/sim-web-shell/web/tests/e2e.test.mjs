@@ -800,5 +800,23 @@ async function cookbookKeepsClosedGroupThroughSelectAndRun() {
 
 await cookbookKeepsClosedGroupThroughSelectAndRun();
 
+for (const fixturePath of process.argv.slice(2)) {
+  const payload = JSON.parse(await readFile(fixturePath, "utf8"));
+  assert.ok(
+    ["desktop", "phone"].includes(payload.profile),
+    `${fixturePath}: fixture declares a desktop or phone profile`,
+  );
+  assert.equal(typeof payload.title, "string", `${fixturePath}: fixture has a title`);
+  const root = paintsSupported(payload.scene, fixturePath);
+  assert.ok(
+    find(root, (node) => node.className === "scene-tree"),
+    `${fixturePath}: fixture paints through the generic tree node`,
+  );
+}
+
+const fixtureHtml = await readFile(new URL("./scene-fixture.html", import.meta.url), "utf8");
+assert.ok(fixtureHtml.includes("../interpreter/scene.js"), "fixture page imports the one Scene interpreter");
+assert.ok(fixtureHtml.includes('cache: "no-store"'), "fixture data is never browser-cached");
+
 console.log("cookbook-verify: tree state OK");
 console.log("e2e.test.mjs: all domain demos, pane operations, and cookbook tree memory passed");

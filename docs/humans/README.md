@@ -58,6 +58,7 @@ This generated lane consumes `docs/generated/sim-index-fragment.sx`. Global inde
 | `view-edit/sim-lib-view-spatial` | `view-edit` | `crate/sim-lib-view-spatial` |
 | `view-edit/sim-lib-view-wasm-frame` | `view-edit` | `crate/sim-lib-view-wasm-frame` |
 | `view-edit/sim-lib-web-bridge` | `view-edit` | `crate/sim-lib-web-bridge` |
+| `view-edit/sim-web-shell` | `view-edit` | `crate/sim-web-shell` |
 | `view/sim-lib-view` | `view` | `crate/sim-lib-view` |
 | `view/sim-lib-view-agent` | `view` | `crate/sim-lib-view-agent` |
 | `view/sim-lib-view-bridge` | `view` | `crate/sim-lib-view-bridge` |

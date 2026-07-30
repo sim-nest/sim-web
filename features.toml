@@ -202,7 +202,7 @@ title = "Surface codec sessions"
 summary = "Drive browser and server sessions through one reversible SurfaceCodec contract for encode, decode, commit, projection, and isolation."
 owner = "crate/sim-lib-web-bridge"
 audiences = ["code", "framework"]
-guidance = "Use this row when a server or browser session needs the canonical reversible SurfaceCodec bridge instead of separate view and editor protocol ownership."
+guidance = "Use this row when a server or browser session needs the canonical reversible SurfaceCodec bridge instead of separate view and editor protocol ownership. Product hosts inject their stable codec symbol into PhoneHost or DesktopHost; the default constructors retain the universal codec. Every connected submit is checked against the pane's rendered revision, and queued phone edits rebase one committed frame at a time rather than bypassing optimistic concurrency."
 claims_anchors = [
   "anchor/crate/sim-lib-view",
   "anchor/crate/sim-lib-web-bridge",
@@ -225,7 +225,7 @@ title = "Server-backed web sessions"
 summary = "Connect RemoteTransport to the existing SIM server transport so browser sessions read, commit, drain changes, reconnect, and report revision conflicts through ordinary server eval requests."
 owner = "crate/sim-lib-web-bridge"
 audiences = ["code", "framework"]
-guidance = "Use this row when a browser or wasm host needs the canonical web Session bridge backed by sim-lib-server rather than an in-memory fixture or local fabric."
+guidance = "Use this row when a browser or wasm host needs the canonical web Session bridge backed by sim-lib-server rather than an in-memory fixture or local fabric. RemoteTransport tracks every opened resource and drains each resource's authoritative change feed separately, so several server sessions cannot make a generic changes request ambiguous. Reconnect preserves that resource set while close clears it."
 claims_anchors = [
   "anchor/crate/sim-lib-web-bridge",
 ]
@@ -245,7 +245,7 @@ title = "Web shell host"
 summary = "Serve isolated, bounded, phone-capable browser surfaces through loaded web shell runtime libraries, installable shell assets, and command entry points."
 owner = "crate/sim-web-shell"
 audiences = ["user", "code", "framework"]
-guidance = "Use this row when starting the browser shell, browsing a repo, installing the phone profile, or opening the atelier workspace; the live shell host gives each browser an opaque, expiring surface session rather than shared edit state and keeps authored/server data out of Cache Storage."
+guidance = "Use this row when starting the browser shell, browsing a repo, installing the phone profile, or opening the atelier workspace. The live shell host gives each browser an opaque, expiring surface session rather than shared edit state and keeps authored/server data out of Cache Storage. A product supplies a LiveSurfaceFactory when it needs its own SurfaceCodec, RemoteTransport, resource alias, or diminished authority; the shell retains the HTTP lifecycle and the one generic Scene interpreter and Intent emitter."
 claims_anchors = [
   "anchor/cli/atelier",
   "anchor/cli/browse",
