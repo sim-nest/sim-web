@@ -1,4 +1,4 @@
-//! The live browser session bridge (VIEW4.05).
+//! The live browser session bridge.
 //!
 //! This module turns the embedded browser shell into a live edit surface over
 //! the blocking HTTP server: the browser posts an Intent, the server submits it

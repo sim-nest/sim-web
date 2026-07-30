@@ -1,4 +1,4 @@
-//! Phone and desktop host wrappers over the session bus (VIEW4.09).
+//! Phone and desktop host wrappers over the session bus.
 //!
 //! These are thin facades over [`Session`]: they reuse the same Intent/Scene
 //! bus, transport, and pump, and add only the host-shaped policy each device
