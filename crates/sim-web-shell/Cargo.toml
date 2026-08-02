@@ -24,7 +24,7 @@ sim-lib-net-core = { version = "0.1.0" }
 sim-run-core = { version = "0.2.0" }
 sim-lib-server = { version = "0.1.10" }
 sim-lib-stream-core = { version = "0.1.0" }
-sim-lib-view = { version = "0.1.0", path = "../sim-lib-view" }
+sim-lib-view = { version = "0.2.0", path = "../sim-lib-view" }
 sim-lib-web-bridge = { version = "0.1.3", path = "../sim-lib-web-bridge" }
 
 [dev-dependencies]
@@ -36,8 +36,8 @@ sim-codec-json = { version = "0.1.2" }
 sim-codec-lisp = { version = "0.1.0" }
 sim-kernel = { version = "0.1.0" }
 sim-lib-daw-session = { version = "0.1.0" }
-sim-lib-intent = { version = "0.1.0", path = "../sim-lib-intent" }
-sim-lib-scene = { version = "0.1.0", path = "../sim-lib-scene" }
+sim-lib-intent = { version = "0.2.0", path = "../sim-lib-intent" }
+sim-lib-scene = { version = "0.2.0", path = "../sim-lib-scene" }
 sim-lib-topology = { version = "0.1.0" }
 sim-lib-view-agent = { version = "0.1.0", path = "../sim-lib-view-agent" }
 sim-lib-view-codec = { version = "0.1.0", path = "../sim-lib-view-codec" }
