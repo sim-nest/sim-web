@@ -1,5 +1,5 @@
 //! Surface-neutral command palette, focus model, accessibility metadata, and
-//! diagnostics presentation (VIEW4.06).
+//! diagnostics presentation.
 //!
 //! These are the interaction semantics SHARED by every view surface -- the TUI
 //! (the `sim-view-tty` consumer) and the Web UI alike. The module is

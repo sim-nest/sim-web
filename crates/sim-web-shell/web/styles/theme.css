@@ -95,6 +95,7 @@ body {
 }
 
 #shell {
+  width: min(100%, 820px);
   max-width: 820px;
   margin: 0 auto;
   padding: calc(var(--gap) * 2) var(--gap);
@@ -216,11 +217,207 @@ body[data-glasses-mode] .scene-spatial-mirror {
 .scene-object-roll,
 .scene-graph,
 .scene-plot,
+.scene-heatmap,
 .scene-timeline {
   display: flex;
   flex-direction: column;
   gap: 8px;
   width: min(100%, 760px);
+}
+
+.scene-heatmap {
+  display: grid;
+  grid-template-areas:
+    "summary"
+    "viewport"
+    "legend"
+    "inspector"
+    "metadata";
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  margin: 0;
+}
+
+.scene-heatmap-summary { grid-area: summary; font-weight: 600; }
+
+.scene-heatmap-viewport {
+  grid-area: viewport;
+  min-width: 0;
+  overflow: auto;
+}
+
+.scene-heatmap-canvas {
+  display: block;
+  max-width: 100%;
+  border: 1px solid #4b5968;
+  background: #202832;
+  image-rendering: pixelated;
+  touch-action: none;
+}
+
+.scene-heatmap-legend {
+  grid-area: legend;
+  display: grid;
+  grid-template-columns: max-content minmax(80px, 1fr) max-content max-content;
+  gap: 6px;
+  align-items: center;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.scene-heatmap-legend-bar {
+  display: block;
+  min-width: 80px;
+  height: 14px;
+  border: 1px solid #6f8295;
+}
+
+.scene-heatmap-mask-key {
+  display: inline-block;
+  border: 1px solid #6f8295;
+  padding: 0 4px 0 22px;
+  background:
+    repeating-linear-gradient(
+      135deg,
+      #202832 0,
+      #202832 4px,
+      #aeb8c2 4px,
+      #aeb8c2 6px
+    );
+  color: var(--fg);
+  text-shadow: 0 1px 1px #11151a;
+}
+
+.scene-heatmap-inspector {
+  grid-area: inspector;
+  min-height: 1.5em;
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+}
+
+.scene-heatmap-metadata {
+  grid-area: metadata;
+  display: grid;
+  gap: 4px;
+}
+
+.scene-heatmap-detector { color: var(--muted); }
+
+.scene-heatmap-advisory,
+.scene-heatmap-error {
+  border-left: 3px solid var(--warn);
+  background: #2a2417;
+  color: #ffe4a3;
+  padding: 6px 8px;
+}
+
+/* Baseline Scene vocabulary. Domain lenses compose these nodes, so the shell
+ * owns their one responsive visual language. */
+.scene-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.scene-stack[data-dir="row"] {
+  flex-direction: row;
+  align-items: flex-start;
+}
+
+.scene-box {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid #2c3640;
+  border-radius: var(--radius);
+  background: #151c24;
+}
+
+.scene-box[data-role="source"],
+.scene-box[data-role="result"] {
+  flex: 1 1 0;
+}
+
+.scene-text {
+  min-width: 0;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.scene-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 26px;
+  padding: 2px 8px;
+  border: 1px solid #4b5968;
+  border-radius: 999px;
+  background: #202832;
+  color: var(--fg);
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.scene-badge[data-status="ok"] { border-color: var(--ok); }
+.scene-badge[data-status="warning"] { border-color: var(--warn); }
+.scene-badge[data-status="error"] { border-color: var(--error); }
+.scene-badge[data-status="policy"] { border-color: var(--accent); }
+
+.scene-badge-cluster {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.scene-button,
+.scene-field {
+  min-height: 40px;
+  border: 1px solid #4b5968;
+  border-radius: 6px;
+  color: var(--fg);
+  font: inherit;
+}
+
+.scene-button {
+  padding: 7px 11px;
+  background: #1b2835;
+  cursor: pointer;
+}
+
+.scene-button:hover { border-color: var(--accent); }
+
+.scene-field {
+  width: 100%;
+  min-width: 0;
+  padding: 7px 9px;
+  background: #0d1218;
+}
+
+.scene-tree {
+  min-width: 0;
+  padding: 8px 8px 8px 12px;
+  border-left: 2px solid #344252;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background: #121921;
+}
+
+.scene-tree > summary {
+  min-height: 40px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  color: var(--fg);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.scene-tree > summary:hover { background: #1b2835; }
+
+.scene-tree[open] > summary {
+  margin-bottom: 8px;
+  color: #d7eaff;
 }
 
 .scene-graph-nodes,
@@ -419,3 +616,69 @@ body[data-glasses-mode] .scene-spatial-mirror {
 }
 
 .shell-footer { color: var(--muted); border-top: 1px solid #222b34; padding-top: var(--gap); }
+
+body[data-surface-profile="phone"] .top-nav {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 8px;
+  overflow-x: auto;
+  background: var(--bg);
+}
+
+body[data-surface-profile="phone"] #shell {
+  width: 100%;
+  min-height: 100svh;
+  padding: 16px 12px 28px;
+  gap: 16px;
+}
+
+body[data-surface-profile="phone"] .shell-header h1 {
+  font-size: 1.5rem;
+}
+
+body[data-surface-profile="phone"] .scene-piano-roll-lane,
+body[data-surface-profile="phone"] .scene-player-rack-device,
+body[data-surface-profile="phone"] .scene-object-roll-lane,
+body[data-surface-profile="phone"] .scene-object-roll-placement {
+  grid-template-columns: 1fr;
+}
+
+body[data-surface-profile="phone"] .scene-stack[data-dir="row"] {
+  flex-direction: column;
+}
+
+body[data-surface-profile="phone"] .scene-button,
+body[data-surface-profile="phone"] .scene-field,
+body[data-surface-profile="phone"] .scene-tree > summary {
+  min-height: 44px;
+}
+
+@media (max-width: 520px) {
+  :root {
+    --gap: 12px;
+  }
+
+  .top-nav {
+    width: 100%;
+  }
+
+  #shell {
+    width: 100%;
+    padding: 16px 12px 28px;
+  }
+
+  .scene-stereo {
+    grid-template-columns: 1fr;
+    aspect-ratio: auto;
+  }
+
+  .scene-keyboard-keys,
+  .scene-keyboard-controls {
+    overflow-x: auto;
+  }
+
+  .scene-stack[data-dir="row"] {
+    flex-direction: column;
+  }
+}

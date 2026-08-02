@@ -1,0 +1,26 @@
+{
+  "name": "SIM Web-UI Shell",
+  "short_name": "SIM Web",
+  "description": "A phone-capable SIM Scene and Intent browser surface.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#11151a",
+  "theme_color": "#11151a",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["productivity", "developer"]
+}

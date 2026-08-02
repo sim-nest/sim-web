@@ -14,7 +14,8 @@ Generated from Cargo metadata by `xtask crate-catalog v1`.
 | `sim-lib-view-daw` | `true` | `custom-build, lib` | DAW timeline, mixer, plugin rack, and synth lenses for SIM Web. |
 | `sim-lib-view-device` | `true` | `custom-build, lib` | Device profiles, frame timing, and tier derivation for SIM Web surfaces. |
 | `sim-lib-view-doc` | `true` | `custom-build, lib` | Markup article workspace lens for SIM Web. |
-| `sim-lib-view-math` | `true` | `custom-build, lib` | Math, plotting, tensor, and symbolic lenses for SIM Web. |
+| `sim-lib-view-interference` | `true` | `custom-build, example, lib` | Reversible certified interference-study surface for SIM Web. |
+| `sim-lib-view-math` | `true` | `custom-build, lib` | Bounded heatmaps, plotting, tensor, and symbolic lenses for SIM Web. |
 | `sim-lib-view-spatial` | `true` | `custom-build, lib` | Spatial glasses surface encoding over the shared SIM Web Scene and device adapters. |
 | `sim-lib-view-wasm-frame` | `true` | `custom-build, lib` | Host-side view frame facade for wasm-shaped view data. |
 | `sim-lib-view-wrist` | `true` | `custom-build, lib` | Round watch glance budgets over the shared SIM Web device adapter. |

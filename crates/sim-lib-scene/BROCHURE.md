@@ -4,7 +4,7 @@ In one line: it is the portable picture of what should appear on screen, saved a
 
 ## What it gives you
 
-Before anything is drawn, the workspace builds a Scene: a tidy tree that describes the graph, table, plot, or panel to show. A Scene is ordinary SIM data, so it can be saved to a file, compared against yesterday's version, checked for correctness, sent across the network, or read by an agent. Only the browser turns a Scene into actual pixels; everything before that point just produces this description. Because the picture is data, you can snapshot it, test it, and diff two versions to see exactly what changed on screen -- all without a running browser in the loop.
+Before anything is drawn, the workspace builds a Scene: a tidy tree that describes the graph, table, plot, heatmap, or panel to show. A Scene is ordinary SIM data, so it can be saved to a file, compared against yesterday's version, checked for correctness, sent across the network, or read by an agent. Its heatmap contract checks dimensions, finite scalar values, masks, display range, palette, detector label, payload footprint, and advisories before a pixel is painted. It carries those facts without claiming that detail is detector integration or creating scientific evidence; a domain view inherits that evidence from its source value. Only the browser turns a Scene into actual pixels; everything before that point just produces this description. Because the picture is data, you can snapshot it, test it, and diff two versions to see exactly what changed on screen -- all without a running browser in the loop.
 
 ## Why you will be glad
 

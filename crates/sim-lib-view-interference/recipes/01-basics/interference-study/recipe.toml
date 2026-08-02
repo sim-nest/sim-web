@@ -1,0 +1,11 @@
+id = "interference-study"
+title = "Explore and edit a solved interference field"
+codec = "rust"
+setup = "main.rs"
+purpose = "purpose.md"
+expected = "expected.txt"
+order = 10
+tags = ["interference", "view", "heatmap", "edit", "realize", "detector"]
+harness = "cargo-example"
+package = "sim-lib-view-interference"
+example = "interference-study"

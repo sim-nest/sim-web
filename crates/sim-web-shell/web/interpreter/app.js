@@ -14,6 +14,7 @@ import { paint } from "./scene.js";
 import { applyPatch } from "./diff.js";
 import { BrowserGlassesClient, defaultPose } from "./glasses.js";
 import { intentFromEmit } from "./intent.js";
+import { bootPwa } from "./pwa.js";
 import { postIntent, openSession } from "./session.js";
 
 const SESSION_RESOURCE = "demo";
@@ -73,6 +74,7 @@ function installKeyboardSpine(mount) {
 function boot() {
   const mount = document.getElementById("shell");
   if (!mount) return;
+  bootPwa();
   applyReducedMotion();
   installKeyboardSpine(mount);
   let scene = window.__SIM_SCENE__ || BOOTSTRAP_SCENE;

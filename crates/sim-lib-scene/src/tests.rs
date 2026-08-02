@@ -211,6 +211,169 @@ fn validates_music_editor_scene_kinds() {
     }
 }
 
+fn heatmap_scene() -> Expr {
+    node(
+        "heatmap",
+        vec![
+            ("rows", sim_value::build::uint(2)),
+            ("cols", sim_value::build::uint(2)),
+            (
+                "values",
+                Expr::List(vec![
+                    num("f64", "0"),
+                    num("f64", "0.25"),
+                    num("f64", "0.5"),
+                    num("f64", "1"),
+                ]),
+            ),
+            (
+                "valid",
+                Expr::List(vec![
+                    Expr::Bool(true),
+                    Expr::Bool(false),
+                    Expr::Bool(true),
+                    Expr::Bool(true),
+                ]),
+            ),
+            ("min", num("f64", "0")),
+            ("max", num("f64", "1")),
+            ("palette", sym("viridis")),
+            ("label", Expr::String("Temperature".to_owned())),
+            ("detector", Expr::String("point samples".to_owned())),
+            (
+                "footprint",
+                map(vec![
+                    ("cells", sim_value::build::uint(4)),
+                    ("bytes", sim_value::build::uint(80)),
+                ]),
+            ),
+            ("advisory", Expr::String("one sample is masked".to_owned())),
+        ],
+    )
+}
+
+#[test]
+fn heatmap_scene_validates_complete_bounded_contract() {
+    let scene = heatmap_scene();
+    validate_scene(&scene).expect("complete masked scalar grid validates");
+
+    let mut cx = cx();
+    let heatmap_shape = scene_shape("Heatmap");
+    let matched = heatmap_shape.check_expr(&mut cx, &scene).unwrap();
+    assert!(matched.accepted);
+    assert_eq!(matched.score.value(), 20);
+}
+
+#[test]
+fn heatmap_scene_rejects_bad_dimensions_product_and_mask() {
+    let zero_rows = replace_field(&heatmap_scene(), "rows", sim_value::build::uint(0));
+    assert_scene_error(zero_rows, "non-zero");
+
+    let huge_rows = replace_field(&heatmap_scene(), "rows", sim_value::build::uint(u64::MAX));
+    let overflow = replace_field(&huge_rows, "cols", sim_value::build::uint(2));
+    assert_scene_error(overflow, "overflows");
+
+    let short_values = replace_field(
+        &heatmap_scene(),
+        "values",
+        Expr::List(vec![num("f64", "0")]),
+    );
+    assert_scene_error(short_values, "values has 1 entries");
+
+    let short_mask = replace_field(
+        &heatmap_scene(),
+        "valid",
+        Expr::List(vec![Expr::Bool(true)]),
+    );
+    assert_scene_error(short_mask, "valid has 1 entries");
+}
+
+#[test]
+fn heatmap_scene_rejects_non_finite_values_range_and_unknown_palette() {
+    let nan_value = replace_field(
+        &heatmap_scene(),
+        "values",
+        Expr::List(vec![
+            num("f64", "NaN"),
+            num("f64", "0.25"),
+            num("f64", "0.5"),
+            num("f64", "1"),
+        ]),
+    );
+    assert_scene_error(nan_value, "values[0] must be finite");
+
+    let infinite_range = replace_field(&heatmap_scene(), "max", num("f64", "inf"));
+    assert_scene_error(infinite_range, "range must be finite");
+
+    let reversed_range = replace_field(&heatmap_scene(), "min", num("f64", "2"));
+    assert_scene_error(reversed_range, "min <= max");
+
+    let unknown_palette = replace_field(&heatmap_scene(), "palette", sym("rainbow"));
+    assert_scene_error(unknown_palette, "not recognized");
+}
+
+#[test]
+fn heatmap_scene_rejects_missing_metadata_and_false_footprints() {
+    let empty_label = replace_field(&heatmap_scene(), "label", Expr::String("  ".to_owned()));
+    assert_scene_error(empty_label, "label must not be empty");
+
+    let empty_detector = replace_field(&heatmap_scene(), "detector", Expr::String(String::new()));
+    assert_scene_error(empty_detector, "detector must not be empty");
+
+    let empty_advisory = replace_field(&heatmap_scene(), "advisory", Expr::String(String::new()));
+    assert_scene_error(empty_advisory, "advisory must not be empty");
+
+    let wrong_cells = replace_field(
+        &heatmap_scene(),
+        "footprint",
+        map(vec![
+            ("cells", sim_value::build::uint(3)),
+            ("bytes", sim_value::build::uint(80)),
+        ]),
+    );
+    assert_scene_error(wrong_cells, "footprint cells is 3");
+
+    let wrong_bytes = replace_field(
+        &heatmap_scene(),
+        "footprint",
+        map(vec![
+            ("cells", sim_value::build::uint(4)),
+            ("bytes", sim_value::build::uint(59)),
+        ]),
+    );
+    assert_scene_error(wrong_bytes, "footprint bytes is 59");
+}
+
+fn replace_field(expr: &Expr, name: &str, replacement: Expr) -> Expr {
+    let Expr::Map(entries) = expr else {
+        panic!("test scene must be a map");
+    };
+    Expr::Map(
+        entries
+            .iter()
+            .map(|(key, value)| {
+                let replace = matches!(key, Expr::Symbol(symbol) if symbol.name.as_ref() == name);
+                (
+                    key.clone(),
+                    if replace {
+                        replacement.clone()
+                    } else {
+                        value.clone()
+                    },
+                )
+            })
+            .collect(),
+    )
+}
+
+fn assert_scene_error(scene: Expr, message: &str) {
+    let error = validate_scene(&scene).expect_err("malformed heatmap must fail closed");
+    assert!(
+        error.message.contains(message),
+        "expected {message:?} in {error}"
+    );
+}
+
 #[test]
 fn continuation_nodes_validate_and_budget_receipts_fail_closed() {
     validate_scene(&node(

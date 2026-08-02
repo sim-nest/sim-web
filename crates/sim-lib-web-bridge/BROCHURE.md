@@ -9,6 +9,9 @@ The bridge connects the browser workspace to a running system without you caring
 ## Why you will be glad
 
 - The workspace works the same whether the runtime is local or remote.
+- Product hosts can select their own reversible codec while retaining the same
+  phone, desktop, and optimistic-session lifecycle.
+- Multi-resource transports drain each authoritative change feed explicitly.
 - Recorded sessions let tests replay real traffic and get identical results.
 - People and agents share one channel, so no one is a second-class participant.
 

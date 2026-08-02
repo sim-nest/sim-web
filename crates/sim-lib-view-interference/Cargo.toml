@@ -1,0 +1,46 @@
+[package]
+name = "sim-lib-view-interference"
+version = "0.1.0"
+edition = "2024"
+license = "MPL-2.0"
+description = "Reversible certified interference-study surface for SIM Web."
+publish = true
+repository = "https://github.com/sim-nest/sim-web"
+homepage = "https://github.com/sim-nest/sim-web"
+readme = "README.md"
+keywords = ["interference", "heatmap", "visualization", "simulation"]
+categories = ["science", "visualization"]
+include = [
+  "/src/**",
+  "/examples/**",
+  "/recipes/**",
+  "/build.rs",
+  "/README.md",
+  "/BROCHURE.md",
+]
+
+[dependencies]
+sim-citizen = { version = "0.1.0" }
+sim-cookbook = { version = "0.1.0" }
+sim-kernel = { version = "0.1.0" }
+sim-lib-intent = { version = "0.1.0", path = "../sim-lib-intent" }
+sim-lib-interference-core = { version = "0.1.0", path = "../../../sim-interference/crates/sim-lib-interference-core" }
+sim-lib-interference-runtime = { version = "0.1.0", path = "../../../sim-interference/crates/sim-lib-interference-runtime" }
+sim-lib-interference-solve = { version = "0.1.0", path = "../../../sim-interference/crates/sim-lib-interference-solve" }
+sim-lib-scene = { version = "0.1.0", path = "../sim-lib-scene" }
+sim-lib-view = { version = "0.1.2", path = "../sim-lib-view" }
+sim-lib-view-math = { version = "0.1.2", path = "../sim-lib-view-math" }
+sim-value = { version = "0.1.0" }
+
+[dev-dependencies]
+sim-kernel = { version = "0.1.0", features = ["test-support"] }
+
+[build-dependencies]
+sim-cookbook = { version = "0.1.0" }
+
+[[example]]
+name = "interference-study"
+path = "examples/interference_study.rs"
+
+[lints]
+workspace = true

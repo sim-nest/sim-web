@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#11151a" />
+  <title>SIM Scene fixture</title>
+  <link rel="stylesheet" href="../styles/theme.css" />
+</head>
+<body>
+  <main id="shell" role="main">
+    <header class="shell-header">
+      <h1 id="fixture-title">SIM Scene fixture</h1>
+      <p class="tagline">Rendered by the production Scene interpreter.</p>
+    </header>
+    <section id="fixture" class="shell-body" aria-live="polite"></section>
+  </main>
+  <script type="module">
+    import { renderScene } from "../interpreter/scene.js";
+
+    const params = new URLSearchParams(window.location.search);
+    const source = params.get("scene");
+    if (!source) throw new Error("scene-fixture requires a scene query parameter");
+    const response = await fetch(source, { cache: "no-store" });
+    if (!response.ok) throw new Error(`fixture fetch failed: ${response.status}`);
+    const payload = await response.json();
+    document.body.dataset.surfaceProfile = payload.profile || "desktop";
+    document.getElementById("fixture-title").textContent = payload.title || "SIM Scene fixture";
+    const emitted = [];
+    const root = renderScene(document, payload.scene, (event) => emitted.push(event));
+    root.dataset.fixtureEmits = String(emitted.length);
+    document.getElementById("fixture").replaceChildren(root);
+    document.documentElement.dataset.fixtureReady = "true";
+  </script>
+</body>
+</html>

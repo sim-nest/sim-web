@@ -33,8 +33,8 @@ const READ_TIMEOUT: Duration = Duration::from_secs(30);
 use crate::assets::asset_for;
 use crate::atelier::AtelierWebState;
 use crate::live::{
-    DEFAULT_PANE, DEFAULT_RESOURCE, LiveSession, decode_intent_body, encode_patches, encode_scene,
-    error_json,
+    DEFAULT_PANE, DEFAULT_RESOURCE, DefaultLiveSurfaceFactory, LiveSessionTable,
+    LiveSurfaceFactory, decode_intent_body, encode_patches, encode_scene, error_json,
 };
 use sim_kernel::Cx;
 use sim_lib_net_core::{CapOutcome, read_capped_line};
@@ -85,6 +85,20 @@ impl Default for ServeConfig {
 /// session's host GrantSeat), not self-granted here; `run_recipe` gates each run
 /// on it.
 pub fn serve_with_cx(cx: &mut Cx, config: &ServeConfig) -> std::io::Result<()> {
+    serve_with_surface_factory(cx, config, Box::new(DefaultLiveSurfaceFactory))
+}
+
+/// Bind and serve the shell with a caller-provided browser surface factory.
+///
+/// Domain products use this composition point to supply their own
+/// `SurfaceCodec`, transport, resource, and diminished authority while retaining
+/// the shell's HTTP lifecycle, opaque browser-session table, and one generic
+/// Scene interpreter.
+pub fn serve_with_surface_factory(
+    cx: &mut Cx,
+    config: &ServeConfig,
+    surface_factory: Box<dyn LiveSurfaceFactory + Send + Sync>,
+) -> std::io::Result<()> {
     if config.dry_run {
         println!("sim-web-shell: dry-run OK");
         return Ok(());
@@ -92,7 +106,7 @@ pub fn serve_with_cx(cx: &mut Cx, config: &ServeConfig) -> std::io::Result<()> {
 
     let listener = bind(&config.addr)?;
     let local = listener.local_addr()?;
-    let mut state = ShellState::new(config, cx)?;
+    let mut state = ShellState::with_surface_factory(config, cx, surface_factory)?;
     println!("sim-web-shell: serving shell on http://{local}");
     for stream in listener.incoming() {
         match stream {
@@ -118,11 +132,20 @@ struct ShellState<'a> {
     atelier: AtelierWebState,
     cookbook: Arc<CookbookWebState>,
     cookbook_cx: &'a mut Cx,
-    live: LiveSession,
+    live: LiveSessionTable,
 }
 
 impl<'a> ShellState<'a> {
+    #[cfg(test)]
     fn new(config: &ServeConfig, cx: &'a mut Cx) -> std::io::Result<Self> {
+        Self::with_surface_factory(config, cx, Box::new(DefaultLiveSurfaceFactory))
+    }
+
+    fn with_surface_factory(
+        config: &ServeConfig,
+        cx: &'a mut Cx,
+        surface_factory: Box<dyn LiveSurfaceFactory + Send + Sync>,
+    ) -> std::io::Result<Self> {
         // The cookbook eval sandbox is the bootloader-provided `cx`, which already
         // carries the standard distribution the recipes require and read-eval,
         // granted by the bootloader at the web-serve composition point. run_recipe
@@ -135,7 +158,7 @@ impl<'a> ShellState<'a> {
                 None => Arc::new(CookbookWebState::seeded().map_err(io_error)?),
             },
             cookbook_cx: cx,
-            live: LiveSession::new().map_err(io_error)?,
+            live: LiveSessionTable::new(surface_factory),
         })
     }
 }
@@ -187,6 +210,9 @@ fn handle(mut stream: TcpStream, state: &mut ShellState<'_>) -> std::io::Result<
     }
     if path_of(&request.target) == "/api/session/open" {
         return write_session_open(&mut stream, &request, &mut state.live);
+    }
+    if path_of(&request.target) == "/api/session/close" {
+        return write_session_close(&mut stream, &request, &mut state.live);
     }
     if request.target.starts_with("/api/cookbook") {
         // read-eval was granted to cookbook_cx by the bootloader (see cli.rs);
@@ -320,11 +346,16 @@ fn read_request_from(reader: &mut impl BufRead) -> std::io::Result<ReadOutcome> 
 fn write_session_intent(
     stream: &mut (impl Write + ?Sized),
     request: &RequestLine,
-    live: &mut LiveSession,
+    live: &mut LiveSessionTable,
 ) -> std::io::Result<()> {
     if request.method != "POST" {
         return write_json(stream, 405, &error_json("intent route requires POST"));
     }
+    let session_id = match query_value(&request.target, "session") {
+        Ok(Some(value)) => value,
+        Ok(None) => return write_json(stream, 400, &error_json("missing session id")),
+        Err(err) => return write_json(stream, 400, &error_json(&err.to_string())),
+    };
     let pane = match query_value(&request.target, "pane") {
         Ok(Some(value)) => value,
         Ok(None) => DEFAULT_PANE.to_owned(),
@@ -334,7 +365,7 @@ fn write_session_intent(
         Ok(intent) => intent,
         Err(err) => return write_json(stream, 400, &error_json(&err)),
     };
-    match live.submit(&pane, &intent) {
+    match live.submit(&session_id, &pane, &intent) {
         Ok(updates) => write_json(stream, 200, &encode_patches(&updates)),
         Err(err) => write_json(stream, 400, &error_json(&err.to_string())),
     }
@@ -345,11 +376,15 @@ fn write_session_intent(
 fn write_session_open(
     stream: &mut (impl Write + ?Sized),
     request: &RequestLine,
-    live: &mut LiveSession,
+    live: &mut LiveSessionTable,
 ) -> std::io::Result<()> {
     if request.method != "GET" {
         return write_json(stream, 405, &error_json("open route requires GET"));
     }
+    let session_id = match query_value(&request.target, "session") {
+        Ok(value) => value,
+        Err(err) => return write_json(stream, 400, &error_json(&err.to_string())),
+    };
     let resource = match query_value(&request.target, "resource") {
         Ok(Some(value)) => value,
         Ok(None) => DEFAULT_RESOURCE.to_owned(),
@@ -360,10 +395,45 @@ fn write_session_open(
         Ok(None) => DEFAULT_PANE.to_owned(),
         Err(err) => return write_json(stream, 400, &error_json(&err.to_string())),
     };
-    match live.open(&resource, &pane) {
-        Ok(scene) => write_json(stream, 200, &encode_scene(&scene)),
+    match live.open(session_id.as_deref(), &resource, &pane) {
+        Ok((session_id, scene)) => {
+            write_json(stream, 200, &encode_session_open(&session_id, &scene))
+        }
         Err(err) => write_json(stream, 400, &error_json(&err.to_string())),
     }
+}
+
+/// Handle `POST /api/session/close?session=...`: cancel and remove a browser
+/// session so its authority and connection state cannot be reused.
+fn write_session_close(
+    stream: &mut (impl Write + ?Sized),
+    request: &RequestLine,
+    live: &mut LiveSessionTable,
+) -> std::io::Result<()> {
+    if request.method != "POST" {
+        return write_json(stream, 405, &error_json("close route requires POST"));
+    }
+    let session_id = match query_value(&request.target, "session") {
+        Ok(Some(value)) => value,
+        Ok(None) => return write_json(stream, 400, &error_json("missing session id")),
+        Err(err) => return write_json(stream, 400, &error_json(&err.to_string())),
+    };
+    match live.close(&session_id) {
+        Ok(()) => write_json(stream, 200, r#"{"ok":true}"#),
+        Err(err) => write_json(stream, 400, &error_json(&err)),
+    }
+}
+
+fn encode_session_open(session_id: &str, scene: &sim_kernel::Expr) -> String {
+    let mut value: serde_json::Value =
+        serde_json::from_str(&encode_scene(scene)).expect("encode_scene emits JSON object");
+    if let Some(object) = value.as_object_mut() {
+        object.insert(
+            "session".to_owned(),
+            serde_json::Value::String(session_id.to_owned()),
+        );
+    }
+    value.to_string()
 }
 
 /// The path portion of a request target, with any query or fragment stripped.
@@ -535,144 +605,5 @@ fn status_text(status: u16) -> &'static str {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{
-        MAX_BODY_BYTES, MAX_HEAD_LINE_BYTES, MAX_HEADER_COUNT, ReadOutcome, RequestLine,
-        query_value, read_request_from, write_session_open,
-    };
-    use crate::live::LiveSession;
-    use std::io::{BufReader, Cursor};
-
-    fn parse(raw: &str) -> ReadOutcome {
-        let mut reader = BufReader::new(Cursor::new(raw.as_bytes().to_vec()));
-        read_request_from(&mut reader).expect("read")
-    }
-
-    #[test]
-    fn oversized_content_length_is_rejected_before_allocation() {
-        // A 4 GB declared body must be refused with 413, never allocated.
-        let raw = "POST /api/session/intent HTTP/1.1\r\nContent-Length: 4000000000\r\n\r\n";
-        assert!(
-            matches!(parse(raw), ReadOutcome::TooLarge),
-            "an oversized Content-Length must yield TooLarge (413)"
-        );
-    }
-
-    #[test]
-    fn content_length_at_the_cap_boundary_is_rejected_when_over() {
-        let over = MAX_BODY_BYTES + 1;
-        let raw = format!("POST /x HTTP/1.1\r\nContent-Length: {over}\r\n\r\n");
-        assert!(matches!(parse(&raw), ReadOutcome::TooLarge));
-    }
-
-    #[test]
-    fn an_oversized_request_line_is_rejected_before_growing_memory() {
-        // A request line past the head cap must be refused with 413, not read
-        // into an unbounded String.
-        let mut raw = String::from("GET /");
-        raw.push_str(&"a".repeat(MAX_HEAD_LINE_BYTES + 16));
-        raw.push_str(" HTTP/1.1\r\n\r\n");
-        assert!(
-            matches!(parse(&raw), ReadOutcome::TooLarge),
-            "an oversized request line must yield TooLarge (413)"
-        );
-    }
-
-    #[test]
-    fn an_oversized_header_line_is_rejected_before_growing_memory() {
-        let mut raw = String::from("GET /x HTTP/1.1\r\nX-Big: ");
-        raw.push_str(&"a".repeat(MAX_HEAD_LINE_BYTES + 16));
-        raw.push_str("\r\n\r\n");
-        assert!(
-            matches!(parse(&raw), ReadOutcome::TooLarge),
-            "an oversized header line must yield TooLarge (413)"
-        );
-    }
-
-    #[test]
-    fn too_many_header_lines_are_rejected() {
-        let mut raw = String::from("GET /x HTTP/1.1\r\n");
-        for _ in 0..(MAX_HEADER_COUNT + 8) {
-            raw.push_str("X-Pad: 1\r\n");
-        }
-        raw.push_str("\r\n");
-        assert!(
-            matches!(parse(&raw), ReadOutcome::TooLarge),
-            "an endless header block must yield TooLarge (413)"
-        );
-    }
-
-    #[test]
-    fn empty_input_is_invalid_not_a_panic() {
-        // End of input on the request line (CapOutcome::Eof) maps to a 400, so an
-        // empty connection is answered, not treated as an oversized 413.
-        assert!(
-            matches!(parse(""), ReadOutcome::Invalid),
-            "an empty request must yield Invalid (400)"
-        );
-    }
-
-    #[test]
-    fn a_small_body_within_the_cap_reads() {
-        let raw = "POST /x HTTP/1.1\r\nContent-Length: 5\r\n\r\nhello";
-        match parse(raw) {
-            ReadOutcome::Request(line) => {
-                assert_eq!(line.method, "POST");
-                assert_eq!(line.body, "hello");
-            }
-            other => panic!("expected a parsed request, got {other:?}"),
-        }
-    }
-
-    #[test]
-    fn query_values_are_percent_decoded() {
-        assert_eq!(
-            query_value(
-                "/api/session/open?resource=demo%2Fone&pane=pane%20main",
-                "resource"
-            )
-            .unwrap(),
-            Some("demo/one".to_owned())
-        );
-        assert_eq!(
-            query_value(
-                "/api/session/open?resource=demo%2Fone&pane=pane%20main",
-                "pane"
-            )
-            .unwrap(),
-            Some("pane main".to_owned())
-        );
-        assert_eq!(
-            query_value("/api/session/open?resource=demo", "pane").unwrap(),
-            None
-        );
-    }
-
-    #[test]
-    fn malformed_query_percent_escape_is_an_error() {
-        let error = query_value("/api/session/open?resource=bad%2", "resource")
-            .expect_err("bad escape must fail closed");
-        assert!(error.to_string().contains("incomplete percent escape"));
-    }
-
-    #[test]
-    fn malformed_session_open_query_returns_bad_request() {
-        let request = RequestLine {
-            method: "GET".to_owned(),
-            target: "/api/session/open?resource=bad%ZZ".to_owned(),
-            body: String::new(),
-        };
-        let mut response = Vec::new();
-        let mut live = LiveSession::new().expect("live session");
-        write_session_open(&mut response, &request, &mut live).expect("response");
-        let text = String::from_utf8(response).expect("utf-8 response");
-        assert!(
-            text.starts_with("HTTP/1.1 400 Bad Request"),
-            "malformed query must return 400, got {text}"
-        );
-        assert!(
-            text.contains("malformed query value"),
-            "structured JSON error must describe the query problem: {text}"
-        );
-    }
-}
+#[path = "serve_tests.rs"]
+mod tests;

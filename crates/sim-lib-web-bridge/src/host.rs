@@ -1,4 +1,4 @@
-//! Phone and desktop host wrappers over the session bus (VIEW4.09).
+//! Phone and desktop host wrappers over the session bus.
 //!
 //! These are thin facades over [`Session`]: they reuse the same Intent/Scene
 //! bus, transport, and pump, and add only the host-shaped policy each device
@@ -48,6 +48,7 @@ fn universal_surface_codec() -> Symbol {
 /// restored the connection.
 pub struct PhoneHost<T: Transport> {
     session: Session<T>,
+    surface_codec: Symbol,
     caps: SurfaceCaps,
     queue: Vec<Expr>,
     scenes: BTreeMap<Symbol, Expr>,
@@ -56,8 +57,17 @@ pub struct PhoneHost<T: Transport> {
 impl<T: Transport> PhoneHost<T> {
     /// Starts a phone host over `transport`, adopting the `phone` surface preset.
     pub fn new(transport: T) -> Self {
+        Self::with_surface_codec(transport, universal_surface_codec())
+    }
+
+    /// Starts a phone host with an injected reversible surface codec.
+    ///
+    /// Product hosts use this constructor to retain the phone lifecycle and
+    /// offline policy without replacing the generic Scene/Intent session bus.
+    pub fn with_surface_codec(transport: T, surface_codec: Symbol) -> Self {
         Self {
             session: Session::new(transport),
+            surface_codec,
             caps: surface::preset("phone").expect("phone is a known surface preset"),
             queue: Vec::new(),
             scenes: BTreeMap::new(),
@@ -68,7 +78,7 @@ impl<T: Transport> PhoneHost<T> {
         Symbol::new(PHONE_PANE)
     }
 
-    /// Opens `resource` into the phone's single pane with the universal lenses,
+    /// Opens `resource` into the phone's single pane with the selected codec,
     /// caches the initial Scene, and returns it.
     pub fn open(&mut self, cx: &mut Cx, registry: &LensRegistry, resource: Symbol) -> Result<Expr> {
         let pane = Self::pane();
@@ -77,7 +87,7 @@ impl<T: Transport> PhoneHost<T> {
             registry,
             pane.clone(),
             resource,
-            universal_surface_codec(),
+            self.surface_codec.clone(),
             self.caps.clone(),
         )?;
         self.scenes.insert(pane, scene.clone());
@@ -98,8 +108,12 @@ impl<T: Transport> PhoneHost<T> {
     ) -> Result<Vec<SceneUpdate>> {
         match self.session.status() {
             SessionStatus::Connected => {
-                self.session
-                    .submit_intent(cx, registry, &Self::pane(), &intent)?;
+                self.session.submit_intent_at_rendered_revision(
+                    cx,
+                    registry,
+                    &Self::pane(),
+                    &intent,
+                )?;
                 let updates = self.session.pump(cx, registry)?;
                 self.cache(&updates);
                 Ok(updates)
@@ -132,12 +146,19 @@ impl<T: Transport> PhoneHost<T> {
     pub fn resume(&mut self, cx: &mut Cx, registry: &LensRegistry) -> Result<Vec<SceneUpdate>> {
         let pane = Self::pane();
         let mut applied = 0usize;
+        let mut updates = Vec::new();
         let mut failure = None;
         while let Some(intent) = self.queue.first().cloned() {
-            match self.session.submit_intent(cx, registry, &pane, &intent) {
+            match self
+                .session
+                .submit_intent_at_rendered_revision(cx, registry, &pane, &intent)
+            {
                 Ok(()) => {
                     self.queue.remove(0);
                     applied += 1;
+                    let next = self.session.pump(cx, registry)?;
+                    self.cache(&next);
+                    updates.extend(next);
                 }
                 Err(err) => {
                     // Leave the failed Intent and the rest of the queue in place,
@@ -152,8 +173,6 @@ impl<T: Transport> PhoneHost<T> {
         {
             return Err(err);
         }
-        let updates = self.session.pump(cx, registry)?;
-        self.cache(&updates);
         Ok(updates)
     }
 
@@ -167,6 +186,11 @@ impl<T: Transport> PhoneHost<T> {
     /// The phone's advertised surface capabilities (the `phone` preset).
     pub fn caps(&self) -> &SurfaceCaps {
         &self.caps
+    }
+
+    /// The reversible surface codec selected for this phone host.
+    pub fn surface_codec(&self) -> &Symbol {
+        &self.surface_codec
     }
 
     /// The number of Intents waiting in the offline queue.
@@ -192,6 +216,7 @@ impl<T: Transport> PhoneHost<T> {
 /// through [`Session::pump`] to every pane subscribed to the same resource.
 pub struct DesktopHost<T: Transport> {
     session: Session<T>,
+    surface_codec: Symbol,
     caps: SurfaceCaps,
     panes: Vec<Symbol>,
 }
@@ -199,14 +224,20 @@ pub struct DesktopHost<T: Transport> {
 impl<T: Transport> DesktopHost<T> {
     /// Starts a desktop host over `transport`, adopting the `desktop` preset.
     pub fn new(transport: T) -> Self {
+        Self::with_surface_codec(transport, universal_surface_codec())
+    }
+
+    /// Starts a desktop host with an injected reversible surface codec.
+    pub fn with_surface_codec(transport: T, surface_codec: Symbol) -> Self {
         Self {
             session: Session::new(transport),
+            surface_codec,
             caps: surface::preset("desktop").expect("desktop is a known surface preset"),
             panes: Vec::new(),
         }
     }
 
-    /// Opens `resource` into the named `pane` with the universal lenses, tracks
+    /// Opens `resource` into the named `pane` with the selected codec, tracks
     /// the pane, and returns its initial Scene.
     ///
     /// Opening the same resource into several panes subscribes each of them;
@@ -224,7 +255,7 @@ impl<T: Transport> DesktopHost<T> {
             registry,
             pane.clone(),
             resource,
-            universal_surface_codec(),
+            self.surface_codec.clone(),
             self.caps.clone(),
         )?;
         if !self.panes.contains(&pane) {
@@ -244,7 +275,8 @@ impl<T: Transport> DesktopHost<T> {
         pane: &Symbol,
         intent: Expr,
     ) -> Result<Vec<SceneUpdate>> {
-        self.session.submit_intent(cx, registry, pane, &intent)?;
+        self.session
+            .submit_intent_at_rendered_revision(cx, registry, pane, &intent)?;
         self.session.pump(cx, registry)
     }
 
@@ -256,6 +288,11 @@ impl<T: Transport> DesktopHost<T> {
     /// The desktop's advertised surface capabilities (the `desktop` preset).
     pub fn caps(&self) -> &SurfaceCaps {
         &self.caps
+    }
+
+    /// The reversible surface codec selected for this desktop host.
+    pub fn surface_codec(&self) -> &Symbol {
+        &self.surface_codec
     }
 
     /// Mutable access to the underlying transport, e.g. to drive reconnection.

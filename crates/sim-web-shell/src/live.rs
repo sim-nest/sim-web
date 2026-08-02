@@ -1,4 +1,4 @@
-//! The live browser session bridge (VIEW4.05).
+//! The live browser session bridge.
 //!
 //! This module turns the embedded browser shell into a live edit surface over
 //! the blocking HTTP server: the browser posts an Intent, the server submits it
@@ -33,7 +33,11 @@
 //! for the blocking HTTP shell. When that lands, the same [`Session::pump`]
 //! output should be streamed rather than returned per request.
 
+use std::collections::BTreeMap;
+use std::fs::File;
+use std::io::Read;
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 use sim_codec_json::{JsonProjectionMode, project_expr_to_json, project_json_to_expr};
 use sim_kernel::{Cx, DefaultFactory, EagerPolicy, Expr, Result as SimResult, Symbol};
@@ -107,10 +111,254 @@ impl LiveSession {
     /// Submit a decoded Intent against `pane`, then pump and return the Scene
     /// update(s) (each carrying the diff that reconstructs its new Scene).
     pub fn submit(&mut self, pane: &str, intent: &Expr) -> SimResult<Vec<SceneUpdate>> {
-        self.session
-            .submit_intent(&mut self.cx, &self.registry, &Symbol::new(pane), intent)?;
+        self.session.submit_intent_at_rendered_revision(
+            &mut self.cx,
+            &self.registry,
+            &Symbol::new(pane),
+            intent,
+        )?;
         self.session.pump(&mut self.cx, &self.registry)
     }
+}
+
+/// One browser-owned reversible surface.
+///
+/// The shell owns lifecycle and opaque browser ids; a product supplies one of
+/// these objects per browser when it needs a non-fixture transport or codec.
+pub trait LiveSurface {
+    /// Open `resource` in `pane` and return its initial Scene.
+    fn open(&mut self, resource: &str, pane: &str) -> SimResult<Expr>;
+
+    /// Submit one Intent and return the resulting Scene updates.
+    fn submit(&mut self, pane: &str, intent: &Expr) -> SimResult<Vec<SceneUpdate>>;
+}
+
+impl LiveSurface for LiveSession {
+    fn open(&mut self, resource: &str, pane: &str) -> SimResult<Expr> {
+        Self::open(self, resource, pane)
+    }
+
+    fn submit(&mut self, pane: &str, intent: &Expr) -> SimResult<Vec<SceneUpdate>> {
+        Self::submit(self, pane, intent)
+    }
+}
+
+/// Object-safe factory for isolated browser-owned live surfaces.
+pub trait LiveSurfaceFactory {
+    /// Construct one fresh surface, including its transport, authority, and
+    /// session-local presentation state.
+    fn create(&self) -> SimResult<Box<dyn LiveSurface>>;
+}
+
+/// Default shell surface factory.
+#[derive(Debug, Default)]
+pub struct DefaultLiveSurfaceFactory;
+
+impl LiveSurfaceFactory for DefaultLiveSurfaceFactory {
+    fn create(&self) -> SimResult<Box<dyn LiveSurface>> {
+        LiveSession::new().map(|surface| Box::new(surface) as Box<dyn LiveSurface>)
+    }
+}
+
+/// Capacity and expiry policy for live browser sessions.
+#[derive(Debug, Clone)]
+pub struct LiveSessionTableConfig {
+    /// Maximum number of browser-owned live surfaces retained at once.
+    pub capacity: usize,
+    /// Maximum idle duration before an opaque browser session is evicted.
+    pub idle_ttl: Duration,
+}
+
+impl Default for LiveSessionTableConfig {
+    fn default() -> Self {
+        Self {
+            capacity: 64,
+            idle_ttl: Duration::from_secs(30 * 60),
+        }
+    }
+}
+
+struct LiveSessionEntry {
+    live: Box<dyn LiveSurface>,
+    last_used: Instant,
+    ordinal: u64,
+}
+
+/// Bounded table of isolated live browser sessions.
+pub struct LiveSessionTable {
+    factory: Box<dyn LiveSurfaceFactory + Send + Sync>,
+    config: LiveSessionTableConfig,
+    sessions: BTreeMap<String, LiveSessionEntry>,
+    next_ordinal: u64,
+}
+
+impl LiveSessionTable {
+    /// Creates a bounded session table with the default capacity and idle TTL.
+    pub fn new(factory: Box<dyn LiveSurfaceFactory + Send + Sync>) -> Self {
+        Self::with_config(factory, LiveSessionTableConfig::default())
+    }
+
+    /// Creates a session table with explicit capacity and idle-expiry policy.
+    pub fn with_config(
+        factory: Box<dyn LiveSurfaceFactory + Send + Sync>,
+        config: LiveSessionTableConfig,
+    ) -> Self {
+        Self {
+            factory,
+            config,
+            sessions: BTreeMap::new(),
+            next_ordinal: 0,
+        }
+    }
+
+    #[cfg(test)]
+    fn len(&self) -> usize {
+        self.sessions.len()
+    }
+
+    /// Opens a resource in a new or existing opaque browser session.
+    pub fn open(
+        &mut self,
+        session_id: Option<&str>,
+        resource: &str,
+        pane: &str,
+    ) -> Result<(String, Expr), String> {
+        self.open_at(session_id, resource, pane, Instant::now())
+    }
+
+    /// Submits one reversible Intent through an existing browser session.
+    pub fn submit(
+        &mut self,
+        session_id: &str,
+        pane: &str,
+        intent: &Expr,
+    ) -> Result<Vec<SceneUpdate>, String> {
+        self.submit_at(session_id, pane, intent, Instant::now())
+    }
+
+    /// Closes an opaque browser session and releases its live surface.
+    pub fn close(&mut self, session_id: &str) -> Result<(), String> {
+        validate_session_id(session_id)?;
+        if self.sessions.remove(session_id).is_some() {
+            Ok(())
+        } else {
+            Err("unknown session id".to_owned())
+        }
+    }
+
+    /// Opens a resource using an explicit clock instant for deterministic hosts.
+    pub fn open_at(
+        &mut self,
+        session_id: Option<&str>,
+        resource: &str,
+        pane: &str,
+        now: Instant,
+    ) -> Result<(String, Expr), String> {
+        self.evict_idle(now);
+        if let Some(session_id) = session_id {
+            let entry = self.entry_mut(session_id, now)?;
+            let scene = entry
+                .live
+                .open(resource, pane)
+                .map_err(|err| err.to_string())?;
+            return Ok((session_id.to_owned(), scene));
+        }
+        self.evict_for_capacity();
+        if self.config.capacity == 0 || self.sessions.len() >= self.config.capacity {
+            return Err("session capacity exhausted".to_owned());
+        }
+        let session_id = self.fresh_unused_session_id()?;
+        let mut live = self.factory.create().map_err(|err| err.to_string())?;
+        let scene = live.open(resource, pane).map_err(|err| err.to_string())?;
+        let ordinal = self.next_ordinal;
+        self.next_ordinal = self.next_ordinal.saturating_add(1);
+        self.sessions.insert(
+            session_id.clone(),
+            LiveSessionEntry {
+                live,
+                last_used: now,
+                ordinal,
+            },
+        );
+        Ok((session_id, scene))
+    }
+
+    /// Submits an Intent using an explicit clock instant for deterministic hosts.
+    pub fn submit_at(
+        &mut self,
+        session_id: &str,
+        pane: &str,
+        intent: &Expr,
+        now: Instant,
+    ) -> Result<Vec<SceneUpdate>, String> {
+        self.evict_idle(now);
+        let entry = self.entry_mut(session_id, now)?;
+        entry
+            .live
+            .submit(pane, intent)
+            .map_err(|err| err.to_string())
+    }
+
+    fn entry_mut(
+        &mut self,
+        session_id: &str,
+        now: Instant,
+    ) -> Result<&mut LiveSessionEntry, String> {
+        validate_session_id(session_id)?;
+        let entry = self
+            .sessions
+            .get_mut(session_id)
+            .ok_or_else(|| "unknown session id".to_owned())?;
+        entry.last_used = now;
+        Ok(entry)
+    }
+
+    fn evict_idle(&mut self, now: Instant) {
+        let ttl = self.config.idle_ttl;
+        self.sessions
+            .retain(|_, entry| now.duration_since(entry.last_used) <= ttl);
+    }
+
+    fn evict_for_capacity(&mut self) {
+        while self.config.capacity > 0 && self.sessions.len() >= self.config.capacity {
+            let Some(victim) = self
+                .sessions
+                .iter()
+                .min_by_key(|(_, entry)| (entry.last_used, entry.ordinal))
+                .map(|(id, _)| id.clone())
+            else {
+                return;
+            };
+            self.sessions.remove(&victim);
+        }
+    }
+
+    fn fresh_unused_session_id(&self) -> Result<String, String> {
+        for _ in 0..8 {
+            let session_id = fresh_session_id()?;
+            if !self.sessions.contains_key(&session_id) {
+                return Ok(session_id);
+            }
+        }
+        Err("could not allocate unique session id".to_owned())
+    }
+}
+
+fn validate_session_id(session_id: &str) -> Result<(), String> {
+    let valid = session_id.len() == 32 && session_id.bytes().all(|b| b.is_ascii_hexdigit());
+    if valid {
+        Ok(())
+    } else {
+        Err("malformed session id".to_owned())
+    }
+}
+
+fn fresh_session_id() -> Result<String, String> {
+    let mut bytes = [0u8; 16];
+    File::open("/dev/urandom")
+        .and_then(|mut file| file.read_exact(&mut bytes))
+        .map_err(|err| format!("could not allocate session id: {err}"))?;
+    Ok(bytes.iter().map(|byte| format!("{byte:02x}")).collect())
 }
 
 /// The demo resource value rendered by the live shell on boot.
@@ -250,115 +498,5 @@ fn lift_segment(segment: Expr) -> Expr {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use sim_lib_intent::{Origin, intent};
-
-    fn key_path(key: &str) -> Expr {
-        Expr::List(vec![Expr::Vector(vec![
-            Expr::Symbol(Symbol::new("k")),
-            Expr::Symbol(Symbol::new(key)),
-        ])])
-    }
-
-    fn edit_intent(key: &str, value: &str) -> Expr {
-        intent(
-            "edit-field",
-            Origin::human(1),
-            vec![
-                ("target", demo_value()),
-                ("path", key_path(key)),
-                ("value", Expr::String(value.to_owned())),
-            ],
-        )
-    }
-
-    #[test]
-    fn submit_edit_returns_a_patch_that_reconstructs_the_scene() {
-        let mut live = LiveSession::new().unwrap();
-        let before = live.open(DEFAULT_RESOURCE, DEFAULT_PANE).unwrap();
-        sim_lib_scene::validate_scene(&before).expect("initial scene is valid");
-
-        let updates = live
-            .submit(DEFAULT_PANE, &edit_intent("title", "changed"))
-            .unwrap();
-        assert_eq!(updates.len(), 1, "the subscribed pane updates exactly once");
-        let update = &updates[0];
-        assert_ne!(update.scene, before, "the Scene changed");
-        let rebuilt = sim_lib_scene::apply(&before, &update.diff).unwrap();
-        assert_eq!(
-            rebuilt, update.scene,
-            "the diff reconstructs the new Scene from the old one"
-        );
-    }
-
-    #[test]
-    fn open_returns_a_valid_scene() {
-        let mut live = LiveSession::new().unwrap();
-        let scene = live.open(DEFAULT_RESOURCE, DEFAULT_PANE).unwrap();
-        sim_lib_scene::validate_scene(&scene).expect("open returns a valid Scene");
-    }
-
-    #[test]
-    fn a_browser_json_intent_decodes_and_drives_a_root_edit() {
-        // The browser posts untagged JSON with a string `kind` and a root path;
-        // the bridge must lift it into an Intent the universal editor accepts.
-        let body = r#"{"kind":"intent/edit-field","origin":{"operator":"human","at-tick":2},"target":{},"path":[],"value":"hello"}"#;
-        let intent = decode_intent_body(body).unwrap();
-        let kind = match &intent {
-            Expr::Map(entries) => entries.iter().find_map(|(key, value)| {
-                matches!(key, Expr::Symbol(symbol) if &*symbol.name == "kind").then_some(value)
-            }),
-            _ => None,
-        };
-        assert!(
-            matches!(kind, Some(Expr::Symbol(_))),
-            "the kind tag is lifted to a symbol"
-        );
-
-        let mut live = LiveSession::new().unwrap();
-        live.open(DEFAULT_RESOURCE, DEFAULT_PANE).unwrap();
-        let updates = live.submit(DEFAULT_PANE, &intent).unwrap();
-        assert_eq!(updates.len(), 1);
-    }
-
-    #[test]
-    fn a_malformed_body_is_an_error_not_a_panic() {
-        assert!(decode_intent_body("this is not json").is_err());
-        assert!(
-            decode_intent_body("[1, 2, 3]").is_err(),
-            "a non-object intent body is rejected"
-        );
-    }
-
-    #[test]
-    fn an_intent_without_a_kind_fails_closed_on_submit() {
-        let intent = decode_intent_body(r#"{"origin":{"operator":"human","at-tick":1}}"#).unwrap();
-        let mut live = LiveSession::new().unwrap();
-        assert!(
-            live.submit(DEFAULT_PANE, &intent).is_err(),
-            "an intent without a kind is rejected, not executed"
-        );
-    }
-
-    #[test]
-    fn patches_scenes_and_errors_encode_as_untagged_json() {
-        let mut live = LiveSession::new().unwrap();
-        live.open(DEFAULT_RESOURCE, DEFAULT_PANE).unwrap();
-        let updates = live
-            .submit(DEFAULT_PANE, &edit_intent("title", "x"))
-            .unwrap();
-
-        let patches = encode_patches(&updates);
-        assert!(patches.contains("\"patches\""), "carries a patches array");
-        assert!(patches.contains("scene/patch"), "patches are scene patches");
-
-        let scene = encode_scene(&live.open(DEFAULT_RESOURCE, DEFAULT_PANE).unwrap());
-        assert!(scene.contains("\"scene\""), "carries a scene field");
-
-        assert!(
-            error_json("boom").contains("boom"),
-            "errors carry a message"
-        );
-    }
-}
+#[path = "live_tests.rs"]
+mod tests;

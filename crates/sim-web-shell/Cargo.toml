@@ -1,6 +1,6 @@
 [package]
 name = "sim-web-shell"
-version = "0.1.9"
+version = "0.1.11"
 edition = "2024"
 license = "MPL-2.0"
 description = "sim-web-shell: the binary that serves the SIM WebUI shell."
@@ -21,11 +21,11 @@ sim-codec-json = { version = "0.1.2" }
 sim-codec-lisp = { version = "0.1.0" }
 sim-kernel = { version = "0.1.0" }
 sim-lib-net-core = { version = "0.1.0" }
-sim-run-core = { version = "0.1.5" }
-sim-lib-server = { version = "0.1.8", git = "https://github.com/sim-nest/sim-agent-net", rev = "8e6cbfb6a1c31d26185b06a77e92f08d68f6d3c3" }
+sim-run-core = { version = "0.2.0" }
+sim-lib-server = { version = "0.1.10" }
 sim-lib-stream-core = { version = "0.1.0" }
 sim-lib-view = { version = "0.1.0", path = "../sim-lib-view" }
-sim-lib-web-bridge = { version = "0.1.0", path = "../sim-lib-web-bridge" }
+sim-lib-web-bridge = { version = "0.1.3", path = "../sim-lib-web-bridge" }
 
 [dev-dependencies]
 sim-value = { version = "0.1.0" }

@@ -8,6 +8,7 @@
 "use strict";
 
 import { installKeyboardKeyMap } from "./keymap.js";
+import { renderHeatmap } from "./heatmap.js";
 
 // A Scene node is a plain object: { kind: "scene/<name>", ...fields }. Field
 // values are strings, numbers, booleans, arrays, or nested nodes/objects.
@@ -848,6 +849,15 @@ function renderSceneWithBudget(doc, node, emit, budget, state, depth) {
       badge.textContent = String(node.label != null ? node.label : node.status || "");
       return badge;
     }
+    case "scene/badge-cluster": {
+      const cluster = el(doc, "div", "scene-badge-cluster");
+      cluster.setAttribute("role", "status");
+      labelled(cluster, node);
+      for (const badge of asArray(node.badges)) {
+        cluster.appendChild(renderSceneWithBudget(doc, badge, emit, budget, state, depth + 1));
+      }
+      return cluster;
+    }
     case "scene/button": {
       return renderButton(doc, node, () => emit(buttonEmit(node)));
     }
@@ -879,6 +889,8 @@ function renderSceneWithBudget(doc, node, emit, budget, state, depth) {
       return renderGraph(doc, node, emit);
     case "scene/plot":
       return renderPlot(doc, node);
+    case "scene/heatmap":
+      return renderHeatmap(doc, node);
     case "scene/matrix":
       return renderMatrix(doc, node);
     case "scene/timeline":
@@ -942,8 +954,17 @@ export function renderScene(doc, node, emit) {
   return renderSceneWithBudget(doc, node, emit, mergedBudget(node), { nodes: 0, encoded: 0 }, 0);
 }
 
+function disposeRenderedScene(node) {
+  if (!node) return;
+  if (typeof node.disposeScene === "function") node.disposeScene();
+  for (const child of node.children || []) disposeRenderedScene(child);
+}
+
 // Replace the contents of `mount` with the painted `scene`.
 export function paint(doc, mount, scene, emit) {
-  while (mount.firstChild) mount.removeChild(mount.firstChild);
+  while (mount.firstChild) {
+    disposeRenderedScene(mount.firstChild);
+    mount.removeChild(mount.firstChild);
+  }
   mount.appendChild(renderScene(doc, scene, emit));
 }
