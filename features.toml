@@ -36,16 +36,13 @@ claims_anchors = [
   "anchor/card/cookbook/view/math",
   "anchor/card/cookbook/view/wasm",
   "anchor/crate/sim-lib-intent",
-  "anchor/crate/sim-lib-scene",
   "anchor/crate/sim-lib-view",
   "anchor/crate/sim-lib-view-agent",
   "anchor/crate/sim-lib-view-bridge",
   "anchor/crate/sim-lib-view-codec",
   "anchor/crate/sim-lib-view-doc",
-  "anchor/crate/sim-lib-view-math",
   "anchor/crate/sim-lib-view-spatial",
   "anchor/crate/sim-lib-view-wasm-frame",
-  "anchor/crate/sim-lib-web-bridge",
   "anchor/crate/sim-lib-web-layout",
   "anchor/export/sim-lib-intent/view-default",
   "anchor/export/sim-lib-view/surface-default",
@@ -84,7 +81,6 @@ claims_surfaces = [
   "view/sim-lib-view-daw",
   "view/sim-lib-view-device",
   "view/sim-lib-view-doc",
-  "view/sim-lib-view-math",
   "view/sim-lib-view-spatial",
   "view/sim-lib-view-wasm-frame",
   "view/sim-lib-view-wrist",
@@ -94,7 +90,6 @@ claims_surfaces = [
   "view-edit/sim-lib-view-device",
   "view-edit/sim-lib-view-spatial",
   "view-edit/sim-lib-view-wasm-frame",
-  "view-edit/sim-lib-web-bridge",
 ]
 claims_specimens = [
   "spec-test/sim-web/crates/sim-lib-view/src/surface_tests",
@@ -109,8 +104,6 @@ audiences = ["code", "framework"]
 guidance = "Use this row when a view needs a bounded outline instead of a product-specific tree widget or an unbounded recursive Scene."
 claims_anchors = [
   "anchor/crate/sim-lib-scene",
-  "anchor/crate/sim-lib-view",
-  "anchor/crate/sim-web-shell",
 ]
 claims_specimens = [
   "spec-test/sim-web/crates/sim-lib-scene/src/tests",
@@ -128,7 +121,6 @@ owner = "crate/sim-lib-view-math"
 audiences = ["code", "framework"]
 guidance = "Use this row for a domain-neutral masked heatmap. Ask the owning domain to reduce values to the SurfaceCaps-derived cell and byte budget before projection; sim-lib-view-math never downsamples."
 claims_anchors = [
-  "anchor/crate/sim-lib-scene",
   "anchor/crate/sim-lib-view-math",
 ]
 claims_surfaces = [
@@ -204,9 +196,7 @@ owner = "crate/sim-lib-web-bridge"
 audiences = ["code", "framework"]
 guidance = "Use this row when a server or browser session needs the canonical reversible SurfaceCodec bridge instead of separate view and editor protocol ownership. Product hosts inject their stable codec symbol into PhoneHost or DesktopHost; the default constructors retain the universal codec. Every connected submit is checked against the pane's rendered revision, and queued phone edits rebase one committed frame at a time rather than bypassing optimistic concurrency."
 claims_anchors = [
-  "anchor/crate/sim-lib-view",
   "anchor/crate/sim-lib-web-bridge",
-  "anchor/export/sim-lib-view/surface-default",
 ]
 claims_surfaces = [
   "view-edit/sim-lib-web-bridge",
@@ -226,12 +216,6 @@ summary = "Connect RemoteTransport to the existing SIM server transport so brows
 owner = "crate/sim-lib-web-bridge"
 audiences = ["code", "framework"]
 guidance = "Use this row when a browser or wasm host needs the canonical web Session bridge backed by sim-lib-server rather than an in-memory fixture or local fabric. RemoteTransport tracks every opened resource and drains each resource's authoritative change feed separately, so several server sessions cannot make a generic changes request ambiguous. Reconnect preserves that resource set while close clears it."
-claims_anchors = [
-  "anchor/crate/sim-lib-web-bridge",
-]
-claims_surfaces = [
-  "view-edit/sim-lib-web-bridge",
-]
 claims_specimens = [
   "spec-test/sim-web/crates/sim-lib-web-bridge/src/remote_tests",
 ]
@@ -265,6 +249,7 @@ claims_surfaces = [
   "cli/browse",
   "cli/serve",
   "cli/sim-web-shell",
+  "view-edit/sim-web-shell",
 ]
 claims_specimens = [
   "spec-test/sim-web/crates/sim-web-shell/src/tests",
