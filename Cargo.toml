@@ -30,14 +30,3 @@ homepage = "https://github.com/sim-nest/sim-web"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
-
-[patch.crates-io]
-sim-lib-server = { git = "https://github.com/sim-nest/sim-agent-net", rev = "7674b48de5685ffe8da69ca1c10afb5f35270770" }
-sim-lib-stream-fabric = { git = "https://github.com/sim-nest/sim-agent-net", rev = "7674b48de5685ffe8da69ca1c10afb5f35270770" }
-sim-lib-interference-core = { git = "https://github.com/sim-nest/sim-interference", rev = "ef4baac5113f50501b615ddab4644024c38862a2" }
-sim-lib-interference-runtime = { git = "https://github.com/sim-nest/sim-interference", rev = "ef4baac5113f50501b615ddab4644024c38862a2" }
-sim-lib-interference-solve = { git = "https://github.com/sim-nest/sim-interference", rev = "ef4baac5113f50501b615ddab4644024c38862a2" }
-sim-lib-numbers-tensor = { git = "https://github.com/sim-nest/sim-numbers", rev = "b91f7b89f70b5cbef98a5b71e7e73cc0cb0f8cb8" }
-sim-lib-numbers-tensor-bcast = { git = "https://github.com/sim-nest/sim-numbers", rev = "b91f7b89f70b5cbef98a5b71e7e73cc0cb0f8cb8" }
-sim-lib-numbers-tensor-cmplxf = { git = "https://github.com/sim-nest/sim-numbers", rev = "b91f7b89f70b5cbef98a5b71e7e73cc0cb0f8cb8" }
-sim-lib-numbers-tensor-rat64 = { git = "https://github.com/sim-nest/sim-numbers", rev = "b91f7b89f70b5cbef98a5b71e7e73cc0cb0f8cb8" }
