@@ -13,6 +13,7 @@
 | `sim-lib-view-daw` | `workspace` | 0 | 0 |
 | `sim-lib-view-device` | `workspace` | 0 | 0 |
 | `sim-lib-view-doc` | `workspace` | 0 | 0 |
+| `sim-lib-view-interference` | `workspace` | 0 | 0 |
 | `sim-lib-view-math` | `workspace` | 0 | 0 |
 | `sim-lib-view-spatial` | `workspace` | 0 | 0 |
 | `sim-lib-view-wasm-frame` | `workspace` | 0 | 0 |
