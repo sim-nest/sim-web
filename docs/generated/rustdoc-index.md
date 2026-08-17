@@ -13,6 +13,7 @@
 | `sim-lib-view-daw` | `workspace` | DAW timeline, mixer, plugin rack, player, piano-roll, and synth lenses for the SIM Web-UI. |
 | `sim-lib-view-device` | `workspace` | Device profiles and timing loops for SIM Web surface capabilities. |
 | `sim-lib-view-doc` | `workspace` | Markup article workspace lens for the SIM Web UI. |
+| `sim-lib-view-interference` | `workspace` | A reversible, evidence-preserving surface over solved interference studies. |
 | `sim-lib-view-math` | `workspace` | Math, plotting, tensor, and symbolic lenses for SIM Web. |
 | `sim-lib-view-spatial` | `workspace` | Spatial glasses surface encoding for SIM Web. |
 | `sim-lib-view-wasm-frame` | `workspace` | Host-side view frame facade for wasm-shaped view data. |
