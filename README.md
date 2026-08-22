@@ -4,6 +4,11 @@ sim-web is SIM's browser UI: show any runtime value on a canvas, edit it, and
 commit the change back -- live. The same page holds the cookbook, the Atelier
 cache view, and the live surface.
 
+`sim-lib-view-estate` renders the estate's overview, discovery, plan diff,
+review, events, verification, history, unknown, quarantine, and reconciliation
+scenes. Reverse operations retain the visible plan key and emit typed organ
+calls, never provider command text.
+
 ```bash
 sim webui   # open the URL it prints in a browser
 ```

@@ -376,3 +376,17 @@ steps = [
   { feature = "feature/sim-web/view-surface", why = "The view row supplies the reversible surfaces shown by the browser host." },
   { specimen = "recipe/sim-web/crates/sim-web-shell/01-basics/open-workspace", why = "The open-workspace recipe is the shortest browser-host example." },
 ]
+[[feature]]
+id = "feature/sim-web/estate-surface"
+title = "Reversible estate Surface"
+summary = "Ten estate scenes render the read-only projection and compile stale-safe edits to exact organ calls."
+owner = "crate/sim-lib-view-estate"
+audience = "framework"
+guidance = "Render estate state with EstateSurfaceCodec and preserve the visible plan key when reversing an edit. Never place provider command text in a Scene."
+claims_anchors = ["anchor/crate/sim-lib-view-estate"]
+
+[[route]]
+id = "route/review-estate-on-surface"
+task = "Review and operate an estate plan through a device Surface"
+audience = "application"
+steps = [{ feature = "feature/sim-web/estate-surface", why = "Render every authority field and compile only a current content-bound plan operation." }]

@@ -10,6 +10,7 @@ members = [
   "crates/sim-lib-view-codec",
   "crates/sim-lib-view-daw",
   "crates/sim-lib-view-device",
+  "crates/sim-lib-view-estate",
   "crates/sim-lib-view-doc",
   "crates/sim-lib-view-interference",
   "crates/sim-lib-view-math",
