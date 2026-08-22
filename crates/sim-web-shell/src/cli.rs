@@ -11,6 +11,7 @@ use sim_kernel::{
 use sim_lib_server::{CookbookCapabilityProfile, CookbookWebState};
 use sim_run_core::{Bootloader, RuntimeConfigState, cli_main_entrypoint_symbol};
 
+use crate::ShellServices;
 use crate::serve::{ServeConfig, serve_with_cx};
 
 /// Loadable lib that claims the `atelier` command-line verb.
@@ -236,21 +237,43 @@ pub fn web_bootloader() -> Bootloader {
     configure_web_bootloader(Bootloader::standard())
 }
 
+/// A standalone bootloader whose host services are realized by a platform capsule.
+pub fn web_bootloader_with_services(services: Arc<dyn ShellServices>) -> Bootloader {
+    configure_web_bootloader_base(Bootloader::standard()).host_verb(
+        WEB_SERVE_VERB,
+        "lib/web-serve",
+        move || Box::new(WebServeLib::with_services(Arc::clone(&services))),
+    )
+}
+
 /// Loadable library exporting the web-shell `serve` entrypoint.
 pub struct WebServeLib {
     cookbook: Option<Arc<CookbookWebState>>,
+    services: Option<Arc<dyn ShellServices>>,
 }
 
 impl WebServeLib {
     /// Builds the standalone web-serve library.
     pub fn new() -> Self {
-        Self { cookbook: None }
+        Self {
+            cookbook: None,
+            services: None,
+        }
     }
 
     /// Builds a web-serve library with host-provided cookbook state.
     pub fn with_cookbook(cookbook: CookbookWebState) -> Self {
         Self {
             cookbook: Some(Arc::new(cookbook)),
+            services: None,
+        }
+    }
+
+    /// Builds a web-serve library over explicitly realized platform services.
+    pub fn with_services(services: Arc<dyn ShellServices>) -> Self {
+        Self {
+            cookbook: None,
+            services: Some(services),
         }
     }
 }
@@ -282,6 +305,7 @@ impl Lib for WebServeLib {
             web_serve_entrypoint_symbol(),
             cx.factory().opaque(Arc::new(WebServeEntrypoint {
                 cookbook: self.cookbook.clone(),
+                services: self.services.clone(),
             }))?,
         )?;
         Ok(())
@@ -291,6 +315,7 @@ impl Lib for WebServeLib {
 #[derive(Clone)]
 struct WebServeEntrypoint {
     cookbook: Option<Arc<CookbookWebState>>,
+    services: Option<Arc<dyn ShellServices>>,
 }
 
 impl Object for WebServeEntrypoint {
@@ -321,7 +346,15 @@ impl Callable for WebServeEntrypoint {
             None => ServeConfig::default(),
         };
         config.cookbook.clone_from(&self.cookbook);
-        serve_with_cx(cx, &config)
+        if config.dry_run {
+            println!("sim-web-shell: dry-run OK");
+            return cx.factory().bool(true);
+        }
+        let services = self
+            .services
+            .clone()
+            .ok_or_else(|| Error::Eval("web serve requires platform shell services".to_owned()))?;
+        serve_with_cx(cx, &config, services)
             .map_err(|err| Error::Eval(format!("web serve failed: {err}")))?;
         cx.factory().bool(true)
     }

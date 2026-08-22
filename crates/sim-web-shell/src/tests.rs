@@ -412,6 +412,14 @@ fn web_serve_does_not_preload_demo_codecs() {
             dry_run: true,
             ..ServeConfig::default()
         },
+        {
+            let model =
+                std::sync::Arc::new(sim_transport_ports::model::ScriptedStreamPort::new([]));
+            std::sync::Arc::new(crate::ModelShellServices::new(
+                model.services(),
+                Default::default(),
+            ))
+        },
     )
     .unwrap();
     let loaded: Vec<String> = cx
@@ -600,4 +608,31 @@ fn the_shell_supports_reduced_motion_and_keyboard_operation() {
         "applies reduced-motion"
     );
     assert!(js.contains("keydown"), "installs a keyboard spine");
+}
+
+#[test]
+fn host_shell_production_sources_have_no_ambient_os_realization() {
+    let sources = [
+        include_str!("atelier.rs"),
+        include_str!("live.rs"),
+        include_str!("serve.rs"),
+    ]
+    .join("\n");
+    for forbidden in [
+        "std::net",
+        "TcpListener",
+        "TcpStream",
+        "ToSocketAddrs",
+        "/dev/urandom",
+        "Instant::now",
+        "fs::read_to_string",
+        "Command::new",
+    ] {
+        assert!(
+            !sources.contains(forbidden),
+            "web shell production source still realizes {forbidden}"
+        );
+    }
+    assert!(include_str!("../Cargo.toml").contains("sim-transport-ports"));
+    assert!(!include_str!("../Cargo.toml").contains("[[bin]]"));
 }

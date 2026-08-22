@@ -1,5 +1,6 @@
 use super::*;
 use sim_lib_intent::{Origin, intent};
+use std::{collections::BTreeMap, sync::Arc};
 
 fn key_path(key: &str) -> Expr {
     Expr::List(vec![Expr::Vector(vec![
@@ -159,7 +160,7 @@ fn close_cancels_a_session() {
 
 #[test]
 fn idle_sessions_expire() {
-    let start = Instant::now();
+    let start = Duration::ZERO;
     let mut table = LiveSessionTable::with_config(
         Box::new(DefaultLiveSurfaceFactory),
         LiveSessionTableConfig {
@@ -187,7 +188,7 @@ fn idle_sessions_expire() {
 
 #[test]
 fn capacity_evicts_the_oldest_session_deterministically() {
-    let start = Instant::now();
+    let start = Duration::ZERO;
     let mut table = LiveSessionTable::with_config(
         Box::new(DefaultLiveSurfaceFactory),
         LiveSessionTableConfig {
@@ -243,4 +244,31 @@ fn capacity_evicts_the_oldest_session_deterministically() {
             start + Duration::from_secs(5),
         )
         .unwrap();
+}
+
+#[test]
+fn modeled_clock_and_entropy_drive_session_lifecycle() {
+    let transport = Arc::new(sim_transport_ports::model::ScriptedStreamPort::new([]));
+    let services = Arc::new(crate::ModelShellServices::new(
+        transport.services(),
+        BTreeMap::new(),
+    ));
+    let mut table = LiveSessionTable::with_config_and_services(
+        Box::new(DefaultLiveSurfaceFactory),
+        LiveSessionTableConfig {
+            capacity: 2,
+            idle_ttl: Duration::from_secs(1),
+        },
+        services.clone(),
+    );
+    let (first, _) = table.open(None, DEFAULT_RESOURCE, DEFAULT_PANE).unwrap();
+    assert_eq!(first, "01000000000000000000000000000000");
+    services.set_time(Duration::from_secs(2));
+    assert!(
+        table
+            .submit(&first, DEFAULT_PANE, &edit_intent("title", "stale"))
+            .is_err()
+    );
+    let (second, _) = table.open(None, DEFAULT_RESOURCE, DEFAULT_PANE).unwrap();
+    assert_eq!(second, "02000000000000000000000000000000");
 }

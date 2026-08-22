@@ -1,4 +1,4 @@
-//! `sim-web-shell`: the binary that serves the SIM WebUI shell.
+//! `sim-web-shell`: the host-neutral SIM WebUI shell.
 //!
 //! The crate embeds its `web/` browser assets and serves cookbook APIs through
 //! the shared server/cookbook libraries. The browser shell is a thin Scene
@@ -14,18 +14,21 @@ mod atelier;
 mod cli;
 mod live;
 mod serve;
+mod services;
 
 pub use assets::{Asset, asset_for};
 pub use atelier::{AtelierWebResponse, AtelierWebState};
 pub use cli::{
     AtelierCliLib, BrowseCliLib, CookbookStateFactory, WebServeLib, configure_web_bootloader,
-    configure_web_bootloader_with_cookbook, web_bootloader, web_serve_entrypoint_symbol,
+    configure_web_bootloader_with_cookbook, web_bootloader, web_bootloader_with_services,
+    web_serve_entrypoint_symbol,
 };
 pub use live::{
     DEFAULT_PANE, DEFAULT_RESOURCE, LiveSession, LiveSessionTable, LiveSessionTableConfig,
     LiveSurface, LiveSurfaceFactory, decode_intent_body, encode_patches, encode_scene, error_json,
 };
 pub use serve::{ServeConfig, serve_with_cx, serve_with_surface_factory};
+pub use services::{ModelShellServices, ShellServices};
 
 #[cfg(test)]
 mod glasses_asset_tests;

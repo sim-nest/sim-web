@@ -34,10 +34,8 @@
 //! output should be streamed rather than returned per request.
 
 use std::collections::BTreeMap;
-use std::fs::File;
-use std::io::Read;
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use sim_codec_json::{JsonProjectionMode, project_expr_to_json, project_json_to_expr};
 use sim_kernel::{Cx, DefaultFactory, EagerPolicy, Expr, Result as SimResult, Symbol};
@@ -180,7 +178,7 @@ impl Default for LiveSessionTableConfig {
 
 struct LiveSessionEntry {
     live: Box<dyn LiveSurface>,
-    last_used: Instant,
+    last_used: Duration,
     ordinal: u64,
 }
 
@@ -190,6 +188,7 @@ pub struct LiveSessionTable {
     config: LiveSessionTableConfig,
     sessions: BTreeMap<String, LiveSessionEntry>,
     next_ordinal: u64,
+    services: Arc<dyn crate::ShellServices>,
 }
 
 impl LiveSessionTable {
@@ -203,11 +202,26 @@ impl LiveSessionTable {
         factory: Box<dyn LiveSurfaceFactory + Send + Sync>,
         config: LiveSessionTableConfig,
     ) -> Self {
+        let model = Arc::new(sim_transport_ports::model::ScriptedStreamPort::new([]));
+        let services = Arc::new(crate::ModelShellServices::new(
+            model.services(),
+            Default::default(),
+        ));
+        Self::with_config_and_services(factory, config, services)
+    }
+
+    /// Creates a session table over explicit capsule time and entropy services.
+    pub fn with_config_and_services(
+        factory: Box<dyn LiveSurfaceFactory + Send + Sync>,
+        config: LiveSessionTableConfig,
+        services: Arc<dyn crate::ShellServices>,
+    ) -> Self {
         Self {
             factory,
             config,
             sessions: BTreeMap::new(),
             next_ordinal: 0,
+            services,
         }
     }
 
@@ -223,7 +237,7 @@ impl LiveSessionTable {
         resource: &str,
         pane: &str,
     ) -> Result<(String, Expr), String> {
-        self.open_at(session_id, resource, pane, Instant::now())
+        self.open_at(session_id, resource, pane, self.services.monotonic())
     }
 
     /// Submits one reversible Intent through an existing browser session.
@@ -233,7 +247,7 @@ impl LiveSessionTable {
         pane: &str,
         intent: &Expr,
     ) -> Result<Vec<SceneUpdate>, String> {
-        self.submit_at(session_id, pane, intent, Instant::now())
+        self.submit_at(session_id, pane, intent, self.services.monotonic())
     }
 
     /// Closes an opaque browser session and releases its live surface.
@@ -252,7 +266,7 @@ impl LiveSessionTable {
         session_id: Option<&str>,
         resource: &str,
         pane: &str,
-        now: Instant,
+        now: Duration,
     ) -> Result<(String, Expr), String> {
         self.evict_idle(now);
         if let Some(session_id) = session_id {
@@ -289,7 +303,7 @@ impl LiveSessionTable {
         session_id: &str,
         pane: &str,
         intent: &Expr,
-        now: Instant,
+        now: Duration,
     ) -> Result<Vec<SceneUpdate>, String> {
         self.evict_idle(now);
         let entry = self.entry_mut(session_id, now)?;
@@ -302,7 +316,7 @@ impl LiveSessionTable {
     fn entry_mut(
         &mut self,
         session_id: &str,
-        now: Instant,
+        now: Duration,
     ) -> Result<&mut LiveSessionEntry, String> {
         validate_session_id(session_id)?;
         let entry = self
@@ -313,10 +327,10 @@ impl LiveSessionTable {
         Ok(entry)
     }
 
-    fn evict_idle(&mut self, now: Instant) {
+    fn evict_idle(&mut self, now: Duration) {
         let ttl = self.config.idle_ttl;
         self.sessions
-            .retain(|_, entry| now.duration_since(entry.last_used) <= ttl);
+            .retain(|_, entry| now.saturating_sub(entry.last_used) <= ttl);
     }
 
     fn evict_for_capacity(&mut self) {
@@ -335,7 +349,7 @@ impl LiveSessionTable {
 
     fn fresh_unused_session_id(&self) -> Result<String, String> {
         for _ in 0..8 {
-            let session_id = fresh_session_id()?;
+            let session_id = fresh_session_id(&*self.services)?;
             if !self.sessions.contains_key(&session_id) {
                 return Ok(session_id);
             }
@@ -353,10 +367,10 @@ fn validate_session_id(session_id: &str) -> Result<(), String> {
     }
 }
 
-fn fresh_session_id() -> Result<String, String> {
+fn fresh_session_id(services: &dyn crate::ShellServices) -> Result<String, String> {
     let mut bytes = [0u8; 16];
-    File::open("/dev/urandom")
-        .and_then(|mut file| file.read_exact(&mut bytes))
+    services
+        .fill_entropy(&mut bytes)
         .map_err(|err| format!("could not allocate session id: {err}"))?;
     Ok(bytes.iter().map(|byte| format!("{byte:02x}")).collect())
 }

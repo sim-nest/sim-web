@@ -1,9 +1,6 @@
 //! Atelier shell cache adapter for the web server.
 
-use std::{
-    fs,
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 
 use sim_codec_json::json_escape;
 
@@ -26,16 +23,22 @@ pub struct AtelierWebState {
 
 impl AtelierWebState {
     /// Load `.sim/atelier/shell.json` from the supplied cache root.
-    pub fn load(root: impl Into<PathBuf>) -> Self {
+    pub fn load(
+        root: impl Into<PathBuf>,
+        read: impl FnOnce(&str) -> std::io::Result<Vec<u8>>,
+    ) -> Self {
         let root = root.into();
         let shell_file = root.join("shell.json");
-        let shell_json = fs::read_to_string(&shell_file).unwrap_or_else(|err| {
-            fallback_json(
-                &root,
-                "missing-cache",
-                &format!("{}: {err}", shell_file.display()),
-            )
-        });
+        let mount_path = shell_file.to_string_lossy();
+        let shell_json = read(&mount_path)
+            .map(|bytes| String::from_utf8_lossy(&bytes).into_owned())
+            .unwrap_or_else(|err| {
+                fallback_json(
+                    &root,
+                    "missing-cache",
+                    &format!("{}: {err}", shell_file.display()),
+                )
+            });
         let scenarios_json = scenarios_response_json(&root, &shell_json);
         Self {
             root,
@@ -167,7 +170,7 @@ mod tests {
         )
         .unwrap();
 
-        let state = AtelierWebState::load(&root);
+        let state = AtelierWebState::load(&root, |path| fs::read(path));
         let response = state.response("GET", "/api/atelier").unwrap();
         assert_eq!(response.status, 200);
         assert_eq!(response.content_type, "application/json; charset=utf-8");
@@ -189,7 +192,7 @@ mod tests {
         )
         .unwrap();
 
-        let state = AtelierWebState::load(&root);
+        let state = AtelierWebState::load(&root, |path| fs::read(path));
         let response = state.response("GET", "/api/atelier").unwrap();
         assert_eq!(response.status, 200);
         assert!(response.body.contains("sim.atelier.contract-native.v1"));
@@ -205,7 +208,7 @@ mod tests {
         ));
         let _ = fs::remove_dir_all(&root);
 
-        let state = AtelierWebState::load(&root);
+        let state = AtelierWebState::load(&root, |path| fs::read(path));
         let response = state.response("GET", "/api/atelier/shell").unwrap();
         assert_eq!(response.status, 200);
         assert!(response.body.contains("missing-cache"));
@@ -213,7 +216,7 @@ mod tests {
 
     #[test]
     fn atelier_api_fails_closed_for_unknown_paths_and_methods() {
-        let state = AtelierWebState::load(".sim/atelier");
+        let state = AtelierWebState::load(".sim/atelier", |path| fs::read(path));
         assert_eq!(state.response("POST", "/api/atelier").unwrap().status, 405);
         assert_eq!(
             state.response("GET", "/api/atelier/source").unwrap().status,
@@ -236,7 +239,7 @@ mod tests {
         )
         .unwrap();
 
-        let state = AtelierWebState::load(&root);
+        let state = AtelierWebState::load(&root, |path| fs::read(path));
         let response = state.response("GET", "/api/atelier/scenarios").unwrap();
         assert_eq!(response.status, 200);
         assert!(response.body.contains("sim.atelier.web-scenarios.v1"));

@@ -226,15 +226,14 @@ supports = [
 [[feature]]
 id = "feature/sim-web/web-shell-host"
 title = "Web shell host"
-summary = "Serve isolated, bounded, phone-capable browser surfaces through loaded web shell runtime libraries, installable shell assets, and command entry points."
+summary = "Route isolated, bounded, phone-capable browser surfaces through declared shell services and loaded runtime libraries."
 owner = "crate/sim-web-shell"
 audiences = ["user", "code", "framework"]
-guidance = "Use this row when starting the browser shell, browsing a repo, installing the phone profile, or opening the atelier workspace. The live shell host gives each browser an opaque, expiring surface session rather than shared edit state and keeps authored/server data out of Cache Storage. A product supplies a LiveSurfaceFactory when it needs its own SurfaceCodec, RemoteTransport, resource alias, or diminished authority; the shell retains the HTTP lifecycle and the one generic Scene interpreter and Intent emitter."
+guidance = "Use this row to compose shell routing after a platform capsule supplies transport, mounted files, model time, entropy, and external-open services. The live shell gives each browser an opaque, expiring surface session rather than shared edit state and keeps authored/server data out of Cache Storage. A product supplies a LiveSurfaceFactory when it needs its own SurfaceCodec, RemoteTransport, resource alias, or diminished authority; sim-web retains reversible Surface, Scene, Intent, remote-session, and layout policy but owns no native process entry or network realization."
 claims_anchors = [
   "anchor/cli/atelier",
   "anchor/cli/browse",
   "anchor/cli/serve",
-  "anchor/cli/sim-web-shell",
   "anchor/crate/sim-web-shell",
   "anchor/export/sim-web-shell/cli/main/atelier",
   "anchor/export/sim-web-shell/cli/main/browse",
@@ -248,8 +247,11 @@ claims_surfaces = [
   "cli/atelier",
   "cli/browse",
   "cli/serve",
-  "cli/sim-web-shell",
   "view-edit/sim-web-shell",
+]
+supports = [
+  "feature/sim-platform/web-shell-realization",
+  "feature/sim-web/codec-surface-sessions",
 ]
 claims_specimens = [
   "spec-test/sim-web/crates/sim-web-shell/src/tests",

@@ -98,7 +98,7 @@ ledgered edit to every open surface.
 - `sim-lib-web-layout` -- the workspace value, panes/tabs/splits/docks/overlays,
   the layout engine over that value, and a scene encoder for the arrangement;
   layout is data, so restoring a session is decoding a value.
-- `sim-web-shell` -- the binary that serves the SIM WebUI shell, embedding the
+- `sim-web-shell` -- the host-neutral router for the SIM WebUI shell, embedding the
   browser assets and a live submit/response session bridge over a blocking HTTP
   server, plus the Atelier cache view over the generated Site graph and reports.
 
