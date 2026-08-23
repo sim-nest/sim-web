@@ -9,7 +9,7 @@
 
 use std::sync::Arc;
 
-use sim_kernel::{Cx, DefaultFactory, Expr, NoopEvalPolicy, ShapeMatch, Symbol};
+use sim_kernel::{Cx, DefaultFactory, Expr, HandleSeed, NoopEvalPolicy, ShapeMatch, Symbol};
 use sim_value::access;
 
 use crate::kinds::{
@@ -202,7 +202,11 @@ pub fn validate_intent(expr: &Expr) -> Result<(), IntentError> {
 }
 
 fn check_intent_shape(expr: &Expr) -> Result<Option<String>, IntentError> {
-    let mut cx = Cx::new(Arc::new(NoopEvalPolicy), Arc::new(DefaultFactory));
+    let mut cx = Cx::new(
+        Arc::new(NoopEvalPolicy),
+        Arc::new(DefaultFactory),
+        HandleSeed::new(1),
+    );
     let matched = crate::shapes::intent_shape()
         .check_expr(&mut cx, expr)
         .map_err(|error| IntentError::at(&[], format!("Intent shape check failed: {error}")))?;

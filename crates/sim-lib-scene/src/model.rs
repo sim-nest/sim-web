@@ -8,7 +8,7 @@
 
 use std::sync::Arc;
 
-use sim_kernel::{Cx, DefaultFactory, Expr, NoopEvalPolicy, ShapeMatch, Symbol};
+use sim_kernel::{Cx, DefaultFactory, Expr, HandleSeed, NoopEvalPolicy, ShapeMatch, Symbol};
 
 use crate::kinds::{KIND_KEY, is_known_kind};
 
@@ -484,7 +484,11 @@ fn heatmap_nonempty_text<'a>(
 }
 
 fn check_scene_shape(expr: &Expr, path: &[String]) -> Result<Option<String>, SceneError> {
-    let mut cx = Cx::new(Arc::new(NoopEvalPolicy), Arc::new(DefaultFactory));
+    let mut cx = Cx::new(
+        Arc::new(NoopEvalPolicy),
+        Arc::new(DefaultFactory),
+        HandleSeed::new(1),
+    );
     let matched = crate::shapes::scene_shape()
         .check_expr(&mut cx, expr)
         .map_err(|error| SceneError::at(path, format!("scene shape check failed: {error}")))?;
