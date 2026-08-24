@@ -390,3 +390,32 @@ id = "route/review-estate-on-surface"
 task = "Review and operate an estate plan through a device Surface"
 audience = "application"
 steps = [{ feature = "feature/sim-web/estate-surface", why = "Render every authority field and compile only a current content-bound plan operation." }]
+
+[[feature]]
+id = "feature/sim-web/search-audit-surface"
+title = "Offline search provenance audit surface"
+summary = "Project canonical search, ranking, capture, selector, fidelity, policy, and office evidence into an inert, expandable Scene."
+owner = "crate/sim-lib-view-search"
+audiences = ["user", "code", "framework"]
+guidance = "Use the audit surface to review why a result ranked and to trace a checked quotation back through its selector and normalized representation to the immutable raw capture. Provider claims remain visibly unverified, and URI activation is always returned to a policy host as an explicit action."
+claims_anchors = [
+  "anchor/crate/sim-lib-view-search",
+  "anchor/export/sim-lib-view-search/search-audit-surface-id",
+  "anchor/export/sim-lib-view-search/render",
+]
+claims_specimens = [
+  "recipe/sim-web/crates/sim-lib-view-search/01-basics/offline-audit",
+  "spec-test/sim-web/crates/sim-lib-view-search/src/tests",
+]
+supports = [
+  "feature/sim-web/view-surface",
+]
+
+[[route]]
+id = "route/audit-search-provenance"
+task = "Audit a search result from final rank to immutable source evidence"
+audiences = ["user", "code", "framework"]
+steps = [
+  { feature = "feature/sim-web/search-audit-surface", why = "The offline surface distinguishes unverified provider claims from selector-checked quotations and exposes ranking, fetch, robots, fidelity, and policy provenance." },
+  { specimen = "recipe/sim-web/crates/sim-lib-view-search/01-basics/offline-audit", why = "The checked recipe demonstrates a complete audit projection without network authority." },
+]
