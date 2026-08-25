@@ -210,6 +210,24 @@ supports = [
 ]
 
 [[feature]]
+id = "feature/sim-web/continuity-phone-surface"
+title = "Continuity phone surface"
+summary = "Render and control a complete silent-capable phone interaction from the authoritative continuity journal."
+owner = "crate/sim-lib-view-continuity-phone"
+audiences = ["user", "code", "framework"]
+guidance = "Compose this one SurfaceCodec with sim-lib-continuity when a phone needs hold-to-talk, typed fallback, review, replay, placement, and an always-reachable stop. The journal is authoritative; Scenes and audio callbacks are disposable projections, and passive lifecycle events never arm capture."
+claims_anchors = [
+  "anchor/crate/sim-lib-view-continuity-phone",
+]
+claims_specimens = [
+  "spec-test/sim-web/crates/sim-lib-view-continuity-phone/src/tests",
+]
+supports = [
+  "feature/sim-web/device-surfaces",
+  "feature/sim-web/codec-surface-sessions",
+]
+
+[[feature]]
 id = "feature/sim-web/server-backed-web-sessions"
 title = "Server-backed web sessions"
 summary = "Connect RemoteTransport to the existing SIM server transport so browser sessions read, commit, drain changes, reconnect, and report revision conflicts through ordinary server eval requests."
