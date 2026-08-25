@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use sim_kernel::{CapabilitySet, Cx, DefaultFactory, EagerPolicy, Error, Expr};
+use sim_kernel::{CapabilitySet, Cx, DefaultFactory, EagerPolicy, Error, Expr, HandleSeed};
 use sim_lib_view_device::{
     ConsentReceipt, DeviceSampleStore, EdgeId, FrameClock, RateClass, StoreKey,
 };
@@ -14,7 +14,11 @@ use crate::{
 
 #[test]
 fn watch_capability_names_are_default_denied() {
-    let cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let cx = Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        HandleSeed::new(1),
+    );
     assert_eq!(WatchCapability::Health.as_str(), "watch/health");
     assert_eq!(WatchCapability::Location.as_str(), "watch/location");
     assert_eq!(WatchCapability::Mic.as_str(), "watch/mic");
@@ -63,7 +67,11 @@ fn watch_worn_ingest_is_grant_and_session_bound() {
         session.clone(),
         11,
     );
-    let cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let cx = Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        HandleSeed::new(1),
+    );
     for event in [&health, &location, &mic] {
         assert!(matches!(
             ingest_worn_expr(&cx, event, &receipt, &session),
@@ -75,7 +83,11 @@ fn watch_worn_ingest_is_grant_and_session_bound() {
         .grant(WatchCapability::Health.capability_name())
         .grant(WatchCapability::Location.capability_name())
         .grant(WatchCapability::Mic.capability_name());
-    let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        HandleSeed::new(1),
+    );
     cx.with_capabilities(granted, |cx| {
         assert_eq!(
             ingest_worn_expr(cx, &health, &receipt, &session).unwrap(),

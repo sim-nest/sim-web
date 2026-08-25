@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use sim_kernel::{CapabilitySet, Cx, DefaultFactory, EagerPolicy, Error, Expr, Symbol};
+use sim_kernel::{CapabilitySet, Cx, DefaultFactory, EagerPolicy, Error, Expr, HandleSeed, Symbol};
 use sim_lib_scene::{GlanceAction, GlanceCard, GlanceMetric, validate_scene};
 use sim_lib_view_device::{EdgeId, PrivacyMode};
 use sim_value::{access, build};
@@ -153,14 +153,22 @@ fn watch_command_send_is_grant_gated() {
     };
     assert_eq!(command.capability_name().as_str(), "watch/haptic");
 
-    let cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let cx = Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        HandleSeed::new(1),
+    );
     assert!(matches!(
         command.require_grant(&cx),
         Err(Error::CapabilityDenied { .. })
     ));
 
     let granted = CapabilitySet::new().grant(command.capability_name());
-    let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        HandleSeed::new(1),
+    );
     cx.with_capabilities(granted, |cx| command.require_grant(cx))
         .unwrap();
 }

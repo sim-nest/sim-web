@@ -210,6 +210,21 @@ supports = [
 ]
 
 [[feature]]
+id = "feature/sim-web/optional-endpoint-continuity-roles"
+title = "Optional endpoint continuity roles"
+summary = "Project one filtered glance and a bounded semantic action lane through expiring, generation-fenced endpoint roles."
+owner = "crate/sim-lib-view-wrist"
+audiences = ["code", "framework"]
+guidance = "Compose OptionalEndpointRoleAdapter after continuity, provider, consent, focus, privacy, and route policy have produced current evidence. The adapter retains only its generation fence, accepts no raw effects or pointer commands, and treats phone, watch, or future candidates identically when they supply the same Glance and SemanticAction roles."
+claims_anchors = [
+  "anchor/crate/sim-lib-view-wrist",
+]
+supports = [
+  "feature/sim-web/device-surfaces",
+  "feature/sim-web/continuity-phone-surface",
+]
+
+[[feature]]
 id = "feature/sim-web/continuity-phone-surface"
 title = "Continuity phone surface"
 summary = "Render and control a complete silent-capable phone interaction from the authoritative continuity journal."
