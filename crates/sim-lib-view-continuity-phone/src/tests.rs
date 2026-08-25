@@ -1,6 +1,6 @@
 use super::*;
+use sim_kernel::testing::bare_cx as cx;
 use sim_lib_continuity::RoleDemand;
-use std::sync::Arc;
 
 fn plan() -> ContinuityPlan {
     ContinuityPlan {
@@ -15,14 +15,6 @@ fn plan() -> ContinuityPlan {
         }],
         ..ContinuityPlan::default()
     }
-}
-
-fn cx() -> Cx {
-    Cx::new(
-        Arc::new(sim_kernel::NoopEvalPolicy),
-        Arc::new(sim_kernel::DefaultFactory),
-        sim_kernel::HandleSeed::new(7),
-    )
 }
 
 #[test]
