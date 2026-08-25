@@ -11,6 +11,7 @@ pub mod budget;
 pub mod command;
 pub mod consent;
 pub mod continuity_role;
+pub mod expedition;
 pub mod fleet;
 pub mod pacing;
 pub mod voice;
@@ -30,6 +31,10 @@ pub use consent::{
 pub use continuity_role::{
     EndpointAction, EndpointCandidate, EndpointProjection, EndpointRole,
     OptionalEndpointRoleAdapter, RoleAuthority,
+};
+pub use expedition::{
+    Attention, AuthorityIntersection, ContinuityOutcome, DisclosureField, ExpeditionProjection,
+    ExpeditionProjector, SemanticClutch, SurfaceRole,
 };
 pub use fleet::{
     AssignedWornRole, DualWatchRoles, FleetSensorQuorum, FleetSensorSample, FleetWristInput,

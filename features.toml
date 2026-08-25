@@ -226,7 +226,7 @@ title = "Optional endpoint continuity roles"
 summary = "Project one filtered glance and a bounded semantic action lane through expiring, generation-fenced endpoint roles."
 owner = "crate/sim-lib-view-wrist"
 audiences = ["code", "framework"]
-guidance = "Compose OptionalEndpointRoleAdapter after continuity, provider, consent, focus, privacy, and route policy have produced current evidence. The adapter retains only its generation fence, accepts no raw effects or pointer commands, and treats phone, watch, or future candidates identically when they supply the same Glance and SemanticAction roles."
+guidance = "Compose ExpeditionProjector before OptionalEndpointRoleAdapter. It intersects mission, passport, route lease, endpoint grant, disclosure, attention, and visible expedition focus; accepts only clutch-qualified keyboard/touch semantic actions; and returns stops or refusals as ordinary pack outcomes. The endpoint adapter remains optional, retains only its generation fence, accepts no coordinates, sensor frames, raw effects, or pointer commands, and is never required for phone continuation."
 claims_anchors = [
   "anchor/crate/sim-lib-view-wrist",
 ]
