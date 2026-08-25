@@ -19,6 +19,7 @@ members = [
   "crates/sim-lib-view-spatial",
   "crates/sim-lib-view-wasm-frame",
   "crates/sim-lib-view-wrist",
+  "crates/sim-lib-view-worktable",
   "crates/sim-lib-web-bridge",
   "crates/sim-lib-web-layout",
   "crates/sim-web-shell",

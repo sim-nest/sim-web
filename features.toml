@@ -463,3 +463,22 @@ steps = [
   { feature = "feature/sim-web/search-audit-surface", why = "The offline surface distinguishes unverified provider claims from selector-checked quotations and exposes ranking, fetch, robots, fidelity, and policy provenance." },
   { specimen = "recipe/sim-web/crates/sim-lib-view-search/01-basics/offline-audit", why = "The checked recipe demonstrates a complete audit projection without network authority." },
 ]
+
+[[feature]]
+id = "feature/sim-web/reversible-worktable"
+title = "Rebuildable expedition worktable"
+summary = "One disposable projection presents room cards, expedition identity, evidence, objections, pack closure, route/device truth, attention, effect arming, undo, export, and calm comparison evidence."
+owner = "crate/sim-lib-view-worktable"
+audiences = ["user", "code", "framework"]
+guidance = "Compose semantic edits emitted by owning organs; delete and replay the projection freely. Effects remain visibly unavailable, disarmed, or armed. ValueObservation returns insufficient evidence without a human-declared comparison and never scores a person."
+claims_anchors = ["anchor/crate/sim-lib-view-worktable"]
+claims_specimens = ["spec-test/sim-web/crates/sim-lib-view-worktable/src/tests"]
+
+[[route]]
+id = "route/project-reversible-expedition"
+task = "Project a reversible expedition product"
+audiences = ["user", "code", "framework"]
+steps = [
+  { feature = "feature/sim-web/reversible-worktable", why = "Replay owner-authored semantic edits into the disposable worktable without moving domain behavior into the surface." },
+  { specimen = "spec-test/sim-web/crates/sim-lib-view-worktable/src/tests", why = "The dependency-free specimen proves replay, undo, visible arming, manual continuation, and insufficient-evidence behavior." },
+]
