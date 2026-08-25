@@ -10,6 +10,7 @@
 #![deny(missing_docs)]
 
 pub mod adapter;
+pub mod attention;
 pub mod clock;
 pub mod consent;
 pub mod degrade;
@@ -26,6 +27,7 @@ pub mod split;
 pub mod worn_caps;
 
 pub use adapter::{EncodedScene, LocalAdapter, MirrorAdapter};
+pub use attention::{AttentionDecision, AttentionEvidence, AttentionPolicy, AttentionProjector, Prompt};
 pub use clock::FrameClock;
 pub use consent::{
     ConsentReceipt, DeviceCapability, EdgeId, record_consent_receipt, require_with_consent,

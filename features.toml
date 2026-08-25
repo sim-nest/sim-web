@@ -189,6 +189,17 @@ claims_specimens = [
 ]
 
 [[feature]]
+id = "feature/sim-web/body-attention-projection"
+title = "Bounded body attention projection"
+summary = "Arbitrate worn prompts through one visible body-level slot with quiet hours, coalescing, interruption budgets, and explicit evidence."
+owner = "crate/sim-lib-view-device"
+audiences = ["code", "framework"]
+guidance = "Offer only already reduced prompt summaries to AttentionProjector. Present at most its one active prompt, display the returned AttentionEvidence, and treat quiet hours, offline or dropped channels, spent interruption budgets, and manual continuation as normal outcomes rather than transport failures."
+claims_anchors = ["anchor/crate/sim-lib-view-device"]
+claims_specimens = ["spec-test/sim-web/crates/sim-lib-view-device/attention-policy-focused/src/lib"]
+supports = ["feature/sim-web/device-surfaces"]
+
+[[feature]]
 id = "feature/sim-web/codec-surface-sessions"
 title = "Surface codec sessions"
 summary = "Drive browser and server sessions through one reversible SurfaceCodec contract for encode, decode, commit, projection, and isolation."
