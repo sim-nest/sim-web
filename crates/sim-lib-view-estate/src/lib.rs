@@ -201,6 +201,7 @@ fn scene_name(kind: SceneKind) -> &'static str {
     }
 }
 
+// conformance: estate scenes and reverse edits remain valid and content-bound.
 #[cfg(test)]
 mod tests {
     use super::*;

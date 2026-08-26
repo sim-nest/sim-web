@@ -168,7 +168,6 @@ audiences = ["code", "framework"]
 guidance = "Use this row when adapting a surface to a worn, handheld, desktop, or glasses target."
 claims_anchors = [
   "anchor/crate/sim-lib-view-device",
-  "anchor/crate/sim-lib-view-wrist",
 ]
 claims_surfaces = [
   "site-device/desktop",
@@ -195,7 +194,6 @@ summary = "Arbitrate worn prompts through one visible body-level slot with quiet
 owner = "crate/sim-lib-view-device"
 audiences = ["code", "framework"]
 guidance = "Offer only already reduced prompt summaries to AttentionProjector. Present at most its one active prompt, display the returned AttentionEvidence, and treat quiet hours, offline or dropped channels, spent interruption budgets, and manual continuation as normal outcomes rather than transport failures."
-claims_anchors = ["anchor/crate/sim-lib-view-device"]
 claims_specimens = ["spec-test/sim-web/crates/sim-lib-view-device/src/attention"]
 supports = ["feature/sim-web/device-surfaces"]
 
@@ -230,6 +228,7 @@ guidance = "Compose ExpeditionProjector before OptionalEndpointRoleAdapter. It i
 claims_anchors = [
   "anchor/crate/sim-lib-view-wrist",
 ]
+claims_specimens = ["spec-test/sim-web/crates/sim-lib-view-wrist/src/continuity_role_tests"]
 supports = [
   "feature/sim-web/device-surfaces",
   "feature/sim-web/continuity-phone-surface",
@@ -245,12 +244,22 @@ guidance = "Compose this one SurfaceCodec with sim-lib-continuity when a phone n
 claims_anchors = [
   "anchor/crate/sim-lib-view-continuity-phone",
 ]
+claims_surfaces = ["view-edit/sim-lib-view-continuity-phone", "view/sim-lib-view-continuity-phone"]
 claims_specimens = [
   "spec-test/sim-web/crates/sim-lib-view-continuity-phone/src/tests",
 ]
 supports = [
   "feature/sim-web/device-surfaces",
   "feature/sim-web/codec-surface-sessions",
+]
+
+[[route]]
+id = "route/operate-continuity-phone-surface"
+task = "Operate a complete continuity session from a phone surface"
+audiences = ["user", "code", "framework"]
+steps = [
+  { feature = "feature/sim-web/continuity-phone-surface", why = "The phone codec projects journal truth and compiles only bounded semantic actions." },
+  { specimen = "spec-test/sim-web/crates/sim-lib-view-continuity-phone/src/tests", why = "The specimen proves silent interaction, stale-safe replay, lifecycle refusal, and an always-reachable stop." },
 ]
 
 [[feature]]
@@ -427,7 +436,9 @@ summary = "Ten estate scenes render the read-only projection and compile stale-s
 owner = "crate/sim-lib-view-estate"
 audiences = ["framework"]
 guidance = "Render estate state with EstateSurfaceCodec and preserve the visible plan key when reversing an edit. Never place provider command text in a Scene."
-claims_anchors = ["anchor/crate/sim-lib-view-estate"]
+claims_anchors = ["anchor/crate/sim-lib-view-estate", "anchor/export/sim-lib-view-estate/view-estate"]
+claims_surfaces = ["view-edit/sim-lib-view-estate", "view/sim-lib-view-estate"]
+claims_specimens = ["spec-test/sim-web/crates/sim-lib-view-estate/src/lib"]
 
 [[route]]
 id = "route/review-estate-on-surface"
@@ -444,6 +455,7 @@ audiences = ["user", "code", "framework"]
 guidance = "Use the audit surface to review why a result ranked and to trace a checked quotation back through its selector and normalized representation to the immutable raw capture. Provider claims remain visibly unverified, and URI activation is always returned to a policy host as an explicit action."
 claims_anchors = [
   "anchor/crate/sim-lib-view-search",
+  "anchor/export/sim-lib-view-search/view-search-audit",
   "anchor/rustdoc/sim-lib-view-search/search_audit_surface_id",
   "anchor/rustdoc/sim-lib-view-search/render",
 ]
@@ -451,6 +463,7 @@ claims_specimens = [
   "recipe/sim-web/crates/sim-lib-view-search/01-basics/offline-audit",
   "spec-test/sim-web/crates/sim-lib-view-search/src/tests",
 ]
+claims_surfaces = ["view/sim-lib-view-search"]
 supports = [
   "feature/sim-web/view-surface",
 ]
@@ -473,6 +486,7 @@ audiences = ["user", "code", "framework"]
 guidance = "Compose semantic edits emitted by owning organs; delete and replay the projection freely. Effects remain visibly unavailable, disarmed, or armed. ValueObservation returns insufficient evidence without a human-declared comparison and never scores a person."
 claims_anchors = ["anchor/crate/sim-lib-view-worktable"]
 claims_specimens = ["spec-test/sim-web/crates/sim-lib-view-worktable/src/lib"]
+claims_surfaces = ["view/sim-lib-view-worktable"]
 
 [[route]]
 id = "route/project-reversible-expedition"

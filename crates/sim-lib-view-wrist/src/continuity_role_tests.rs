@@ -1,3 +1,5 @@
+// conformance: optional endpoint roles remain bounded, generation-fenced, and fail closed.
+
 use sim_kernel::{Expr, Symbol};
 use sim_lib_intent::{field, intent_kind_of, validate_intent};
 use sim_lib_scene::{GlanceAction, GlanceCard, GlanceMetric};
