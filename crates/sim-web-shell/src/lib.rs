@@ -20,8 +20,8 @@ pub use assets::{Asset, asset_for};
 pub use atelier::{AtelierWebResponse, AtelierWebState};
 pub use cli::{
     AtelierCliLib, BrowseCliLib, CookbookStateFactory, WebServeLib, configure_web_bootloader,
-    configure_web_bootloader_with_cookbook, web_bootloader, web_bootloader_with_services,
-    web_serve_entrypoint_symbol,
+    configure_web_bootloader_with_cookbook, configure_web_bootloader_with_cookbook_and_services,
+    web_bootloader, web_bootloader_with_services, web_serve_entrypoint_symbol,
 };
 pub use live::{
     DEFAULT_PANE, DEFAULT_RESOURCE, LiveSession, LiveSessionTable, LiveSessionTableConfig,

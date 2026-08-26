@@ -210,6 +210,27 @@ pub fn configure_web_bootloader_with_cookbook(
     )
 }
 
+/// Registers the web-shell `serve` verb with both product cookbook state and
+/// explicitly realized platform services.
+pub fn configure_web_bootloader_with_cookbook_and_services(
+    loader: Bootloader,
+    config_libs: Vec<Symbol>,
+    cookbook: CookbookStateFactory,
+    services: Arc<dyn ShellServices>,
+) -> Bootloader {
+    configure_web_bootloader_base(loader).host_verb_with_config(
+        WEB_SERVE_VERB,
+        "lib/web-serve",
+        config_libs,
+        move |config| {
+            Box::new(WebServeLib::with_cookbook_and_services(
+                cookbook(config),
+                Arc::clone(&services),
+            ))
+        },
+    )
+}
+
 fn configure_web_bootloader_base(loader: Bootloader) -> Bootloader {
     // Seat the cookbook eval Cx with the whole capability profile at the trusted
     // host boundary, where the bootloader holds the boot session's GrantSeat.
@@ -273,6 +294,18 @@ impl WebServeLib {
     pub fn with_services(services: Arc<dyn ShellServices>) -> Self {
         Self {
             cookbook: None,
+            services: Some(services),
+        }
+    }
+
+    /// Builds a product web-serve library with cookbook state and platform
+    /// services supplied by their respective composition owners.
+    pub fn with_cookbook_and_services(
+        cookbook: CookbookWebState,
+        services: Arc<dyn ShellServices>,
+    ) -> Self {
+        Self {
+            cookbook: Some(Arc::new(cookbook)),
             services: Some(services),
         }
     }
