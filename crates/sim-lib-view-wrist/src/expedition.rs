@@ -87,7 +87,10 @@ pub enum ContinuityOutcome {
     /// Projection succeeded.
     Projected(ExpeditionProjection),
     /// Caller requested the ordinary stop outcome.
-    Stopped { content_id: String },
+    Stopped {
+        /// Stable content identity retained for later continuation.
+        content_id: String,
+    },
     /// Policy refused projection while retaining phone/keyboard continuation.
     Refused {
         /// Stable content identity retained by the phone continuation.
@@ -160,6 +163,3 @@ fn refused(content_id: &str, reason: &'static str) -> ContinuityOutcome {
         reason,
     }
 }
-
-#[cfg(test)]
-mod expedition_tests;

@@ -142,3 +142,4 @@ fn disclosure_ceiling_is_applied_before_projection_and_manual_fallback_survives_
         Err(JournalError::FenceConflict)
     ));
 }
+// conformance: continuity-phone tests prove journal projection and silent interaction policy.

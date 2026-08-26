@@ -51,6 +51,9 @@
 {"kind":"recipe","path":"crates/sim-lib-view-doc/recipes/01-basics/latex-view-lens/recipe.toml"}
 {"kind":"recipe","path":"crates/sim-lib-view-doc/recipes/01-basics/latex-view-lens/setup.siml"}
 {"kind":"recipe","path":"crates/sim-lib-view-doc/recipes/book.toml"}
+{"kind":"recipe","path":"crates/sim-lib-view-estate/recipes/book.toml"}
+{"kind":"recipe","path":"crates/sim-lib-view-estate/recipes/reviewed-model/main.siml"}
+{"kind":"recipe","path":"crates/sim-lib-view-estate/recipes/reviewed-model/recipe.toml"}
 {"kind":"recipe","path":"crates/sim-lib-view-interference/recipes/01-basics/chapter.toml"}
 {"kind":"recipe","path":"crates/sim-lib-view-interference/recipes/01-basics/interference-study/expected.txt"}
 {"kind":"recipe","path":"crates/sim-lib-view-interference/recipes/01-basics/interference-study/main.rs"}
@@ -65,6 +68,9 @@
 {"kind":"recipe","path":"crates/sim-lib-view-math/recipes/01-basics/plot-series/recipe.toml"}
 {"kind":"recipe","path":"crates/sim-lib-view-math/recipes/01-basics/plot-series/setup.siml"}
 {"kind":"recipe","path":"crates/sim-lib-view-math/recipes/book.toml"}
+{"kind":"recipe","path":"crates/sim-lib-view-search/recipes/01-basics/offline-audit/README.md"}
+{"kind":"recipe","path":"crates/sim-lib-view-search/recipes/01-basics/offline-audit/recipe.toml"}
+{"kind":"recipe","path":"crates/sim-lib-view-search/recipes/book.toml"}
 {"kind":"recipe","path":"crates/sim-lib-view-spatial/recipes/01-basics/chapter.toml"}
 {"kind":"recipe","path":"crates/sim-lib-view-spatial/recipes/book.toml"}
 {"kind":"recipe","path":"crates/sim-lib-view-wasm-frame/recipes/01-basics/chapter.toml"}

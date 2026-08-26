@@ -120,7 +120,9 @@ fn malformed_session_open_query_returns_bad_request() {
         body: String::new(),
     };
     let mut response = Vec::new();
-    let mut live = LiveSessionTable::new(Box::new(DefaultLiveSurfaceFactory));
+    let mut live = LiveSessionTable::new(Box::new(DefaultLiveSurfaceFactory::new(
+        sim_kernel::HandleSeed::new(0x5745_4270),
+    )));
     write_session_open(&mut response, &request, &mut live).expect("response");
     let text = String::from_utf8(response).expect("utf-8 response");
     assert!(
@@ -174,7 +176,9 @@ fn intent_request(target: &str, live: &mut LiveSessionTable, value: &str) -> Str
 
 #[test]
 fn session_open_returns_an_opaque_session_id() {
-    let mut live = LiveSessionTable::new(Box::new(DefaultLiveSurfaceFactory));
+    let mut live = LiveSessionTable::new(Box::new(DefaultLiveSurfaceFactory::new(
+        sim_kernel::HandleSeed::new(0x5745_4271),
+    )));
     let response = open_request("/api/session/open?resource=demo&pane=pane-main", &mut live);
     assert!(response.starts_with("HTTP/1.1 200 OK"), "{response}");
     let session_id = session_from_open(&response);
@@ -184,7 +188,9 @@ fn session_open_returns_an_opaque_session_id() {
 
 #[test]
 fn session_intent_requires_a_well_formed_session_id() {
-    let mut live = LiveSessionTable::new(Box::new(DefaultLiveSurfaceFactory));
+    let mut live = LiveSessionTable::new(Box::new(DefaultLiveSurfaceFactory::new(
+        sim_kernel::HandleSeed::new(0x5745_4272),
+    )));
     let missing = intent_request("/api/session/intent", &mut live, "x");
     assert!(missing.starts_with("HTTP/1.1 400 Bad Request"), "{missing}");
     assert!(missing.contains("missing session id"));
@@ -199,7 +205,9 @@ fn session_intent_requires_a_well_formed_session_id() {
 
 #[test]
 fn sessions_cannot_commit_across_browser_ids() {
-    let mut live = LiveSessionTable::new(Box::new(DefaultLiveSurfaceFactory));
+    let mut live = LiveSessionTable::new(Box::new(DefaultLiveSurfaceFactory::new(
+        sim_kernel::HandleSeed::new(0x5745_4273),
+    )));
     let left = session_from_open(&open_request("/api/session/open", &mut live));
     let right_open = open_request("/api/session/open", &mut live);
     let right = session_from_open(&right_open);
@@ -224,7 +232,9 @@ fn sessions_cannot_commit_across_browser_ids() {
 
 #[test]
 fn closed_session_ids_are_cancelled() {
-    let mut live = LiveSessionTable::new(Box::new(DefaultLiveSurfaceFactory));
+    let mut live = LiveSessionTable::new(Box::new(DefaultLiveSurfaceFactory::new(
+        sim_kernel::HandleSeed::new(0x5745_4274),
+    )));
     let session_id = session_from_open(&open_request("/api/session/open", &mut live));
     let request = RequestLine {
         method: "POST".to_owned(),

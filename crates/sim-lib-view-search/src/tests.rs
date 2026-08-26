@@ -194,3 +194,4 @@ fn tampered_anchor_fails_closed_and_empty_offline_is_usable() {
     let snapshot = format!("{:?}", render(&records, &ViewState::default()).unwrap());
     assert!(snapshot.contains("No results"));
 }
+// conformance: search-view tests prove inert provenance projection and explicit activation.

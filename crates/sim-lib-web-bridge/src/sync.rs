@@ -116,22 +116,17 @@ pub struct SurfaceHub {
     ledger: Vec<EditRow>,
 }
 
-impl Default for SurfaceHub {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl SurfaceHub {
     /// A new hub with the universal default lens registered (writable) and no
-    /// resources, surfaces, bindings, or ledger rows.
-    pub fn new() -> Self {
+    /// resources, surfaces, bindings, or ledger rows. The runtime boundary
+    /// supplies `handle_seed` to namespace identities allocated by the hub.
+    pub fn new(handle_seed: sim_kernel::HandleSeed) -> Self {
         let mut registry = LensRegistry::new();
         register_universal_default(&mut registry, false);
         Self {
             canonical: BTreeMap::new(),
             registry,
-            cx: Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory)),
+            cx: Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory), handle_seed),
             surfaces: BTreeMap::new(),
             roles: BTreeMap::new(),
             bindings: Vec::new(),

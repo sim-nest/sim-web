@@ -31,14 +31,22 @@ fn device_consent_session_bound_and_reaper_evicts() {
     sim_lib_scene::validate_scene(&receipt.to_badge_scene()).unwrap();
     sim_lib_scene::validate_scene(&receipt.to_glance_scene()).unwrap();
 
-    let cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let cx = Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0xe311_4916_8f73_f970),
+    );
     assert!(matches!(
         require_with_consent(&cx, DeviceCapability::Pose.as_str(), &receipt, &session),
         Err(Error::CapabilityDenied { .. })
     ));
 
     let granted = CapabilitySet::new().grant(DeviceCapability::Pose.capability_name());
-    let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0xa1db_810a_9fcd_bb51),
+    );
     cx.with_capabilities(granted, |cx| {
         let missing_grant = ConsentReceipt::new(Vec::new(), 500, Vec::new(), session.clone(), 7);
         assert!(matches!(

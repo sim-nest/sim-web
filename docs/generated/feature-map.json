@@ -34,6 +34,11 @@
     {
       "features": [],
       "group": "workspace",
+      "package": "sim-lib-view-continuity-phone"
+    },
+    {
+      "features": [],
+      "group": "workspace",
       "package": "sim-lib-view-daw"
     },
     {
@@ -49,6 +54,11 @@
     {
       "features": [],
       "group": "workspace",
+      "package": "sim-lib-view-estate"
+    },
+    {
+      "features": [],
+      "group": "workspace",
       "package": "sim-lib-view-interference"
     },
     {
@@ -59,12 +69,22 @@
     {
       "features": [],
       "group": "workspace",
+      "package": "sim-lib-view-search"
+    },
+    {
+      "features": [],
+      "group": "workspace",
       "package": "sim-lib-view-spatial"
     },
     {
       "features": [],
       "group": "workspace",
       "package": "sim-lib-view-wasm-frame"
+    },
+    {
+      "features": [],
+      "group": "workspace",
+      "package": "sim-lib-view-worktable"
     },
     {
       "features": [],

@@ -196,7 +196,7 @@ owner = "crate/sim-lib-view-device"
 audiences = ["code", "framework"]
 guidance = "Offer only already reduced prompt summaries to AttentionProjector. Present at most its one active prompt, display the returned AttentionEvidence, and treat quiet hours, offline or dropped channels, spent interruption budgets, and manual continuation as normal outcomes rather than transport failures."
 claims_anchors = ["anchor/crate/sim-lib-view-device"]
-claims_specimens = ["spec-test/sim-web/crates/sim-lib-view-device/attention-policy-focused/src/lib"]
+claims_specimens = ["spec-test/sim-web/crates/sim-lib-view-device/src/attention"]
 supports = ["feature/sim-web/device-surfaces"]
 
 [[feature]]
@@ -425,14 +425,14 @@ id = "feature/sim-web/estate-surface"
 title = "Reversible estate Surface"
 summary = "Ten estate scenes render the read-only projection and compile stale-safe edits to exact organ calls."
 owner = "crate/sim-lib-view-estate"
-audience = "framework"
+audiences = ["framework"]
 guidance = "Render estate state with EstateSurfaceCodec and preserve the visible plan key when reversing an edit. Never place provider command text in a Scene."
 claims_anchors = ["anchor/crate/sim-lib-view-estate"]
 
 [[route]]
 id = "route/review-estate-on-surface"
 task = "Review and operate an estate plan through a device Surface"
-audience = "application"
+audiences = ["user"]
 steps = [{ feature = "feature/sim-web/estate-surface", why = "Render every authority field and compile only a current content-bound plan operation." }]
 
 [[feature]]
@@ -444,8 +444,8 @@ audiences = ["user", "code", "framework"]
 guidance = "Use the audit surface to review why a result ranked and to trace a checked quotation back through its selector and normalized representation to the immutable raw capture. Provider claims remain visibly unverified, and URI activation is always returned to a policy host as an explicit action."
 claims_anchors = [
   "anchor/crate/sim-lib-view-search",
-  "anchor/export/sim-lib-view-search/search-audit-surface-id",
-  "anchor/export/sim-lib-view-search/render",
+  "anchor/rustdoc/sim-lib-view-search/search_audit_surface_id",
+  "anchor/rustdoc/sim-lib-view-search/render",
 ]
 claims_specimens = [
   "recipe/sim-web/crates/sim-lib-view-search/01-basics/offline-audit",
@@ -472,7 +472,7 @@ owner = "crate/sim-lib-view-worktable"
 audiences = ["user", "code", "framework"]
 guidance = "Compose semantic edits emitted by owning organs; delete and replay the projection freely. Effects remain visibly unavailable, disarmed, or armed. ValueObservation returns insufficient evidence without a human-declared comparison and never scores a person."
 claims_anchors = ["anchor/crate/sim-lib-view-worktable"]
-claims_specimens = ["spec-test/sim-web/crates/sim-lib-view-worktable/src/tests"]
+claims_specimens = ["spec-test/sim-web/crates/sim-lib-view-worktable/src/lib"]
 
 [[route]]
 id = "route/project-reversible-expedition"
@@ -480,5 +480,5 @@ task = "Project a reversible expedition product"
 audiences = ["user", "code", "framework"]
 steps = [
   { feature = "feature/sim-web/reversible-worktable", why = "Replay owner-authored semantic edits into the disposable worktable without moving domain behavior into the surface." },
-  { specimen = "spec-test/sim-web/crates/sim-lib-view-worktable/src/tests", why = "The dependency-free specimen proves replay, undo, visible arming, manual continuation, and insufficient-evidence behavior." },
+  { specimen = "spec-test/sim-web/crates/sim-lib-view-worktable/src/lib", why = "The dependency-free specimen proves replay, undo, visible arming, manual continuation, and insufficient-evidence behavior." },
 ]

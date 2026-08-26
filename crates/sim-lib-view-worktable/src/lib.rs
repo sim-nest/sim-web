@@ -179,3 +179,4 @@ mod tests {
         );
     }
 }
+// conformance: worktable tests prove replay, undo, effect arming, and evidence refusal.

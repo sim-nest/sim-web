@@ -35,10 +35,11 @@
 
 use std::collections::BTreeMap;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
 
 use sim_codec_json::{JsonProjectionMode, project_expr_to_json, project_json_to_expr};
-use sim_kernel::{Cx, DefaultFactory, EagerPolicy, Expr, Result as SimResult, Symbol};
+use sim_kernel::{Cx, DefaultFactory, EagerPolicy, Error, Expr, Result as SimResult, Symbol};
 use sim_lib_view::{LensRegistry, UNIVERSAL_SURFACE_CODEC_ID, register_universal_default, surface};
 use sim_lib_web_bridge::{FixtureTransport, SceneUpdate, Session};
 
@@ -68,7 +69,7 @@ pub struct LiveSession {
 impl LiveSession {
     /// Build a live session, seed the demo resource, and open it into the
     /// default pane so Intents can be submitted immediately.
-    pub fn new() -> SimResult<Self> {
+    pub fn new(handle_seed: sim_kernel::HandleSeed) -> SimResult<Self> {
         let mut transport = FixtureTransport::new();
         transport.set(Symbol::new(DEFAULT_RESOURCE), demo_value());
         let mut registry = LensRegistry::new();
@@ -76,7 +77,7 @@ impl LiveSession {
         // bin-boot-exempt: the LiveSession is the realize/EvalFabric Intent/Scene
         // bridge -- a distinct eval surface with its own transport, not the binary's
         // boot runtime (that goes through sim_run_core::Bootloader). It owns its cx.
-        let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory)); // bin-boot-exempt
+        let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory), handle_seed); // bin-boot-exempt
         let mut session = Session::new(transport);
         session.open_codec(
             &mut cx,
@@ -149,12 +150,30 @@ pub trait LiveSurfaceFactory {
 }
 
 /// Default shell surface factory.
-#[derive(Debug, Default)]
-pub struct DefaultLiveSurfaceFactory;
+#[derive(Debug)]
+pub struct DefaultLiveSurfaceFactory {
+    next_seed: AtomicU64,
+}
+
+impl DefaultLiveSurfaceFactory {
+    /// Builds a factory whose session namespaces begin at `first_seed`.
+    pub fn new(first_seed: sim_kernel::HandleSeed) -> Self {
+        Self {
+            next_seed: AtomicU64::new(first_seed.0),
+        }
+    }
+}
 
 impl LiveSurfaceFactory for DefaultLiveSurfaceFactory {
     fn create(&self) -> SimResult<Box<dyn LiveSurface>> {
-        LiveSession::new().map(|surface| Box::new(surface) as Box<dyn LiveSurface>)
+        let seed = self
+            .next_seed
+            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |seed| {
+                seed.checked_add(1)
+            })
+            .map_err(|_| Error::HostError("live-session handle seed space exhausted".to_owned()))?;
+        LiveSession::new(sim_kernel::HandleSeed::new(seed))
+            .map(|surface| Box::new(surface) as Box<dyn LiveSurface>)
     }
 }
 

@@ -40,13 +40,14 @@ impl GlassesCoUseSession {
         consent: ConsentReceipt,
         resource: Symbol,
         initial_workspace: Expr,
+        handle_seed: sim_kernel::HandleSeed,
     ) -> Result<Self> {
         if consent.session != session {
             return Err(Error::HostError(
                 "glasses co-use consent receipt is bound to a different session".to_owned(),
             ));
         }
-        let mut hub = SurfaceHub::new();
+        let mut hub = SurfaceHub::new(handle_seed);
         hub.seed(resource.clone(), initial_workspace);
         let viture_surface = glasses_surface(&session, GlassesPeer::Viture);
         let halo_surface = glasses_surface(&session, GlassesPeer::Halo);
@@ -232,7 +233,14 @@ mod tests {
             edge.clone(),
             7,
         );
-        GlassesCoUseSession::new(edge, consent, build::keyword("workspace"), workspace()).unwrap()
+        GlassesCoUseSession::new(
+            edge,
+            consent,
+            build::keyword("workspace"),
+            workspace(),
+            sim_kernel::HandleSeed::new(0x5745_4205),
+        )
+        .unwrap()
     }
 
     fn workspace() -> Expr {

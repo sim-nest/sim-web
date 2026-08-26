@@ -16,8 +16,10 @@
 | `cookbook/view/codec` | `cookbook-recipe` | `sim-lib-view-codec` | Multi-codec, round-trip, and Shape-aware lens descriptors. |
 | `cookbook/view/daw` | `cookbook-recipe` | `sim-lib-view-daw` | Timeline, mixer, rack, waveform, and synth lens descriptors. |
 | `cookbook/view/doc` | `cookbook-recipe` | `sim-lib-view-doc` | Scientific article values, source lenses, and export descriptors. |
+| `cookbook/view/estate` | `cookbook-recipe` | `sim-lib-view-estate` | Review reversible estate plans and evidence through the shared Surface codec. |
 | `cookbook/view/interference` | `cookbook-recipe` | `sim-lib-view-interference` | Reversible, evidence-preserving views over solved interference studies. |
 | `cookbook/view/math` | `cookbook-recipe` | `sim-lib-view-math` | Bounded heatmap, plot, matrix, symbolic, and sweep lens descriptors. |
+| `cookbook/view/search` | `cookbook-recipe` | `sim-lib-view-search` | Audit provider-neutral search provenance and captured evidence offline. |
 | `cookbook/view/wasm` | `cookbook-recipe` | `sim-lib-view-wasm-frame` | Browser-side view host descriptors for local Scene and Intent flow. |
 | `cookbook/web/bridge` | `cookbook-recipe` | `sim-lib-web-bridge` | Session bus, transports, history, and Scene update descriptors. |
 | `cookbook/web/layout` | `cookbook-recipe` | `sim-lib-web-layout` | Workspace, panes, palette, and layout persistence values. |

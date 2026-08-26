@@ -1,5 +1,7 @@
 //! Body-level attention arbitration shared by worn projections.
 
+// conformance: attention tests prove quiet hours, coalescing, budgets, and manual continuation.
+
 use std::collections::VecDeque;
 
 /// A bounded prompt offered by a channel projection.
@@ -56,7 +58,12 @@ pub struct AttentionProjector {
 impl AttentionProjector {
     /// Creates an empty projector.
     pub fn new(policy: AttentionPolicy) -> Self {
-        Self { policy, active: None, pending: VecDeque::new(), interruptions: 0 }
+        Self {
+            policy,
+            active: None,
+            pending: VecDeque::new(),
+            interruptions: 0,
+        }
     }
 
     /// Offers a reduced prompt; offline, dropped, and quiet channels stay silent.
@@ -73,7 +80,11 @@ impl AttentionProjector {
             return AttentionDecision::ContinueManually(self.evidence("interruption-budget-spent"));
         }
         if self.active.is_some() {
-            if self.active.as_ref().is_some_and(|active| active.key == prompt.key) {
+            if self
+                .active
+                .as_ref()
+                .is_some_and(|active| active.key == prompt.key)
+            {
                 self.active.as_mut().expect("active checked above").summary = prompt.summary;
             } else {
                 self.coalesce(prompt);
@@ -104,11 +115,19 @@ impl AttentionProjector {
     fn is_quiet(&self, hour: u8) -> bool {
         let start = self.policy.quiet_start_hour;
         let end = self.policy.quiet_end_hour;
-        if start <= end { hour >= start && hour < end } else { hour >= start || hour < end }
+        if start <= end {
+            hour >= start && hour < end
+        } else {
+            hour >= start || hour < end
+        }
     }
 
     fn evidence(&self, reason: &'static str) -> AttentionEvidence {
-        AttentionEvidence { coalesced: self.pending.len(), interruptions_spent: self.interruptions, reason }
+        AttentionEvidence {
+            coalesced: self.pending.len(),
+            interruptions_spent: self.interruptions,
+            reason,
+        }
     }
 
     fn silent(&self, reason: &'static str) -> AttentionDecision {
@@ -121,27 +140,55 @@ mod tests {
     use super::*;
 
     fn projector(max: u32) -> AttentionProjector {
-        AttentionProjector::new(AttentionPolicy { quiet_start_hour: 22, quiet_end_hour: 7, max_interruptions: max })
+        AttentionProjector::new(AttentionPolicy {
+            quiet_start_hour: 22,
+            quiet_end_hour: 7,
+            max_interruptions: max,
+        })
     }
 
     #[test]
     fn burst_never_exceeds_one_body_level_prompt() {
         let mut p = projector(2);
         for n in 0..50 {
-            let decision = p.offer(Prompt { key: format!("job-{}", n % 3), summary: format!("update-{n}") }, 12, true);
-            let AttentionDecision::Present(_, evidence) = decision else { panic!("active prompt must remain visible") };
+            let decision = p.offer(
+                Prompt {
+                    key: format!("job-{}", n % 3),
+                    summary: format!("update-{n}"),
+                },
+                12,
+                true,
+            );
+            let AttentionDecision::Present(_, evidence) = decision else {
+                panic!("active prompt must remain visible")
+            };
             assert!(evidence.interruptions_spent <= 1);
         }
     }
 
     #[test]
     fn silence_offline_quiet_and_manual_continuation_are_normal() {
-        let prompt = Prompt { key: "mission".into(), summary: "ready".into() };
+        let prompt = Prompt {
+            key: "mission".into(),
+            summary: "ready".into(),
+        };
         let mut p = projector(1);
-        assert!(matches!(p.offer(prompt.clone(), 12, false), AttentionDecision::Silent(_)));
-        assert!(matches!(p.offer(prompt.clone(), 23, true), AttentionDecision::Silent(_)));
-        assert!(matches!(p.offer(prompt.clone(), 12, true), AttentionDecision::Present(_, _)));
+        assert!(matches!(
+            p.offer(prompt.clone(), 12, false),
+            AttentionDecision::Silent(_)
+        ));
+        assert!(matches!(
+            p.offer(prompt.clone(), 23, true),
+            AttentionDecision::Silent(_)
+        ));
+        assert!(matches!(
+            p.offer(prompt.clone(), 12, true),
+            AttentionDecision::Present(_, _)
+        ));
         p.acknowledge();
-        assert!(matches!(p.offer(prompt, 12, true), AttentionDecision::ContinueManually(_)));
+        assert!(matches!(
+            p.offer(prompt, 12, true),
+            AttentionDecision::ContinueManually(_)
+        ));
     }
 }

@@ -91,7 +91,7 @@ mod tests {
 
         let watch_caps = surface::preset("watch").unwrap();
         let profile = DeviceProfile::from_surface_caps(&watch_caps);
-        let mut hub = SurfaceHub::new();
+        let mut hub = SurfaceHub::new(sim_kernel::HandleSeed::new(0x5745_4204));
         let device_surface = register_device_peer(&mut hub, &session, &profile);
         hub.register_surface(
             build::keyword("desktop"),

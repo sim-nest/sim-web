@@ -34,7 +34,11 @@ fn workspace_layout_roundtrips_through_table_op() {
 
 #[test]
 fn encoder_reads_workspace_layout_and_uses_default_arc_when_missing() {
-    let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0xbbea_7959_e307_6ed9),
+    );
     let codec = SpatialSurfaceCodec::new();
     let caps = SurfaceCaps::from_preset("glasses-luma-ultra", "viture").unwrap();
     let layout = workspace_layout();

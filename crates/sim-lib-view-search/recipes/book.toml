@@ -1,0 +1,5 @@
+book = "view/search"
+title = "Search Review View"
+summary = "Audit provider-neutral search provenance and captured evidence offline."
+order = 99
+chapters = ["01-basics"]

@@ -12,7 +12,11 @@ use crate::{FixtureTransport, Session};
 
 /// Build the fixture-backed session descriptor used by the cookbook recipe.
 pub fn session_fixture_demo() -> Expr {
-    let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0x5745_4201),
+    );
     let registry = registry();
     let mut session = Session::new(FixtureTransport::new().with(resource(), sample_value()));
     let scene = session

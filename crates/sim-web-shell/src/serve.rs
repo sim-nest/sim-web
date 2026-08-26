@@ -89,7 +89,14 @@ pub fn serve_with_cx(
     config: &ServeConfig,
     services: Arc<dyn crate::ShellServices>,
 ) -> std::io::Result<()> {
-    serve_with_surface_factory(cx, config, Box::new(DefaultLiveSurfaceFactory), services)
+    serve_with_surface_factory(
+        cx,
+        config,
+        Box::new(DefaultLiveSurfaceFactory::new(sim_kernel::HandleSeed::new(
+            0x5745_4253,
+        ))),
+        services,
+    )
 }
 
 /// Bind and serve the shell with a caller-provided browser surface factory.
@@ -184,7 +191,14 @@ impl<'a> ShellState<'a> {
             model.services(),
             Default::default(),
         ));
-        Self::with_surface_factory(config, cx, Box::new(DefaultLiveSurfaceFactory), services)
+        Self::with_surface_factory(
+            config,
+            cx,
+            Box::new(DefaultLiveSurfaceFactory::new(sim_kernel::HandleSeed::new(
+                0x5745_4254,
+            ))),
+            services,
+        )
     }
 
     fn with_surface_factory(

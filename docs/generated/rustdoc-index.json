@@ -44,6 +44,13 @@
       "summary": "Codec-aware and Shape-aware lenses for SIM Web."
     },
     {
+      "crate_name": "sim_lib_view_continuity_phone",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-view-continuity-phone/Cargo.toml",
+      "package": "sim-lib-view-continuity-phone",
+      "summary": "Calm, replayable phone interaction for continuity sessions."
+    },
+    {
       "crate_name": "sim_lib_view_daw",
       "group": "workspace",
       "manifest": "crates/sim-lib-view-daw/Cargo.toml",
@@ -65,6 +72,13 @@
       "summary": "Markup article workspace lens for the SIM Web UI."
     },
     {
+      "crate_name": "sim_lib_view_estate",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-view-estate/Cargo.toml",
+      "package": "sim-lib-view-estate",
+      "summary": "Reversible estate Surface scenes. Rendering is pure; operations compile to exact typed organ calls and never carry shell or provider command text."
+    },
+    {
       "crate_name": "sim_lib_view_interference",
       "group": "workspace",
       "manifest": "crates/sim-lib-view-interference/Cargo.toml",
@@ -79,6 +93,13 @@
       "summary": "Math, plotting, tensor, and symbolic lenses for SIM Web."
     },
     {
+      "crate_name": "sim_lib_view_search",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-view-search/Cargo.toml",
+      "package": "sim-lib-view-search",
+      "summary": "An offline, evidence-preserving projection of canonical search records."
+    },
+    {
       "crate_name": "sim_lib_view_spatial",
       "group": "workspace",
       "manifest": "crates/sim-lib-view-spatial/Cargo.toml",
@@ -91,6 +112,13 @@
       "manifest": "crates/sim-lib-view-wasm-frame/Cargo.toml",
       "package": "sim-lib-view-wasm-frame",
       "summary": "Host-side view frame facade for wasm-shaped view data."
+    },
+    {
+      "crate_name": "sim_lib_view_worktable",
+      "group": "workspace",
+      "manifest": "crates/sim-lib-view-worktable/Cargo.toml",
+      "package": "sim-lib-view-worktable",
+      "summary": "Rebuildable projection for a reversible expedition product."
     },
     {
       "crate_name": "sim_lib_view_wrist",

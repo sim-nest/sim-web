@@ -1,4 +1,5 @@
 schema = "sim.recipe/v1"
 title = "Review a modeled estate change on a Surface"
+purpose = "Review and reverse a modeled estate plan through the shared Surface codec."
 summary = "Drive the shared modeled scenario through the estate Surface codec."
 entry = "main.siml"

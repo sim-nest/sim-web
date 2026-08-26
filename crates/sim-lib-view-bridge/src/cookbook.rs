@@ -10,7 +10,11 @@ use std::sync::Arc;
 
 /// Builds a packet review scene showing drafter, reviewer, and judge seats.
 pub fn packet_review_demo() -> Expr {
-    let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0x4252_4944),
+    );
     let packet = sample_packet();
     let caps = SurfaceCaps::from_preset("desktop", "cookbook").expect("desktop caps exist");
     crate::bridge_packet_view(&mut cx, &packet, &caps).expect("demo packet renders")

@@ -68,6 +68,9 @@ mod consent_tests;
 mod continuity_role_tests;
 
 #[cfg(test)]
+mod expedition_tests;
+
+#[cfg(test)]
 mod fleet_tests;
 
 #[cfg(test)]

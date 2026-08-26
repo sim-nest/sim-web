@@ -40,7 +40,7 @@ fn edit(operator: Origin, field: &str, value: Expr) -> Expr {
 }
 
 fn hub_with_surfaces() -> SurfaceHub {
-    let mut hub = SurfaceHub::new();
+    let mut hub = SurfaceHub::new(sim_kernel::HandleSeed::new(0x5745_4202));
     hub.register_surface(sym("cli"), surface::preset("cli").unwrap());
     hub.register_surface(sym("web"), surface::preset("webui").unwrap());
     hub.register_surface(sym("watch"), surface::preset("watch").unwrap());
@@ -49,7 +49,7 @@ fn hub_with_surfaces() -> SurfaceHub {
 
 #[test]
 fn submit_rejects_a_surface_without_the_required_input_capability() {
-    let mut hub = SurfaceHub::new();
+    let mut hub = SurfaceHub::new(sim_kernel::HandleSeed::new(0x5745_4203));
     let mut caps = surface::preset("webui").unwrap();
     caps.client_id = "no-input".to_owned();
     caps.input = Expr::Map(Vec::new());
