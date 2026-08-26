@@ -24,13 +24,13 @@ This generated lane consumes `docs/generated/sim-index-fragment.sx`. Global inde
 | `feature/sim-web/device-surfaces` | `crate/sim-lib-view` | 1 | Rank and project view surfaces against desktop, phone, watch, and glasses device profiles. |
 | `feature/sim-web/body-attention-projection` | `crate/sim-lib-view-device` | 1 | Arbitrate worn prompts through one visible body-level slot with quiet hours, coalescing, interruption budgets, and explicit evidence. |
 | `feature/sim-web/codec-surface-sessions` | `crate/sim-lib-web-bridge` | 1 | Drive browser and server sessions through one reversible SurfaceCodec contract for encode, decode, commit, projection, and isolation. |
-| `feature/sim-web/optional-endpoint-continuity-roles` | `crate/sim-lib-view-wrist` | 0 | Project one filtered glance and a bounded semantic action lane through expiring, generation-fenced endpoint roles. |
+| `feature/sim-web/optional-endpoint-continuity-roles` | `crate/sim-lib-view-wrist` | 1 | Project one filtered glance and a bounded semantic action lane through expiring, generation-fenced endpoint roles. |
 | `feature/sim-web/continuity-phone-surface` | `crate/sim-lib-view-continuity-phone` | 1 | Render and control a complete silent-capable phone interaction from the authoritative continuity journal. |
 | `feature/sim-web/server-backed-web-sessions` | `crate/sim-lib-web-bridge` | 1 | Connect RemoteTransport to the existing SIM server transport so browser sessions read, commit, drain changes, reconnect, and report revision conflicts through ordinary server eval requests. |
 | `feature/sim-web/web-shell-host` | `crate/sim-web-shell` | 1 | Route isolated, bounded, phone-capable browser surfaces through declared shell services and loaded runtime libraries. |
 | `feature/sim-web/daw-view-surfaces` | `crate/sim-lib-view-daw` | 1 | Expose synth, stream, placement, and component views through the DAW view library. |
 | `feature/sim-web/generated-docs` | `crate/xtask` | 0 | Publish generated package, card, recipe, and index facts for browser and view crates. |
-| `feature/sim-web/estate-surface` | `crate/sim-lib-view-estate` | 0 | Ten estate scenes render the read-only projection and compile stale-safe edits to exact organ calls. |
+| `feature/sim-web/estate-surface` | `crate/sim-lib-view-estate` | 1 | Ten estate scenes render the read-only projection and compile stale-safe edits to exact organ calls. |
 | `feature/sim-web/search-audit-surface` | `crate/sim-lib-view-search` | 2 | Project canonical search, ranking, capture, selector, fidelity, policy, and office evidence into an inert, expandable Scene. |
 | `feature/sim-web/reversible-worktable` | `crate/sim-lib-view-worktable` | 1 | One disposable projection presents room cards, expedition identity, evidence, objections, pack closure, route/device truth, attention, effect arming, undo, export, and calm comparison evidence. |
 
@@ -2631,6 +2631,167 @@ fn sessions_are_isolated_by_transport_and_subscription_state() {
 }
 ```
 
+### `feature/sim-web/optional-endpoint-continuity-roles`
+
+Specimen `spec-test/sim-web/crates/sim-lib-view-wrist/src/continuity_role_tests` is checked by `cargo test`.
+
+Source `crates/sim-lib-view-wrist/src/continuity_role_tests.rs`:
+
+```rust
+// conformance: optional endpoint roles remain bounded, generation-fenced, and fail closed.
+
+use sim_kernel::{Expr, Symbol};
+use sim_lib_intent::{field, intent_kind_of, validate_intent};
+use sim_lib_scene::{GlanceAction, GlanceCard, GlanceMetric};
+use sim_value::build;
+
+use crate::{
+    EndpointAction, EndpointCandidate, EndpointRole, OptionalEndpointRoleAdapter, RoleAuthority,
+};
+
+fn candidate(id: &str) -> EndpointCandidate {
+    EndpointCandidate {
+        id: Symbol::new(id),
+        roles: vec![EndpointRole::Glance, EndpointRole::SemanticAction],
+    }
+}
+
+fn authority(generation: u64) -> RoleAuthority {
+    RoleAuthority {
+        connected: true,
+        session_consent: true,
+        visible_focus: true,
+        role_admitted: true,
+        provider_evidence: true,
+        route_present: true,
+        root_present: true,
+        route_generation: generation,
+        route_expires_at_ms: 200,
+        now_ms: 100,
+    }
+}
+
+fn filtered_glance() -> Expr {
+    GlanceCard::new(
+        "Ready",
+        Some(GlanceMetric::new("status", "filtered")),
+        Some(GlanceAction::new("Continue", build::sym("continue"))),
+        "info",
+        4,
+    )
+    .to_scene()
+}
+
+#[test]
+fn projection_is_one_glance_and_only_bounded_semantic_actions() {
+    let mut adapter = OptionalEndpointRoleAdapter::default();
+    let projection = adapter
+        .project(&candidate("watch"), &filtered_glance(), authority(7))
+        .unwrap();
+    assert_eq!(projection.glance, filtered_glance());
+
+    for action in [
+        EndpointAction::Primary,
+        EndpointAction::Acknowledge,
+        EndpointAction::Defer,
+        EndpointAction::Cancel,
+    ] {
+        let intent = adapter
+            .intent_for(&projection, action, authority(7), 12)
+            .unwrap();
+        validate_intent(&intent).unwrap();
+        let kind = intent_kind_of(&intent).unwrap();
+        assert!(matches!(kind.name.as_ref(), "invoke" | "cancel"));
+        if let Some(Expr::Symbol(op)) = field(&intent, "op") {
+            assert_eq!(op.namespace.as_deref(), Some("continuity/action"));
+            assert!(!op.name.contains("pointer"));
+            assert!(!op.name.contains("effect"));
+        }
+    }
+    let stop = adapter
+        .intent_for(&projection, EndpointAction::Stop, authority(7), 13)
+        .unwrap();
+    validate_intent(&stop).unwrap();
+    assert!(
+        adapter
+            .intent_for(&projection, EndpointAction::Acknowledge, authority(7), 14)
+            .is_err()
+    );
+}
+
+#[test]
+fn every_authority_loss_and_prior_generation_fails_closed() {
+    let mut losses: Vec<fn(&mut RoleAuthority)> = vec![
+        |a| a.connected = false,
+        |a| a.session_consent = false,
+        |a| a.visible_focus = false,
+        |a| a.role_admitted = false,
+        |a| a.provider_evidence = false,
+        |a| a.route_present = false,
+        |a| a.root_present = false,
+        |a| a.now_ms = a.route_expires_at_ms,
+    ];
+    for lose in losses.drain(..) {
+        let mut adapter = OptionalEndpointRoleAdapter::default();
+        let projection = adapter
+            .project(&candidate("optional"), &filtered_glance(), authority(3))
+            .unwrap();
+        let mut lost = authority(3);
+        lose(&mut lost);
+        assert!(
+            adapter
+                .intent_for(&projection, EndpointAction::Acknowledge, lost, 1)
+                .is_err()
+        );
+    }
+
+    let mut adapter = OptionalEndpointRoleAdapter::default();
+    let old = adapter
+        .project(&candidate("optional"), &filtered_glance(), authority(3))
+        .unwrap();
+    let _new = adapter
+        .project(&candidate("optional"), &filtered_glance(), authority(4))
+        .unwrap();
+    assert!(
+        adapter
+            .intent_for(&old, EndpointAction::Acknowledge, authority(3), 2)
+            .is_err()
+    );
+}
+
+#[test]
+fn phone_watch_and_fictional_future_candidate_share_scene_and_intent_identity() {
+    let scene = filtered_glance();
+    let mut identities = Vec::new();
+    for id in ["phone", "watch", "fictional-future-halo"] {
+        let mut adapter = OptionalEndpointRoleAdapter::default();
+        let projection = adapter
+            .project(&candidate(id), &scene, authority(11))
+            .unwrap();
+        let intent = adapter
+            .intent_for(&projection, EndpointAction::Primary, authority(11), 9)
+            .unwrap();
+        identities.push((projection.glance, intent));
+    }
+    assert_eq!(identities[0], identities[1]);
+    assert_eq!(identities[1], identities[2]);
+}
+
+#[test]
+fn adapter_retains_no_endpoint_content_or_private_truth() {
+    assert_eq!(core::mem::size_of::<OptionalEndpointRoleAdapter>(), 16);
+    let inadmissible = EndpointCandidate {
+        id: Symbol::new("display-only"),
+        roles: vec![EndpointRole::Glance],
+    };
+    assert!(
+        OptionalEndpointRoleAdapter::default()
+            .project(&inadmissible, &filtered_glance(), authority(1))
+            .is_err()
+    );
+}
+```
+
 ### `feature/sim-web/continuity-phone-surface`
 
 Specimen `spec-test/sim-web/crates/sim-lib-view-continuity-phone/src/tests` is checked by `cargo test`.
@@ -3853,6 +4014,268 @@ fn web_recipe_sources_are_registered_for_generated_docs() {
     ] {
         assert!(source.contains("view"));
         assert!(source.contains("codec = \"lisp\""));
+    }
+}
+```
+
+### `feature/sim-web/estate-surface`
+
+Specimen `spec-test/sim-web/crates/sim-lib-view-estate/src/lib` is checked by `cargo test`.
+
+Source `crates/sim-lib-view-estate/src/lib.rs`:
+
+```rust
+#![forbid(unsafe_code)]
+#![deny(missing_docs)]
+//! Reversible estate Surface scenes. Rendering is pure; operations compile to
+//! exact typed organ calls and never carry shell or provider command text.
+
+use sim_kernel::Expr;
+use sim_lib_estate_book::Key;
+use sim_lib_estate_serve::Call;
+use sim_lib_scene::{data_map, node, sym};
+
+/// Every estate scene supported by the shared Surface protocol.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum SceneKind {
+    /// Cross-estate summary.
+    Overview,
+    /// Provider and inventory discovery.
+    Discovery,
+    /// Content-bound proposed change.
+    PlanDiff,
+    /// Human approval review.
+    Review,
+    /// Live durable event stream.
+    LiveEvents,
+    /// Verification result.
+    Verification,
+    /// Historical runs.
+    History,
+    /// Ambiguous post-dispatch state.
+    Unknown,
+    /// Isolated targets and evidence.
+    Quarantine,
+    /// Reconciliation result.
+    Reconciliation,
+}
+
+/// Complete visible review material, content-bound to one plan key.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Review {
+    /// Exact content-addressed plan.
+    pub plan: Key,
+    /// Sanitized provider identity.
+    pub provider: String,
+    /// Portable project fingerprint.
+    pub project: String,
+    /// Content-addressed inventory.
+    pub inventory: Key,
+    /// Exact sanitized targets.
+    pub targets: Vec<String>,
+    /// Shaped parameter display.
+    pub parameters: Vec<(String, String)>,
+    /// Computed risk class.
+    pub risk: String,
+    /// Absolute approval expiry.
+    pub expires_at: u64,
+    /// Provider preview evidence.
+    pub preview: String,
+    /// Required verification policy.
+    pub verification: String,
+}
+
+/// Reversible user operations recognized by the estate lens.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Edit {
+    /// Construct a plan for a closed operation id.
+    Plan {
+        /// Closed exposure operation id.
+        operation: String,
+    },
+    /// Request human review of the visible plan.
+    Review,
+    /// Apply with exact reviewed evidence.
+    Apply {
+        /// Content-bound approval evidence.
+        approval: Key,
+    },
+    /// Reconcile a run from retained evidence.
+    Reconcile {
+        /// Durable run id.
+        run: String,
+    },
+    /// Apply an explicitly reviewed quarantine override.
+    Override {
+        /// Quarantined run id.
+        run: String,
+        /// Content-bound override approval.
+        approval: Key,
+    },
+}
+
+/// Stale-scene refusal from reverse compilation.
+#[derive(Clone, Debug, Eq, PartialEq, thiserror::Error)]
+#[error("stale estate scene: expected {expected:?}, current {current:?}")]
+pub struct Stale {
+    /// Plan key captured by the scene.
+    pub expected: Key,
+    /// Current organ plan key.
+    pub current: Key,
+}
+
+/// One codec object owns both the forward scene and reverse operation paths.
+pub struct EstateSurfaceCodec;
+impl EstateSurfaceCodec {
+    /// Render any estate state into a valid Scene value.
+    pub fn encode(kind: SceneKind, plan: Option<&Key>, fields: Vec<(&str, Expr)>) -> Expr {
+        let mut data = vec![
+            ("lens", sym("view:estate")),
+            ("estate-scene", sym(scene_name(kind))),
+        ];
+        if let Some(key) = plan {
+            data.push(("plan-key", Expr::String(key.0.clone())));
+        }
+        data.extend(fields);
+        node(
+            if kind == SceneKind::LiveEvents {
+                "timeline"
+            } else {
+                "table"
+            },
+            data,
+        )
+    }
+
+    /// Render review with every authority-relevant field visible before issuance.
+    pub fn review(review: &Review) -> Expr {
+        Self::encode(
+            SceneKind::Review,
+            Some(&review.plan),
+            vec![(
+                "review",
+                data_map(vec![
+                    ("provider", Expr::String(review.provider.clone())),
+                    ("project", Expr::String(review.project.clone())),
+                    ("inventory", Expr::String(review.inventory.0.clone())),
+                    (
+                        "targets",
+                        Expr::List(review.targets.iter().cloned().map(Expr::String).collect()),
+                    ),
+                    (
+                        "parameters",
+                        Expr::List(
+                            review
+                                .parameters
+                                .iter()
+                                .map(|(k, v)| {
+                                    data_map(vec![
+                                        ("name", Expr::String(k.clone())),
+                                        ("value", Expr::String(v.clone())),
+                                    ])
+                                })
+                                .collect(),
+                        ),
+                    ),
+                    ("risk", Expr::String(review.risk.clone())),
+                    ("expiry", Expr::String(review.expires_at.to_string())),
+                    ("preview", Expr::String(review.preview.clone())),
+                    ("verification", Expr::String(review.verification.clone())),
+                ]),
+            )],
+        )
+    }
+
+    /// Compile an edit to the exact current plan, refusing stale scenes.
+    pub fn decode(scene_plan: &Key, current_plan: &Key, edit: Edit) -> Result<Call, Stale> {
+        if scene_plan != current_plan {
+            return Err(Stale {
+                expected: scene_plan.clone(),
+                current: current_plan.clone(),
+            });
+        }
+        Ok(match edit {
+            Edit::Plan { operation } => Call::Plan { operation },
+            Edit::Review => Call::Review {
+                plan: current_plan.clone(),
+            },
+            Edit::Apply { approval } => Call::Apply {
+                plan: current_plan.clone(),
+                approval,
+            },
+            Edit::Reconcile { run } => Call::Reconcile { run },
+            Edit::Override { run, approval } => Call::Override {
+                run,
+                plan: current_plan.clone(),
+                approval,
+            },
+        })
+    }
+}
+
+fn scene_name(kind: SceneKind) -> &'static str {
+    match kind {
+        SceneKind::Overview => "overview",
+        SceneKind::Discovery => "discovery",
+        SceneKind::PlanDiff => "plan-diff",
+        SceneKind::Review => "review",
+        SceneKind::LiveEvents => "live-events",
+        SceneKind::Verification => "verification",
+        SceneKind::History => "history",
+        SceneKind::Unknown => "unknown",
+        SceneKind::Quarantine => "quarantine",
+        SceneKind::Reconciliation => "reconciliation",
+    }
+}
+
+// conformance: estate scenes and reverse edits remain valid and content-bound.
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn all_scenes_are_valid() {
+        for kind in [
+            SceneKind::Overview,
+            SceneKind::Discovery,
+            SceneKind::PlanDiff,
+            SceneKind::Review,
+            SceneKind::LiveEvents,
+            SceneKind::Verification,
+            SceneKind::History,
+            SceneKind::Unknown,
+            SceneKind::Quarantine,
+            SceneKind::Reconciliation,
+        ] {
+            assert!(
+                sim_lib_scene::validate_scene(&EstateSurfaceCodec::encode(kind, None, vec![]))
+                    .is_ok()
+            );
+        }
+    }
+    #[test]
+    fn stale_operation_refuses() {
+        let old = Key("old".into());
+        let new = Key("new".into());
+        assert!(EstateSurfaceCodec::decode(&old, &new, Edit::Review).is_err());
+    }
+    #[test]
+    fn operation_contains_no_command_text() {
+        let key = Key("plan".into());
+        let call = EstateSurfaceCodec::decode(
+            &key,
+            &key,
+            Edit::Apply {
+                approval: Key("approval".into()),
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            call,
+            Call::Apply {
+                plan: key,
+                approval: Key("approval".into())
+            }
+        );
     }
 }
 ```
