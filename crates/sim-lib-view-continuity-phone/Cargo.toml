@@ -8,12 +8,12 @@ repository.workspace = true
 homepage.workspace = true
 
 [dependencies]
-sim-kernel = { version = "0.2.1" }
+sim-kernel = { version = "0.3.0" }
 sim-lib-continuity = { version = "0.1.0" }
-sim-lib-intent = { version = "0.2.0", path = "../sim-lib-intent" }
-sim-lib-scene = { version = "0.2.0", path = "../sim-lib-scene" }
-sim-lib-view = { version = "0.2.0", path = "../sim-lib-view" }
-sim-value = { version = "0.2.0" }
+sim-lib-intent = { version = "0.3.0", path = "../sim-lib-intent" }
+sim-lib-scene = { version = "0.3.0", path = "../sim-lib-scene" }
+sim-lib-view = { version = "0.3.0", path = "../sim-lib-view" }
+sim-value = { version = "0.3.0" }
 
 [lints]
 workspace = true

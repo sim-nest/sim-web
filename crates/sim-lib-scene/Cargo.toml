@@ -1,6 +1,6 @@
 [package]
 name = "sim-lib-scene"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2024"
 license = "MPL-2.0"
 description = "Scene value model and codec:scene for SIM Web."
@@ -10,13 +10,13 @@ repository = "https://github.com/sim-nest/sim-web"
 homepage = "https://github.com/sim-nest/sim-web"
 
 [dependencies]
-sim-citizen = { version = "0.2.0" }
-sim-citizen-derive = { version = "0.2.0" }
-sim-codec = { version = "0.1.7" }
-sim-cookbook = { version = "0.2.0" }
-sim-kernel = { version = "0.2.0" }
-sim-shape = { version = "0.2.0" }
-sim-value = { version = "0.2.0" }
+sim-citizen = { version = "0.3.0" }
+sim-citizen-derive = { version = "0.3.0" }
+sim-codec = { version = "0.2.0" }
+sim-cookbook = { version = "0.3.0" }
+sim-kernel = { version = "0.3.0" }
+sim-shape = { version = "0.3.0" }
+sim-value = { version = "0.3.0" }
 
 [build-dependencies]
 sim-cookbook-build = { version = "0.1.0" }
