@@ -34,7 +34,11 @@ fn glasses_consent_session_bound_and_default_denied() {
     let session = EdgeId::named("viture-halo");
     let other_session = EdgeId::named("other");
     let receipt = all_glasses_receipt(session.clone(), 11, 1_000);
-    let cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let cx = Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0xb8cd_cfb9_02d7_a7d4),
+    );
     for capability in GlassesCapability::ALL {
         assert!(matches!(
             cx.require(&capability.capability_name()),
@@ -53,7 +57,11 @@ fn glasses_consent_session_bound_and_default_denied() {
         .fold(CapabilitySet::new(), |set, capability| {
             set.grant(capability.capability_name())
         });
-    let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0x3c7e_5208_7c36_99e0),
+    );
     cx.with_capabilities(granted, |cx| -> Result<()> {
         let missing_visible =
             ConsentReceipt::new(Vec::new(), 1_000, Vec::new(), session.clone(), 12);

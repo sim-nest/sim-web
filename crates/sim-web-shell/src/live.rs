@@ -34,13 +34,12 @@
 //! output should be streamed rather than returned per request.
 
 use std::collections::BTreeMap;
-use std::fs::File;
-use std::io::Read;
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::Duration;
 
 use sim_codec_json::{JsonProjectionMode, project_expr_to_json, project_json_to_expr};
-use sim_kernel::{Cx, DefaultFactory, EagerPolicy, Expr, Result as SimResult, Symbol};
+use sim_kernel::{Cx, DefaultFactory, EagerPolicy, Error, Expr, Result as SimResult, Symbol};
 use sim_lib_view::{LensRegistry, UNIVERSAL_SURFACE_CODEC_ID, register_universal_default, surface};
 use sim_lib_web_bridge::{FixtureTransport, SceneUpdate, Session};
 
@@ -70,7 +69,7 @@ pub struct LiveSession {
 impl LiveSession {
     /// Build a live session, seed the demo resource, and open it into the
     /// default pane so Intents can be submitted immediately.
-    pub fn new() -> SimResult<Self> {
+    pub fn new(handle_seed: sim_kernel::HandleSeed) -> SimResult<Self> {
         let mut transport = FixtureTransport::new();
         transport.set(Symbol::new(DEFAULT_RESOURCE), demo_value());
         let mut registry = LensRegistry::new();
@@ -78,7 +77,7 @@ impl LiveSession {
         // bin-boot-exempt: the LiveSession is the realize/EvalFabric Intent/Scene
         // bridge -- a distinct eval surface with its own transport, not the binary's
         // boot runtime (that goes through sim_run_core::Bootloader). It owns its cx.
-        let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory)); // bin-boot-exempt
+        let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory), handle_seed); // bin-boot-exempt
         let mut session = Session::new(transport);
         session.open_codec(
             &mut cx,
@@ -151,12 +150,30 @@ pub trait LiveSurfaceFactory {
 }
 
 /// Default shell surface factory.
-#[derive(Debug, Default)]
-pub struct DefaultLiveSurfaceFactory;
+#[derive(Debug)]
+pub struct DefaultLiveSurfaceFactory {
+    next_seed: AtomicU64,
+}
+
+impl DefaultLiveSurfaceFactory {
+    /// Builds a factory whose session namespaces begin at `first_seed`.
+    pub fn new(first_seed: sim_kernel::HandleSeed) -> Self {
+        Self {
+            next_seed: AtomicU64::new(first_seed.0),
+        }
+    }
+}
 
 impl LiveSurfaceFactory for DefaultLiveSurfaceFactory {
     fn create(&self) -> SimResult<Box<dyn LiveSurface>> {
-        LiveSession::new().map(|surface| Box::new(surface) as Box<dyn LiveSurface>)
+        let seed = self
+            .next_seed
+            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |seed| {
+                seed.checked_add(1)
+            })
+            .map_err(|_| Error::HostError("live-session handle seed space exhausted".to_owned()))?;
+        LiveSession::new(sim_kernel::HandleSeed::new(seed))
+            .map(|surface| Box::new(surface) as Box<dyn LiveSurface>)
     }
 }
 
@@ -180,7 +197,7 @@ impl Default for LiveSessionTableConfig {
 
 struct LiveSessionEntry {
     live: Box<dyn LiveSurface>,
-    last_used: Instant,
+    last_used: Duration,
     ordinal: u64,
 }
 
@@ -190,6 +207,7 @@ pub struct LiveSessionTable {
     config: LiveSessionTableConfig,
     sessions: BTreeMap<String, LiveSessionEntry>,
     next_ordinal: u64,
+    services: Arc<dyn crate::ShellServices>,
 }
 
 impl LiveSessionTable {
@@ -203,11 +221,26 @@ impl LiveSessionTable {
         factory: Box<dyn LiveSurfaceFactory + Send + Sync>,
         config: LiveSessionTableConfig,
     ) -> Self {
+        let model = Arc::new(sim_transport_ports::model::ScriptedStreamPort::new([]));
+        let services = Arc::new(crate::ModelShellServices::new(
+            model.services(),
+            Default::default(),
+        ));
+        Self::with_config_and_services(factory, config, services)
+    }
+
+    /// Creates a session table over explicit capsule time and entropy services.
+    pub fn with_config_and_services(
+        factory: Box<dyn LiveSurfaceFactory + Send + Sync>,
+        config: LiveSessionTableConfig,
+        services: Arc<dyn crate::ShellServices>,
+    ) -> Self {
         Self {
             factory,
             config,
             sessions: BTreeMap::new(),
             next_ordinal: 0,
+            services,
         }
     }
 
@@ -223,7 +256,7 @@ impl LiveSessionTable {
         resource: &str,
         pane: &str,
     ) -> Result<(String, Expr), String> {
-        self.open_at(session_id, resource, pane, Instant::now())
+        self.open_at(session_id, resource, pane, self.services.monotonic())
     }
 
     /// Submits one reversible Intent through an existing browser session.
@@ -233,7 +266,7 @@ impl LiveSessionTable {
         pane: &str,
         intent: &Expr,
     ) -> Result<Vec<SceneUpdate>, String> {
-        self.submit_at(session_id, pane, intent, Instant::now())
+        self.submit_at(session_id, pane, intent, self.services.monotonic())
     }
 
     /// Closes an opaque browser session and releases its live surface.
@@ -252,7 +285,7 @@ impl LiveSessionTable {
         session_id: Option<&str>,
         resource: &str,
         pane: &str,
-        now: Instant,
+        now: Duration,
     ) -> Result<(String, Expr), String> {
         self.evict_idle(now);
         if let Some(session_id) = session_id {
@@ -289,7 +322,7 @@ impl LiveSessionTable {
         session_id: &str,
         pane: &str,
         intent: &Expr,
-        now: Instant,
+        now: Duration,
     ) -> Result<Vec<SceneUpdate>, String> {
         self.evict_idle(now);
         let entry = self.entry_mut(session_id, now)?;
@@ -302,7 +335,7 @@ impl LiveSessionTable {
     fn entry_mut(
         &mut self,
         session_id: &str,
-        now: Instant,
+        now: Duration,
     ) -> Result<&mut LiveSessionEntry, String> {
         validate_session_id(session_id)?;
         let entry = self
@@ -313,10 +346,10 @@ impl LiveSessionTable {
         Ok(entry)
     }
 
-    fn evict_idle(&mut self, now: Instant) {
+    fn evict_idle(&mut self, now: Duration) {
         let ttl = self.config.idle_ttl;
         self.sessions
-            .retain(|_, entry| now.duration_since(entry.last_used) <= ttl);
+            .retain(|_, entry| now.saturating_sub(entry.last_used) <= ttl);
     }
 
     fn evict_for_capacity(&mut self) {
@@ -335,7 +368,7 @@ impl LiveSessionTable {
 
     fn fresh_unused_session_id(&self) -> Result<String, String> {
         for _ in 0..8 {
-            let session_id = fresh_session_id()?;
+            let session_id = fresh_session_id(&*self.services)?;
             if !self.sessions.contains_key(&session_id) {
                 return Ok(session_id);
             }
@@ -353,10 +386,10 @@ fn validate_session_id(session_id: &str) -> Result<(), String> {
     }
 }
 
-fn fresh_session_id() -> Result<String, String> {
+fn fresh_session_id(services: &dyn crate::ShellServices) -> Result<String, String> {
     let mut bytes = [0u8; 16];
-    File::open("/dev/urandom")
-        .and_then(|mut file| file.read_exact(&mut bytes))
+    services
+        .fill_entropy(&mut bytes)
         .map_err(|err| format!("could not allocate session id: {err}"))?;
     Ok(bytes.iter().map(|byte| format!("{byte:02x}")).collect())
 }

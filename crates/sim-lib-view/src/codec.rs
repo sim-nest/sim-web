@@ -26,7 +26,7 @@
 //! use sim_lib_view::{codec::{PairCodec, SurfaceCodec, roundtrip_holds}, surface, UniversalView, UniversalEditor};
 //! use std::sync::Arc;
 //!
-//! let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+//! let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory), sim_kernel::HandleSeed::new(0x458e_706b_d6db_0bda));
 //! let codec = PairCodec::new(Arc::new(UniversalView), Arc::new(UniversalEditor::writable()));
 //! let value = Expr::String("hello".to_owned());
 //! // A real edit applied through the codec is faithfully reproduced -- the

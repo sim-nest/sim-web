@@ -1,0 +1,5 @@
+book = "view/estate"
+title = "Estate Review View"
+summary = "Review reversible estate plans and evidence through the shared Surface codec."
+order = 98
+chapters = ["reviewed-model"]

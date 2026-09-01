@@ -22,11 +22,17 @@ This generated lane consumes `docs/generated/sim-index-fragment.sx`. Global inde
 | `feature/sim-web/heatmap-surface` | `crate/sim-lib-view-math` | 1 | Validate and project caller-prepared finite scalar grids into one budgeted Scene contract without inventing a domain reduction rule. |
 | `feature/sim-web/interference-surface` | `crate/sim-lib-view-interference` | 1 | Encode complete interference Studies as evidence-preserving heatmap Scenes and compile projection or model edits to the existing interference operations. |
 | `feature/sim-web/device-surfaces` | `crate/sim-lib-view` | 1 | Rank and project view surfaces against desktop, phone, watch, and glasses device profiles. |
+| `feature/sim-web/body-attention-projection` | `crate/sim-lib-view-device` | 1 | Arbitrate worn prompts through one visible body-level slot with quiet hours, coalescing, interruption budgets, and explicit evidence. |
 | `feature/sim-web/codec-surface-sessions` | `crate/sim-lib-web-bridge` | 1 | Drive browser and server sessions through one reversible SurfaceCodec contract for encode, decode, commit, projection, and isolation. |
+| `feature/sim-web/optional-endpoint-continuity-roles` | `crate/sim-lib-view-wrist` | 1 | Project one filtered glance and a bounded semantic action lane through expiring, generation-fenced endpoint roles. |
+| `feature/sim-web/continuity-phone-surface` | `crate/sim-lib-view-continuity-phone` | 1 | Render and control a complete silent-capable phone interaction from the authoritative continuity journal. |
 | `feature/sim-web/server-backed-web-sessions` | `crate/sim-lib-web-bridge` | 1 | Connect RemoteTransport to the existing SIM server transport so browser sessions read, commit, drain changes, reconnect, and report revision conflicts through ordinary server eval requests. |
-| `feature/sim-web/web-shell-host` | `crate/sim-web-shell` | 1 | Serve isolated, bounded, phone-capable browser surfaces through loaded web shell runtime libraries, installable shell assets, and command entry points. |
+| `feature/sim-web/web-shell-host` | `crate/sim-web-shell` | 1 | Route isolated, bounded, phone-capable browser surfaces through declared shell services and loaded runtime libraries. |
 | `feature/sim-web/daw-view-surfaces` | `crate/sim-lib-view-daw` | 1 | Expose synth, stream, placement, and component views through the DAW view library. |
 | `feature/sim-web/generated-docs` | `crate/xtask` | 0 | Publish generated package, card, recipe, and index facts for browser and view crates. |
+| `feature/sim-web/estate-surface` | `crate/sim-lib-view-estate` | 1 | Ten estate scenes render the read-only projection and compile stale-safe edits to exact organ calls. |
+| `feature/sim-web/search-audit-surface` | `crate/sim-lib-view-search` | 2 | Project canonical search, ranking, capture, selector, fidelity, policy, and office evidence into an inert, expandable Scene. |
+| `feature/sim-web/reversible-worktable` | `crate/sim-lib-view-worktable` | 1 | One disposable projection presents room cards, expedition identity, evidence, objections, pack closure, route/device truth, attention, effect arming, undo, export, and calm comparison evidence. |
 
 ## Surfaces
 
@@ -35,7 +41,6 @@ This generated lane consumes `docs/generated/sim-index-fragment.sx`. Global inde
 | `cli/atelier` | `cli` | `crate/sim-web-shell` |
 | `cli/browse` | `cli` | `crate/sim-web-shell` |
 | `cli/serve` | `cli` | `crate/sim-web-shell` |
-| `cli/sim-web-shell` | `cli` | `crate/sim-web-shell` |
 | `cli/xtask` | `cli` | `crate/xtask` |
 | `docs/sim-web/generated` | `docs` | `doc-set/sim-web/generated` |
 | `model/sim-lib-view-agent` | `model-exchange` | `crate/sim-lib-view-agent` |
@@ -53,7 +58,9 @@ This generated lane consumes `docs/generated/sim-index-fragment.sx`. Global inde
 | `site-device/watch-sport` | `site-device` | `crate/sim-lib-view` |
 | `view-edit/sim-lib-view` | `view-edit` | `crate/sim-lib-view` |
 | `view-edit/sim-lib-view-bridge` | `view-edit` | `crate/sim-lib-view-bridge` |
+| `view-edit/sim-lib-view-continuity-phone` | `view-edit` | `crate/sim-lib-view-continuity-phone` |
 | `view-edit/sim-lib-view-device` | `view-edit` | `crate/sim-lib-view-device` |
+| `view-edit/sim-lib-view-estate` | `view-edit` | `crate/sim-lib-view-estate` |
 | `view-edit/sim-lib-view-interference` | `view-edit` | `crate/sim-lib-view-interference` |
 | `view-edit/sim-lib-view-spatial` | `view-edit` | `crate/sim-lib-view-spatial` |
 | `view-edit/sim-lib-view-wasm-frame` | `view-edit` | `crate/sim-lib-view-wasm-frame` |
@@ -63,13 +70,17 @@ This generated lane consumes `docs/generated/sim-index-fragment.sx`. Global inde
 | `view/sim-lib-view-agent` | `view` | `crate/sim-lib-view-agent` |
 | `view/sim-lib-view-bridge` | `view` | `crate/sim-lib-view-bridge` |
 | `view/sim-lib-view-codec` | `view` | `crate/sim-lib-view-codec` |
+| `view/sim-lib-view-continuity-phone` | `view` | `crate/sim-lib-view-continuity-phone` |
 | `view/sim-lib-view-daw` | `view` | `crate/sim-lib-view-daw` |
 | `view/sim-lib-view-device` | `view` | `crate/sim-lib-view-device` |
 | `view/sim-lib-view-doc` | `view` | `crate/sim-lib-view-doc` |
+| `view/sim-lib-view-estate` | `view` | `crate/sim-lib-view-estate` |
 | `view/sim-lib-view-interference` | `view` | `crate/sim-lib-view-interference` |
 | `view/sim-lib-view-math` | `view` | `crate/sim-lib-view-math` |
+| `view/sim-lib-view-search` | `view` | `crate/sim-lib-view-search` |
 | `view/sim-lib-view-spatial` | `view` | `crate/sim-lib-view-spatial` |
 | `view/sim-lib-view-wasm-frame` | `view` | `crate/sim-lib-view-wasm-frame` |
+| `view/sim-lib-view-worktable` | `view` | `crate/sim-lib-view-worktable` |
 | `view/sim-lib-view-wrist` | `view` | `crate/sim-lib-view-wrist` |
 | `view/sim-lib-web-bridge` | `view` | `crate/sim-lib-web-bridge` |
 
@@ -128,6 +139,9 @@ This generated lane consumes `docs/generated/sim-index-fragment.sx`. Global inde
 - `crates/sim-lib-view-doc/recipes/01-basics/latex-view-lens/recipe.toml`
 - `crates/sim-lib-view-doc/recipes/01-basics/latex-view-lens/setup.siml`
 - `crates/sim-lib-view-doc/recipes/book.toml`
+- `crates/sim-lib-view-estate/recipes/book.toml`
+- `crates/sim-lib-view-estate/recipes/reviewed-model/main.siml`
+- `crates/sim-lib-view-estate/recipes/reviewed-model/recipe.toml`
 - `crates/sim-lib-view-interference/recipes/01-basics/chapter.toml`
 - `crates/sim-lib-view-interference/recipes/01-basics/interference-study/expected.txt`
 - `crates/sim-lib-view-interference/recipes/01-basics/interference-study/main.rs`
@@ -142,6 +156,9 @@ This generated lane consumes `docs/generated/sim-index-fragment.sx`. Global inde
 - `crates/sim-lib-view-math/recipes/01-basics/plot-series/recipe.toml`
 - `crates/sim-lib-view-math/recipes/01-basics/plot-series/setup.siml`
 - `crates/sim-lib-view-math/recipes/book.toml`
+- `crates/sim-lib-view-search/recipes/01-basics/offline-audit/README.md`
+- `crates/sim-lib-view-search/recipes/01-basics/offline-audit/recipe.toml`
+- `crates/sim-lib-view-search/recipes/book.toml`
 - `crates/sim-lib-view-spatial/recipes/01-basics/chapter.toml`
 - `crates/sim-lib-view-spatial/recipes/book.toml`
 - `crates/sim-lib-view-wasm-frame/recipes/01-basics/chapter.toml`
@@ -2171,6 +2188,209 @@ fn assert_symbol_subset(subset: &[Symbol], superset: &[Symbol]) {
 }
 ```
 
+### `feature/sim-web/body-attention-projection`
+
+Specimen `spec-test/sim-web/crates/sim-lib-view-device/src/attention` is checked by `cargo test`.
+
+Source `crates/sim-lib-view-device/src/attention.rs`:
+
+```rust
+//! Body-level attention arbitration shared by worn projections.
+
+// conformance: attention tests prove quiet hours, coalescing, budgets, and manual continuation.
+
+use std::collections::VecDeque;
+
+/// A bounded prompt offered by a channel projection.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Prompt {
+    /// Stable coalescing key.
+    pub key: String,
+    /// Human-visible reduced summary.
+    pub summary: String,
+}
+
+/// Explicit evidence explaining an attention decision.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AttentionEvidence {
+    /// Prompts combined behind this decision.
+    pub coalesced: usize,
+    /// Interruptions already spent in the current window.
+    pub interruptions_spent: u32,
+    /// Human-readable policy reason.
+    pub reason: &'static str,
+}
+
+/// Normal outcomes of projecting a prompt.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AttentionDecision {
+    /// Exactly one body-level prompt is visible.
+    Present(Prompt, AttentionEvidence),
+    /// Work remains available for manual continuation without interruption.
+    ContinueManually(AttentionEvidence),
+    /// Silence is the correct projection.
+    Silent(AttentionEvidence),
+}
+
+/// Attention limits supplied by local user policy.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct AttentionPolicy {
+    /// Inclusive start hour of quiet time.
+    pub quiet_start_hour: u8,
+    /// Exclusive end hour of quiet time.
+    pub quiet_end_hour: u8,
+    /// Maximum body interruptions in one policy window.
+    pub max_interruptions: u32,
+}
+
+/// Stateful arbiter that admits at most one active body prompt.
+#[derive(Debug)]
+pub struct AttentionProjector {
+    policy: AttentionPolicy,
+    active: Option<Prompt>,
+    pending: VecDeque<Prompt>,
+    interruptions: u32,
+}
+
+impl AttentionProjector {
+    /// Creates an empty projector.
+    pub fn new(policy: AttentionPolicy) -> Self {
+        Self {
+            policy,
+            active: None,
+            pending: VecDeque::new(),
+            interruptions: 0,
+        }
+    }
+
+    /// Offers a reduced prompt; offline, dropped, and quiet channels stay silent.
+    pub fn offer(&mut self, prompt: Prompt, hour: u8, online: bool) -> AttentionDecision {
+        if !online {
+            return self.silent("offline-or-dropped");
+        }
+        if self.is_quiet(hour) {
+            self.coalesce(prompt);
+            return self.silent("quiet-hours");
+        }
+        if self.interruptions >= self.policy.max_interruptions {
+            self.coalesce(prompt);
+            return AttentionDecision::ContinueManually(self.evidence("interruption-budget-spent"));
+        }
+        if self.active.is_some() {
+            if self
+                .active
+                .as_ref()
+                .is_some_and(|active| active.key == prompt.key)
+            {
+                self.active.as_mut().expect("active checked above").summary = prompt.summary;
+            } else {
+                self.coalesce(prompt);
+            }
+            return AttentionDecision::Present(
+                self.active.clone().expect("active checked above"),
+                self.evidence("one-active-prompt"),
+            );
+        }
+        self.interruptions += 1;
+        self.active = Some(prompt.clone());
+        AttentionDecision::Present(prompt, self.evidence("admitted"))
+    }
+
+    /// Acknowledges the active prompt without automatically interrupting again.
+    pub fn acknowledge(&mut self) {
+        self.active = None;
+    }
+
+    fn coalesce(&mut self, prompt: Prompt) {
+        if let Some(existing) = self.pending.iter_mut().find(|p| p.key == prompt.key) {
+            existing.summary = prompt.summary;
+        } else {
+            self.pending.push_back(prompt);
+        }
+    }
+
+    fn is_quiet(&self, hour: u8) -> bool {
+        let start = self.policy.quiet_start_hour;
+        let end = self.policy.quiet_end_hour;
+        if start <= end {
+            hour >= start && hour < end
+        } else {
+            hour >= start || hour < end
+        }
+    }
+
+    fn evidence(&self, reason: &'static str) -> AttentionEvidence {
+        AttentionEvidence {
+            coalesced: self.pending.len(),
+            interruptions_spent: self.interruptions,
+            reason,
+        }
+    }
+
+    fn silent(&self, reason: &'static str) -> AttentionDecision {
+        AttentionDecision::Silent(self.evidence(reason))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn projector(max: u32) -> AttentionProjector {
+        AttentionProjector::new(AttentionPolicy {
+            quiet_start_hour: 22,
+            quiet_end_hour: 7,
+            max_interruptions: max,
+        })
+    }
+
+    #[test]
+    fn burst_never_exceeds_one_body_level_prompt() {
+        let mut p = projector(2);
+        for n in 0..50 {
+            let decision = p.offer(
+                Prompt {
+                    key: format!("job-{}", n % 3),
+                    summary: format!("update-{n}"),
+                },
+                12,
+                true,
+            );
+            let AttentionDecision::Present(_, evidence) = decision else {
+                panic!("active prompt must remain visible")
+            };
+            assert!(evidence.interruptions_spent <= 1);
+        }
+    }
+
+    #[test]
+    fn silence_offline_quiet_and_manual_continuation_are_normal() {
+        let prompt = Prompt {
+            key: "mission".into(),
+            summary: "ready".into(),
+        };
+        let mut p = projector(1);
+        assert!(matches!(
+            p.offer(prompt.clone(), 12, false),
+            AttentionDecision::Silent(_)
+        ));
+        assert!(matches!(
+            p.offer(prompt.clone(), 23, true),
+            AttentionDecision::Silent(_)
+        ));
+        assert!(matches!(
+            p.offer(prompt.clone(), 12, true),
+            AttentionDecision::Present(_, _)
+        ));
+        p.acknowledge();
+        assert!(matches!(
+            p.offer(prompt, 12, true),
+            AttentionDecision::ContinueManually(_)
+        ));
+    }
+}
+```
+
 ### `feature/sim-web/codec-surface-sessions`
 
 Specimen `spec-test/sim-web/crates/sim-lib-web-bridge/src/surface_session_tests` is checked by `cargo test`.
@@ -2409,6 +2629,321 @@ fn sessions_are_isolated_by_transport_and_subscription_state() {
         Some(&number("1"))
     );
 }
+```
+
+### `feature/sim-web/optional-endpoint-continuity-roles`
+
+Specimen `spec-test/sim-web/crates/sim-lib-view-wrist/src/continuity_role_tests` is checked by `cargo test`.
+
+Source `crates/sim-lib-view-wrist/src/continuity_role_tests.rs`:
+
+```rust
+// conformance: optional endpoint roles remain bounded, generation-fenced, and fail closed.
+
+use sim_kernel::{Expr, Symbol};
+use sim_lib_intent::{field, intent_kind_of, validate_intent};
+use sim_lib_scene::{GlanceAction, GlanceCard, GlanceMetric};
+use sim_value::build;
+
+use crate::{
+    EndpointAction, EndpointCandidate, EndpointRole, OptionalEndpointRoleAdapter, RoleAuthority,
+};
+
+fn candidate(id: &str) -> EndpointCandidate {
+    EndpointCandidate {
+        id: Symbol::new(id),
+        roles: vec![EndpointRole::Glance, EndpointRole::SemanticAction],
+    }
+}
+
+fn authority(generation: u64) -> RoleAuthority {
+    RoleAuthority {
+        connected: true,
+        session_consent: true,
+        visible_focus: true,
+        role_admitted: true,
+        provider_evidence: true,
+        route_present: true,
+        root_present: true,
+        route_generation: generation,
+        route_expires_at_ms: 200,
+        now_ms: 100,
+    }
+}
+
+fn filtered_glance() -> Expr {
+    GlanceCard::new(
+        "Ready",
+        Some(GlanceMetric::new("status", "filtered")),
+        Some(GlanceAction::new("Continue", build::sym("continue"))),
+        "info",
+        4,
+    )
+    .to_scene()
+}
+
+#[test]
+fn projection_is_one_glance_and_only_bounded_semantic_actions() {
+    let mut adapter = OptionalEndpointRoleAdapter::default();
+    let projection = adapter
+        .project(&candidate("watch"), &filtered_glance(), authority(7))
+        .unwrap();
+    assert_eq!(projection.glance, filtered_glance());
+
+    for action in [
+        EndpointAction::Primary,
+        EndpointAction::Acknowledge,
+        EndpointAction::Defer,
+        EndpointAction::Cancel,
+    ] {
+        let intent = adapter
+            .intent_for(&projection, action, authority(7), 12)
+            .unwrap();
+        validate_intent(&intent).unwrap();
+        let kind = intent_kind_of(&intent).unwrap();
+        assert!(matches!(kind.name.as_ref(), "invoke" | "cancel"));
+        if let Some(Expr::Symbol(op)) = field(&intent, "op") {
+            assert_eq!(op.namespace.as_deref(), Some("continuity/action"));
+            assert!(!op.name.contains("pointer"));
+            assert!(!op.name.contains("effect"));
+        }
+    }
+    let stop = adapter
+        .intent_for(&projection, EndpointAction::Stop, authority(7), 13)
+        .unwrap();
+    validate_intent(&stop).unwrap();
+    assert!(
+        adapter
+            .intent_for(&projection, EndpointAction::Acknowledge, authority(7), 14)
+            .is_err()
+    );
+}
+
+#[test]
+fn every_authority_loss_and_prior_generation_fails_closed() {
+    let mut losses: Vec<fn(&mut RoleAuthority)> = vec![
+        |a| a.connected = false,
+        |a| a.session_consent = false,
+        |a| a.visible_focus = false,
+        |a| a.role_admitted = false,
+        |a| a.provider_evidence = false,
+        |a| a.route_present = false,
+        |a| a.root_present = false,
+        |a| a.now_ms = a.route_expires_at_ms,
+    ];
+    for lose in losses.drain(..) {
+        let mut adapter = OptionalEndpointRoleAdapter::default();
+        let projection = adapter
+            .project(&candidate("optional"), &filtered_glance(), authority(3))
+            .unwrap();
+        let mut lost = authority(3);
+        lose(&mut lost);
+        assert!(
+            adapter
+                .intent_for(&projection, EndpointAction::Acknowledge, lost, 1)
+                .is_err()
+        );
+    }
+
+    let mut adapter = OptionalEndpointRoleAdapter::default();
+    let old = adapter
+        .project(&candidate("optional"), &filtered_glance(), authority(3))
+        .unwrap();
+    let _new = adapter
+        .project(&candidate("optional"), &filtered_glance(), authority(4))
+        .unwrap();
+    assert!(
+        adapter
+            .intent_for(&old, EndpointAction::Acknowledge, authority(3), 2)
+            .is_err()
+    );
+}
+
+#[test]
+fn phone_watch_and_fictional_future_candidate_share_scene_and_intent_identity() {
+    let scene = filtered_glance();
+    let mut identities = Vec::new();
+    for id in ["phone", "watch", "fictional-future-halo"] {
+        let mut adapter = OptionalEndpointRoleAdapter::default();
+        let projection = adapter
+            .project(&candidate(id), &scene, authority(11))
+            .unwrap();
+        let intent = adapter
+            .intent_for(&projection, EndpointAction::Primary, authority(11), 9)
+            .unwrap();
+        identities.push((projection.glance, intent));
+    }
+    assert_eq!(identities[0], identities[1]);
+    assert_eq!(identities[1], identities[2]);
+}
+
+#[test]
+fn adapter_retains_no_endpoint_content_or_private_truth() {
+    assert_eq!(core::mem::size_of::<OptionalEndpointRoleAdapter>(), 16);
+    let inadmissible = EndpointCandidate {
+        id: Symbol::new("display-only"),
+        roles: vec![EndpointRole::Glance],
+    };
+    assert!(
+        OptionalEndpointRoleAdapter::default()
+            .project(&inadmissible, &filtered_glance(), authority(1))
+            .is_err()
+    );
+}
+```
+
+### `feature/sim-web/continuity-phone-surface`
+
+Specimen `spec-test/sim-web/crates/sim-lib-view-continuity-phone/src/tests` is checked by `cargo test`.
+
+Source `crates/sim-lib-view-continuity-phone/src/tests.rs`:
+
+```rust
+use super::*;
+use sim_kernel::testing::bare_cx as cx;
+use sim_lib_continuity::RoleDemand;
+
+fn plan() -> ContinuityPlan {
+    ContinuityPlan {
+        retention_turns: 64,
+        max_freshness: 10,
+        disclosure: vec![Symbol::new("transcript"), Symbol::new("result")],
+        roles: vec![RoleDemand {
+            role: Symbol::new("root"),
+            root: true,
+            required_services: vec![],
+            fallbacks: vec![],
+        }],
+        ..ContinuityPlan::default()
+    }
+}
+
+#[test]
+fn minimal_flow_rebuilds_every_view_and_never_needs_sound() {
+    let mut controller = PhoneController::new(
+        plan(),
+        vec![Symbol::new("transcript"), Symbol::new("result")],
+    )
+    .unwrap();
+    controller
+        .apply_action(PhoneAction::HoldToTalk, 0, 1)
+        .unwrap();
+    let generation = controller.capture_generation().unwrap();
+    assert_eq!(controller.accept_pcm(generation, &[1, 2, 3]), 3);
+    controller.apply_action(PhoneAction::Release, 1, 2).unwrap();
+    assert_eq!(controller.accept_pcm(generation, &[4, 5]), 0);
+    controller
+        .accept_transcript("quiet answer".into(), 2, 3)
+        .unwrap();
+    let first = controller.projection().unwrap();
+    let rebuilt = controller.projection().unwrap();
+    assert_eq!(first, rebuilt);
+    assert_eq!(rebuilt.transcript.as_deref(), Some("quiet answer"));
+    assert!(!rebuilt.sound_available);
+    let scene = PhoneSurfaceCodec
+        .encode(
+            &mut cx(),
+            &rebuilt.to_expr(),
+            &sim_lib_view::surface::preset("phone").unwrap(),
+        )
+        .unwrap();
+    validate_scene(&scene).unwrap();
+    controller.apply_action(PhoneAction::Submit, 3, 4).unwrap();
+    controller
+        .accept_result("visible result".into(), 4, 5)
+        .unwrap();
+    let result = controller.projection().unwrap();
+    assert_eq!(result.state.name.as_ref(), "result-review");
+    assert_eq!(result.result.as_deref(), Some("visible result"));
+    assert!(matches!(
+        controller.apply_action(PhoneAction::Submit, 3, 5),
+        Err(JournalError::FenceConflict)
+    ));
+}
+
+#[test]
+fn passive_events_never_arm_and_every_stop_boundary_rejects_pcm() {
+    for passive in [
+        PassiveEvent::Focus,
+        PassiveEvent::PageOpen,
+        PassiveEvent::Notification,
+        PassiveEvent::Connection,
+        PassiveEvent::Stale,
+        PassiveEvent::Rotation,
+    ] {
+        let mut controller = PhoneController::new(plan(), vec![]).unwrap();
+        controller.observe(passive);
+        assert_eq!(controller.capture_generation(), None);
+    }
+    for stop in [
+        PhoneAction::Release,
+        PhoneAction::Discard,
+        PhoneAction::Defer,
+        PhoneAction::Cancel,
+        PhoneAction::Stop,
+    ] {
+        let mut controller = PhoneController::new(plan(), vec![]).unwrap();
+        controller
+            .apply_action(PhoneAction::HoldToTalk, 0, 1)
+            .unwrap();
+        let generation = controller.capture_generation().unwrap();
+        controller.apply_action(stop, 1, 2).unwrap();
+        assert_eq!(controller.accept_pcm(generation, &[1]), 0);
+    }
+}
+
+#[test]
+fn actions_are_ordinary_intents_and_hostile_text_is_scene_data() {
+    let mut controller = PhoneController::new(plan(), vec![Symbol::new("transcript")]).unwrap();
+    let actions = [
+        PhoneAction::HoldToTalk,
+        PhoneAction::Release,
+        PhoneAction::Review,
+        PhoneAction::Submit,
+        PhoneAction::Discard,
+        PhoneAction::Type("</script><b>not markup</b>".into()),
+        PhoneAction::Replay,
+        PhoneAction::Defer,
+        PhoneAction::Cancel,
+        PhoneAction::Stop,
+        PhoneAction::StrongerPlacement,
+    ];
+    for action in &actions {
+        sim_lib_intent::validate_intent(&controller.intent_for(action, 1)).unwrap();
+    }
+    controller.apply_action(actions[5].clone(), 0, 1).unwrap();
+    let projection = controller.projection().unwrap();
+    assert_eq!(
+        projection.transcript.as_deref(),
+        Some("</script><b>not markup</b>")
+    );
+    let rendered = PhoneSurfaceCodec
+        .encode(
+            &mut cx(),
+            &projection.to_expr(),
+            &sim_lib_view::surface::preset("phone").unwrap(),
+        )
+        .unwrap();
+    assert!(format!("{rendered:?}").contains("not markup"));
+}
+
+#[test]
+fn disclosure_ceiling_is_applied_before_projection_and_manual_fallback_survives_rotation() {
+    let mut controller = PhoneController::new(plan(), vec![]).unwrap();
+    controller
+        .apply_action(PhoneAction::Type("private".into()), 0, 1)
+        .unwrap();
+    controller.observe(PassiveEvent::Rotation);
+    assert_eq!(
+        controller.projection().unwrap().transcript.as_deref(),
+        Some("[withheld]")
+    );
+    assert!(matches!(
+        controller.apply_action(PhoneAction::Review, 0, 2),
+        Err(JournalError::FenceConflict)
+    ));
+}
+// conformance: continuity-phone tests prove journal projection and silent interaction policy.
 ```
 
 ### `feature/sim-web/server-backed-web-sessions`
@@ -3159,6 +3694,14 @@ fn web_serve_does_not_preload_demo_codecs() {
             dry_run: true,
             ..ServeConfig::default()
         },
+        {
+            let model =
+                std::sync::Arc::new(sim_transport_ports::model::ScriptedStreamPort::new([]));
+            std::sync::Arc::new(crate::ModelShellServices::new(
+                model.services(),
+                Default::default(),
+            ))
+        },
     )
     .unwrap();
     let loaded: Vec<String> = cx
@@ -3270,11 +3813,19 @@ fn resolve_relative_module_path(from: &str, import: &str) -> Option<String> {
 }
 
 fn cli_cx() -> Cx {
-    Cx::new(Arc::new(NoopEvalPolicy), Arc::new(DefaultFactory))
+    Cx::new(
+        Arc::new(NoopEvalPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0x5745_4254),
+    )
 }
 
 fn cookbook_cx() -> Cx {
-    let (mut cx, seat) = Cx::new_seated(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let (mut cx, seat) = Cx::new_seated(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0x5745_4255),
+    );
     register_core_classes(&mut cx);
     let lisp = LispCodecLib::new(cx.registry_mut().fresh_codec_id()).unwrap();
     cx.load_lib(&lisp).unwrap();
@@ -3347,6 +3898,33 @@ fn the_shell_supports_reduced_motion_and_keyboard_operation() {
         "applies reduced-motion"
     );
     assert!(js.contains("keydown"), "installs a keyboard spine");
+}
+
+#[test]
+fn host_shell_production_sources_have_no_ambient_os_realization() {
+    let sources = [
+        include_str!("atelier.rs"),
+        include_str!("live.rs"),
+        include_str!("serve.rs"),
+    ]
+    .join("\n");
+    for forbidden in [
+        "std::net",
+        "TcpListener",
+        "TcpStream",
+        "ToSocketAddrs",
+        "/dev/urandom",
+        "Instant::now",
+        "fs::read_to_string",
+        "Command::new",
+    ] {
+        assert!(
+            !sources.contains(forbidden),
+            "web shell production source still realizes {forbidden}"
+        );
+    }
+    assert!(include_str!("../Cargo.toml").contains("sim-transport-ports"));
+    assert!(!include_str!("../Cargo.toml").contains("[[bin]]"));
 }
 ```
 
@@ -3438,4 +4016,681 @@ fn web_recipe_sources_are_registered_for_generated_docs() {
         assert!(source.contains("codec = \"lisp\""));
     }
 }
+```
+
+### `feature/sim-web/estate-surface`
+
+Specimen `spec-test/sim-web/crates/sim-lib-view-estate/src/lib` is checked by `cargo test`.
+
+Source `crates/sim-lib-view-estate/src/lib.rs`:
+
+```rust
+#![forbid(unsafe_code)]
+#![deny(missing_docs)]
+//! Reversible estate Surface scenes. Rendering is pure; operations compile to
+//! exact typed organ calls and never carry shell or provider command text.
+
+use sim_kernel::Expr;
+use sim_lib_estate_book::Key;
+use sim_lib_estate_serve::Call;
+use sim_lib_scene::{data_map, node, sym};
+
+/// Every estate scene supported by the shared Surface protocol.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum SceneKind {
+    /// Cross-estate summary.
+    Overview,
+    /// Provider and inventory discovery.
+    Discovery,
+    /// Content-bound proposed change.
+    PlanDiff,
+    /// Human approval review.
+    Review,
+    /// Live durable event stream.
+    LiveEvents,
+    /// Verification result.
+    Verification,
+    /// Historical runs.
+    History,
+    /// Ambiguous post-dispatch state.
+    Unknown,
+    /// Isolated targets and evidence.
+    Quarantine,
+    /// Reconciliation result.
+    Reconciliation,
+}
+
+/// Complete visible review material, content-bound to one plan key.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Review {
+    /// Exact content-addressed plan.
+    pub plan: Key,
+    /// Sanitized provider identity.
+    pub provider: String,
+    /// Portable project fingerprint.
+    pub project: String,
+    /// Content-addressed inventory.
+    pub inventory: Key,
+    /// Exact sanitized targets.
+    pub targets: Vec<String>,
+    /// Shaped parameter display.
+    pub parameters: Vec<(String, String)>,
+    /// Computed risk class.
+    pub risk: String,
+    /// Absolute approval expiry.
+    pub expires_at: u64,
+    /// Provider preview evidence.
+    pub preview: String,
+    /// Required verification policy.
+    pub verification: String,
+}
+
+/// Reversible user operations recognized by the estate lens.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Edit {
+    /// Construct a plan for a closed operation id.
+    Plan {
+        /// Closed exposure operation id.
+        operation: String,
+    },
+    /// Request human review of the visible plan.
+    Review,
+    /// Apply with exact reviewed evidence.
+    Apply {
+        /// Content-bound approval evidence.
+        approval: Key,
+    },
+    /// Reconcile a run from retained evidence.
+    Reconcile {
+        /// Durable run id.
+        run: String,
+    },
+    /// Apply an explicitly reviewed quarantine override.
+    Override {
+        /// Quarantined run id.
+        run: String,
+        /// Content-bound override approval.
+        approval: Key,
+    },
+}
+
+/// Stale-scene refusal from reverse compilation.
+#[derive(Clone, Debug, Eq, PartialEq, thiserror::Error)]
+#[error("stale estate scene: expected {expected:?}, current {current:?}")]
+pub struct Stale {
+    /// Plan key captured by the scene.
+    pub expected: Key,
+    /// Current organ plan key.
+    pub current: Key,
+}
+
+/// One codec object owns both the forward scene and reverse operation paths.
+pub struct EstateSurfaceCodec;
+impl EstateSurfaceCodec {
+    /// Render any estate state into a valid Scene value.
+    pub fn encode(kind: SceneKind, plan: Option<&Key>, fields: Vec<(&str, Expr)>) -> Expr {
+        let mut data = vec![
+            ("lens", sym("view:estate")),
+            ("estate-scene", sym(scene_name(kind))),
+        ];
+        if let Some(key) = plan {
+            data.push(("plan-key", Expr::String(key.0.clone())));
+        }
+        data.extend(fields);
+        node(
+            if kind == SceneKind::LiveEvents {
+                "timeline"
+            } else {
+                "table"
+            },
+            data,
+        )
+    }
+
+    /// Render review with every authority-relevant field visible before issuance.
+    pub fn review(review: &Review) -> Expr {
+        Self::encode(
+            SceneKind::Review,
+            Some(&review.plan),
+            vec![(
+                "review",
+                data_map(vec![
+                    ("provider", Expr::String(review.provider.clone())),
+                    ("project", Expr::String(review.project.clone())),
+                    ("inventory", Expr::String(review.inventory.0.clone())),
+                    (
+                        "targets",
+                        Expr::List(review.targets.iter().cloned().map(Expr::String).collect()),
+                    ),
+                    (
+                        "parameters",
+                        Expr::List(
+                            review
+                                .parameters
+                                .iter()
+                                .map(|(k, v)| {
+                                    data_map(vec![
+                                        ("name", Expr::String(k.clone())),
+                                        ("value", Expr::String(v.clone())),
+                                    ])
+                                })
+                                .collect(),
+                        ),
+                    ),
+                    ("risk", Expr::String(review.risk.clone())),
+                    ("expiry", Expr::String(review.expires_at.to_string())),
+                    ("preview", Expr::String(review.preview.clone())),
+                    ("verification", Expr::String(review.verification.clone())),
+                ]),
+            )],
+        )
+    }
+
+    /// Compile an edit to the exact current plan, refusing stale scenes.
+    pub fn decode(scene_plan: &Key, current_plan: &Key, edit: Edit) -> Result<Call, Stale> {
+        if scene_plan != current_plan {
+            return Err(Stale {
+                expected: scene_plan.clone(),
+                current: current_plan.clone(),
+            });
+        }
+        Ok(match edit {
+            Edit::Plan { operation } => Call::Plan { operation },
+            Edit::Review => Call::Review {
+                plan: current_plan.clone(),
+            },
+            Edit::Apply { approval } => Call::Apply {
+                plan: current_plan.clone(),
+                approval,
+            },
+            Edit::Reconcile { run } => Call::Reconcile { run },
+            Edit::Override { run, approval } => Call::Override {
+                run,
+                plan: current_plan.clone(),
+                approval,
+            },
+        })
+    }
+}
+
+fn scene_name(kind: SceneKind) -> &'static str {
+    match kind {
+        SceneKind::Overview => "overview",
+        SceneKind::Discovery => "discovery",
+        SceneKind::PlanDiff => "plan-diff",
+        SceneKind::Review => "review",
+        SceneKind::LiveEvents => "live-events",
+        SceneKind::Verification => "verification",
+        SceneKind::History => "history",
+        SceneKind::Unknown => "unknown",
+        SceneKind::Quarantine => "quarantine",
+        SceneKind::Reconciliation => "reconciliation",
+    }
+}
+
+// conformance: estate scenes and reverse edits remain valid and content-bound.
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn all_scenes_are_valid() {
+        for kind in [
+            SceneKind::Overview,
+            SceneKind::Discovery,
+            SceneKind::PlanDiff,
+            SceneKind::Review,
+            SceneKind::LiveEvents,
+            SceneKind::Verification,
+            SceneKind::History,
+            SceneKind::Unknown,
+            SceneKind::Quarantine,
+            SceneKind::Reconciliation,
+        ] {
+            assert!(
+                sim_lib_scene::validate_scene(&EstateSurfaceCodec::encode(kind, None, vec![]))
+                    .is_ok()
+            );
+        }
+    }
+    #[test]
+    fn stale_operation_refuses() {
+        let old = Key("old".into());
+        let new = Key("new".into());
+        assert!(EstateSurfaceCodec::decode(&old, &new, Edit::Review).is_err());
+    }
+    #[test]
+    fn operation_contains_no_command_text() {
+        let key = Key("plan".into());
+        let call = EstateSurfaceCodec::decode(
+            &key,
+            &key,
+            Edit::Apply {
+                approval: Key("approval".into()),
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            call,
+            Call::Apply {
+                plan: key,
+                approval: Key("approval".into())
+            }
+        );
+    }
+}
+```
+
+### `feature/sim-web/search-audit-surface`
+
+Specimen `recipe/sim-web/crates/sim-lib-view-search/01-basics/offline-audit` is checked by `xtask check-recipes`.
+
+Source `crates/sim-lib-view-search/recipes/01-basics/offline-audit/recipe.toml`:
+
+```toml
+schema = "sim.recipe"
+id = "search/offline-audit"
+title = "Review search provenance without network authority"
+purpose = "Audit canonical search provenance and captured evidence without network access."
+summary = "Render a canonical SearchRun, immutable capture, normalized representation, checked selector, policy receipt, and office anchor as an offline audit Scene."
+entry = "README.md"
+
+[[checks]]
+kind = "file-contains"
+path = "README.md"
+contains = "PROVIDER CLAIM"
+```
+
+Specimen `spec-test/sim-web/crates/sim-lib-view-search/src/tests` is checked by `cargo test`.
+
+Source `crates/sim-lib-view-search/src/tests.rs`:
+
+```rust
+use super::*;
+use sim_kernel::{ContentId, Datum, NumberLiteral, Symbol};
+use sim_lib_net_core::normalize_retrieval_uri;
+use sim_lib_search_core::{RankContribution, SearchNotice, SearchPage, SearchQuery, SearchSite};
+use sim_lib_web_core::{
+    DecodeLimits, RepresentationMetadata, WebCapture, WebExchange, WebRepresentation,
+};
+
+fn fixture() -> (SearchRun, WebCapture, WebRepresentation, Citation) {
+    let query = SearchQuery::checked(
+        "SIM <script>alert(1)</script>".into(),
+        vec![SearchSite {
+            domain: "example.test".into(),
+            include_subdomains: false,
+        }],
+        None,
+        10,
+    )
+    .unwrap();
+    let uri = normalize_retrieval_uri(
+        "https://example.test/%D9%85%D8%B1%D8%AD%D8%A8%D8%A7?long=abcdefghijklmnopqrstuvwxyz",
+    )
+    .unwrap();
+    let body = b"verified quotation".to_vec();
+    let raw_id = Datum::Bytes(body.clone()).content_id().unwrap();
+    let capture = WebCapture::checked(
+        uri.clone(),
+        raw_id,
+        body,
+        WebExchange {
+            method: "GET".into(),
+            status: 200,
+            final_uri: uri.as_str().into(),
+            media_type: Some("text/plain".into()),
+            received_bytes: 18,
+        },
+        DecodeLimits::default(),
+    )
+    .unwrap();
+    let rep = WebRepresentation::checked(
+        capture.content_id.clone(),
+        "verified quotation".into(),
+        RepresentationMetadata {
+            codec: "text".into(),
+            codec_version: "1".into(),
+            media_type: "text/plain".into(),
+            charset: Some("utf-8".into()),
+            language: None,
+            fidelity_warnings: vec!["script nodes removed".into()],
+        },
+        DecodeLimits::default(),
+    )
+    .unwrap();
+    let selector = rep.select(0, 8).unwrap();
+    let citation = Citation::checked(&rep, selector).unwrap();
+    let observation = sim_lib_search_core::SearchObservation::checked(
+        capture.retrieval_uri.as_str(),
+        Some(ProviderClaim {
+            provider: "fixture".into(),
+            uri: capture.retrieval_uri.as_str().into(),
+            title: Some("<img src=x>".into()),
+            snippet: Some("not verified".into()),
+            position: Some(1),
+        }),
+        Some(capture.content_id.clone()),
+    )
+    .unwrap();
+    let run = SearchRun {
+        query: query.clone(),
+        pages: vec![SearchPage {
+            query,
+            observations: vec![observation],
+            continuation: None,
+        }],
+        notices: vec![SearchNotice {
+            code: "partial".into(),
+            message: "one engine offline".into(),
+        }],
+        aliases: vec![],
+        rank: vec![RankContribution {
+            observation: 0,
+            contributor: "site/fixture".into(),
+            score: NumberLiteral {
+                domain: Symbol::qualified("core", "decimal"),
+                canonical: "0.5".into(),
+            },
+            reason: "reciprocal rank".into(),
+        }],
+    };
+    (run, capture, rep, citation)
+}
+
+#[test]
+fn snapshot_distinguishes_claims_quotes_and_full_provenance() {
+    let (run, capture, rep, citation) = fixture();
+    let warnings = vec!["script nodes removed".to_owned()];
+    let evidence = [CaptureEvidence {
+        capture: &capture,
+        representation: &rep,
+        policy_receipt: "policy:7/exchange:9",
+        robots_outcome: "allowed from immutable robots receipt",
+        fidelity_warnings: &warnings,
+    }];
+    let records = AuditRecords {
+        run: &run,
+        captures: &evidence,
+        citations: &[citation],
+        office_anchors: &["doc:research#p4".into()],
+        policy_revision: "policy:7",
+        judge_receipt: Some("judge:2"),
+        fetch_decisions: &["selected by final order; fetched".into()],
+    };
+    for layout in [Layout::Compact, Layout::Tablet, Layout::Desktop] {
+        let scene = render(
+            &records,
+            &ViewState {
+                layout,
+                selected: Some(0),
+                expanded: vec![0],
+                offline: true,
+                cancelled: false,
+            },
+        )
+        .unwrap();
+        let snapshot = format!("{scene:?}");
+        assert!(snapshot.contains("PROVIDER CLAIM — UNVERIFIED — NOT A CITATION"));
+        assert!(snapshot.contains("Verified captured quotation"));
+        assert!(snapshot.contains("FIDELITY WARNING"));
+        assert!(snapshot.contains("Rank contribution"));
+        assert!(snapshot.contains("Raw capture id"));
+        assert!(snapshot.contains("policy:7/exchange:9"));
+        assert!(!snapshot.contains("scene/image"));
+    }
+}
+
+#[test]
+fn actions_round_trip_without_ambient_effects() {
+    let mut state = ViewState::default();
+    assert_eq!(apply_action(&mut state, SearchAction::Select(4)), None);
+    assert_eq!(
+        apply_action(&mut state, SearchAction::ToggleProvenance(4)),
+        None
+    );
+    assert_eq!(apply_action(&mut state, SearchAction::Cancel), None);
+    assert!(state.cancelled && state.expanded == [4] && state.selected == Some(4));
+    let open = SearchAction::RequestOpen {
+        uri: "https://example.test".into(),
+        policy_receipt: "denied:offline".into(),
+    };
+    assert_eq!(apply_action(&mut state, open.clone()), Some(open));
+    let query = SearchAction::SubmitQuery("new query".into());
+    assert_eq!(apply_action(&mut state, query.clone()), Some(query));
+}
+
+#[test]
+fn tampered_anchor_fails_closed_and_empty_offline_is_usable() {
+    let (run, capture, rep, mut citation) = fixture();
+    citation.selector.representation_id =
+        ContentId::from_bytes(Symbol::qualified("core", "sha256"), [7; 32]);
+    let evidence = [CaptureEvidence {
+        capture: &capture,
+        representation: &rep,
+        policy_receipt: "denied",
+        robots_outcome: "denied",
+        fidelity_warnings: &[],
+    }];
+    let records = AuditRecords {
+        run: &run,
+        captures: &evidence,
+        citations: &[citation],
+        office_anchors: &[],
+        policy_revision: "offline",
+        judge_receipt: None,
+        fetch_decisions: &["denied by policy".into()],
+    };
+    assert!(matches!(
+        render(&records, &ViewState::default()),
+        Err(AuditError::TamperedAnchor(_))
+    ));
+    let empty = SearchRun {
+        pages: vec![],
+        rank: vec![],
+        ..run
+    };
+    let records = AuditRecords {
+        run: &empty,
+        captures: &[],
+        citations: &[],
+        office_anchors: &[],
+        policy_revision: "offline",
+        judge_receipt: None,
+        fetch_decisions: &[],
+    };
+    let snapshot = format!("{:?}", render(&records, &ViewState::default()).unwrap());
+    assert!(snapshot.contains("No results"));
+}
+// conformance: search-view tests prove inert provenance projection and explicit activation.
+```
+
+### `feature/sim-web/reversible-worktable`
+
+Specimen `spec-test/sim-web/crates/sim-lib-view-worktable/src/lib` is checked by `cargo test`.
+
+Source `crates/sim-lib-view-worktable/src/lib.rs`:
+
+```rust
+//! Rebuildable projection for a reversible expedition product.
+
+use std::collections::BTreeMap;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Availability {
+    Modeled,
+    Claimed,
+    Stale,
+    Unsupported,
+    Verified,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum EffectState {
+    Unavailable,
+    Disarmed,
+    Armed,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RoomCard {
+    pub pack: String,
+    pub summary: String,
+    pub route: Availability,
+    pub device: Availability,
+    pub fallback: String,
+    pub effect: EffectState,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ValueObservation {
+    pub comparison: Option<String>,
+    pub setup_minutes: u32,
+    pub creative_block_minutes: u32,
+    pub recoveries: u32,
+    pub discarded_tools: Vec<String>,
+    pub adopted_tools: Vec<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ValueConclusion {
+    InsufficientEvidence,
+    Compared { comparison: String },
+}
+
+impl ValueObservation {
+    pub fn conclusion(&self) -> ValueConclusion {
+        self.comparison
+            .as_ref()
+            .filter(|value| !value.trim().is_empty())
+            .map_or(ValueConclusion::InsufficientEvidence, |comparison| {
+                ValueConclusion::Compared {
+                    comparison: comparison.clone(),
+                }
+            })
+    }
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct Worktable {
+    pub expedition: Option<String>,
+    pub pack_closure: Option<String>,
+    pub rooms: BTreeMap<String, RoomCard>,
+    pub evidence: Vec<String>,
+    pub objections: Vec<String>,
+    pub attention: Option<String>,
+    pub export: Option<String>,
+    pub edits: Vec<WorktableEdit>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum WorktableEdit {
+    Open {
+        expedition: String,
+        pack_closure: String,
+    },
+    PutRoom(RoomCard),
+    RemoveRoom {
+        pack: String,
+    },
+    CiteEvidence(String),
+    Object(String),
+    Attend(String),
+    Export(String),
+}
+
+impl Worktable {
+    pub fn replay(edits: &[WorktableEdit]) -> Self {
+        let mut table = Self::default();
+        for edit in edits {
+            table.apply(edit.clone());
+        }
+        table
+    }
+
+    pub fn apply(&mut self, edit: WorktableEdit) {
+        match &edit {
+            WorktableEdit::Open {
+                expedition,
+                pack_closure,
+            } => {
+                self.expedition = Some(expedition.clone());
+                self.pack_closure = Some(pack_closure.clone());
+            }
+            WorktableEdit::PutRoom(card) => {
+                self.rooms.insert(card.pack.clone(), card.clone());
+            }
+            WorktableEdit::RemoveRoom { pack } => {
+                self.rooms.remove(pack);
+            }
+            WorktableEdit::CiteEvidence(value) => self.evidence.push(value.clone()),
+            WorktableEdit::Object(value) => self.objections.push(value.clone()),
+            WorktableEdit::Attend(value) => self.attention = Some(value.clone()),
+            WorktableEdit::Export(value) => self.export = Some(value.clone()),
+        }
+        self.edits.push(edit);
+    }
+
+    pub fn undo(&mut self) -> Option<WorktableEdit> {
+        let edit = self.edits.pop()?;
+        *self = Self::replay(&self.edits);
+        Some(edit)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn card(pack: &str, effect: EffectState) -> RoomCard {
+        RoomCard {
+            pack: pack.into(),
+            summary: "ready offline".into(),
+            route: Availability::Modeled,
+            device: Availability::Unsupported,
+            fallback: "continue manually".into(),
+            effect,
+        }
+    }
+
+    #[test]
+    fn projection_replays_undoes_and_exposes_effect_arming() {
+        let edits = vec![
+            WorktableEdit::Open {
+                expedition: "content:expedition".into(),
+                pack_closure: "sha256:closure".into(),
+            },
+            WorktableEdit::PutRoom(card("music-atlas", EffectState::Disarmed)),
+            WorktableEdit::CiteEvidence("content:render".into()),
+            WorktableEdit::Object("mapping-is-artistic".into()),
+            WorktableEdit::Attend("manual-continuation".into()),
+            WorktableEdit::Export("content:book-export".into()),
+        ];
+        let mut table = Worktable::replay(&edits);
+        assert_eq!(table.edits, edits);
+        assert_eq!(table.rooms["music-atlas"].effect, EffectState::Disarmed);
+        assert_eq!(
+            table.undo(),
+            Some(WorktableEdit::Export("content:book-export".into()))
+        );
+        assert_eq!(table.export, None);
+        assert_eq!(Worktable::replay(&table.edits), table);
+    }
+
+    #[test]
+    fn value_projection_never_infers_personal_value() {
+        let observation = ValueObservation {
+            comparison: None,
+            setup_minutes: 9,
+            creative_block_minutes: 84,
+            recoveries: 2,
+            discarded_tools: vec!["candidate-a".into()],
+            adopted_tools: vec!["candidate-b".into()],
+        };
+        assert_eq!(
+            observation.conclusion(),
+            ValueConclusion::InsufficientEvidence
+        );
+    }
+}
+// conformance: worktable tests prove replay, undo, effect arming, and evidence refusal.
 ```

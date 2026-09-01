@@ -165,5 +165,9 @@ fn scene_kind(expr: &Expr) -> Option<String> {
 }
 
 fn test_cx() -> Cx {
-    Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory))
+    Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0x4c3e_6eaf_2a3a_28b7),
+    )
 }

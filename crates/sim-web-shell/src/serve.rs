@@ -6,7 +6,6 @@
 
 use std::fmt;
 use std::io::{BufRead, BufReader, Write};
-use std::net::{TcpListener, TcpStream, ToSocketAddrs};
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
@@ -39,6 +38,7 @@ use crate::live::{
 use sim_kernel::Cx;
 use sim_lib_net_core::{CapOutcome, read_capped_line};
 use sim_lib_server::{CookbookWebResponse, CookbookWebState};
+use sim_transport_ports::{SocketAddress, Stream, TransportError};
 
 /// Configuration for the shell server.
 pub struct ServeConfig {
@@ -84,8 +84,19 @@ impl Default for ServeConfig {
 /// web-serve composition point (`configure_web_bootloader`, through the boot
 /// session's host GrantSeat), not self-granted here; `run_recipe` gates each run
 /// on it.
-pub fn serve_with_cx(cx: &mut Cx, config: &ServeConfig) -> std::io::Result<()> {
-    serve_with_surface_factory(cx, config, Box::new(DefaultLiveSurfaceFactory))
+pub fn serve_with_cx(
+    cx: &mut Cx,
+    config: &ServeConfig,
+    services: Arc<dyn crate::ShellServices>,
+) -> std::io::Result<()> {
+    serve_with_surface_factory(
+        cx,
+        config,
+        Box::new(DefaultLiveSurfaceFactory::new(sim_kernel::HandleSeed::new(
+            0x5745_4253,
+        ))),
+        services,
+    )
 }
 
 /// Bind and serve the shell with a caller-provided browser surface factory.
@@ -98,34 +109,71 @@ pub fn serve_with_surface_factory(
     cx: &mut Cx,
     config: &ServeConfig,
     surface_factory: Box<dyn LiveSurfaceFactory + Send + Sync>,
+    services: Arc<dyn crate::ShellServices>,
 ) -> std::io::Result<()> {
     if config.dry_run {
         println!("sim-web-shell: dry-run OK");
         return Ok(());
     }
 
-    let listener = bind(&config.addr)?;
-    let local = listener.local_addr()?;
-    let mut state = ShellState::with_surface_factory(config, cx, surface_factory)?;
-    println!("sim-web-shell: serving shell on http://{local}");
-    for stream in listener.incoming() {
-        match stream {
-            Ok(stream) => {
+    let listener = bind(&config.addr, &services.transport()).map_err(io_error)?;
+    let local = listener.local_address().map_err(io_error)?;
+    let mut state =
+        ShellState::with_surface_factory(config, cx, surface_factory, Arc::clone(&services))?;
+    println!(
+        "sim-web-shell: serving shell on http://{}",
+        display_address(&local)
+    );
+    loop {
+        match listener.accept() {
+            Ok(Some(stream)) => {
                 if let Err(err) = handle(stream, &mut state) {
                     eprintln!("sim-web-shell: connection error: {err}");
                 }
             }
+            Ok(None) => continue,
             Err(err) => eprintln!("sim-web-shell: accept error: {err}"),
         }
     }
-    Ok(())
 }
 
-fn bind(addr: &str) -> std::io::Result<TcpListener> {
-    let resolved = addr.to_socket_addrs()?.next().ok_or_else(|| {
-        std::io::Error::new(std::io::ErrorKind::InvalidInput, "no socket address")
+fn bind(
+    addr: &str,
+    transport: &sim_transport_ports::TransportServices,
+) -> Result<Box<dyn sim_transport_ports::Listener>, TransportError> {
+    let (host, port) = addr.rsplit_once(':').ok_or_else(|| {
+        TransportError::new(
+            sim_transport_ports::TransportErrorKind::InvalidAddress,
+            "address must be HOST:PORT",
+        )
     })?;
-    TcpListener::bind(resolved)
+    let port = port.parse::<u16>().map_err(|_| {
+        TransportError::new(
+            sim_transport_ports::TransportErrorKind::InvalidAddress,
+            "invalid port",
+        )
+    })?;
+    let address = match host.parse() {
+        Ok(address) => SocketAddress::Ip { address, port },
+        Err(_) => transport
+            .dns
+            .resolve(host, port)?
+            .into_iter()
+            .next()
+            .ok_or_else(|| {
+                TransportError::new(
+                    sim_transport_ports::TransportErrorKind::DnsFailure,
+                    "host resolved to no addresses",
+                )
+            })?,
+    };
+    transport.sockets.listen_tcp(&address)
+}
+
+fn display_address(address: &SocketAddress) -> String {
+    match address {
+        SocketAddress::Ip { address, port } => format!("{address}:{port}"),
+    }
 }
 
 struct ShellState<'a> {
@@ -138,13 +186,26 @@ struct ShellState<'a> {
 impl<'a> ShellState<'a> {
     #[cfg(test)]
     fn new(config: &ServeConfig, cx: &'a mut Cx) -> std::io::Result<Self> {
-        Self::with_surface_factory(config, cx, Box::new(DefaultLiveSurfaceFactory))
+        let model = Arc::new(sim_transport_ports::model::ScriptedStreamPort::new([]));
+        let services = Arc::new(crate::ModelShellServices::new(
+            model.services(),
+            Default::default(),
+        ));
+        Self::with_surface_factory(
+            config,
+            cx,
+            Box::new(DefaultLiveSurfaceFactory::new(sim_kernel::HandleSeed::new(
+                0x5745_4254,
+            ))),
+            services,
+        )
     }
 
     fn with_surface_factory(
         config: &ServeConfig,
         cx: &'a mut Cx,
         surface_factory: Box<dyn LiveSurfaceFactory + Send + Sync>,
+        services: Arc<dyn crate::ShellServices>,
     ) -> std::io::Result<Self> {
         // The cookbook eval sandbox is the bootloader-provided `cx`, which already
         // carries the standard distribution the recipes require and read-eval,
@@ -152,13 +213,19 @@ impl<'a> ShellState<'a> {
         // gates each run on read-eval, so a session that never runs a recipe never
         // uses it.
         Ok(Self {
-            atelier: AtelierWebState::load(config.atelier_root.clone()),
+            atelier: AtelierWebState::load(config.atelier_root.clone(), |path| {
+                services.read_mount(path)
+            }),
             cookbook: match &config.cookbook {
                 Some(cookbook) => Arc::clone(cookbook),
                 None => Arc::new(CookbookWebState::seeded().map_err(io_error)?),
             },
             cookbook_cx: cx,
-            live: LiveSessionTable::new(surface_factory),
+            live: LiveSessionTable::with_config_and_services(
+                surface_factory,
+                Default::default(),
+                services,
+            ),
         })
     }
 }
@@ -178,15 +245,15 @@ fn io_error(err: impl std::fmt::Display) -> std::io::Error {
     std::io::Error::other(err.to_string())
 }
 
-fn handle(mut stream: TcpStream, state: &mut ShellState<'_>) -> std::io::Result<()> {
+fn handle(mut stream: Box<dyn Stream>, state: &mut ShellState<'_>) -> std::io::Result<()> {
     // Bound how long a single read may block; a slow-loris peer cannot pin the
     // server. A failure to set the timeout is non-fatal (e.g. exotic streams).
     let _ = stream.set_read_timeout(Some(READ_TIMEOUT));
-    let request = match read_request(&mut stream)? {
+    let request = match read_request(&mut *stream)? {
         ReadOutcome::Request(request) => request,
         ReadOutcome::TooLarge => {
             write_response(
-                &mut stream,
+                &mut *stream,
                 413,
                 "Payload Too Large",
                 "text/plain; charset=utf-8",
@@ -196,7 +263,7 @@ fn handle(mut stream: TcpStream, state: &mut ShellState<'_>) -> std::io::Result<
         }
         ReadOutcome::Invalid => {
             write_response(
-                &mut stream,
+                &mut *stream,
                 400,
                 "Bad Request",
                 "text/plain; charset=utf-8",
@@ -206,13 +273,13 @@ fn handle(mut stream: TcpStream, state: &mut ShellState<'_>) -> std::io::Result<
         }
     };
     if path_of(&request.target) == "/api/session/intent" {
-        return write_session_intent(&mut stream, &request, &mut state.live);
+        return write_session_intent(&mut *stream, &request, &mut state.live);
     }
     if path_of(&request.target) == "/api/session/open" {
-        return write_session_open(&mut stream, &request, &mut state.live);
+        return write_session_open(&mut *stream, &request, &mut state.live);
     }
     if path_of(&request.target) == "/api/session/close" {
-        return write_session_close(&mut stream, &request, &mut state.live);
+        return write_session_close(&mut *stream, &request, &mut state.live);
     }
     if request.target.starts_with("/api/cookbook") {
         // read-eval was granted to cookbook_cx by the bootloader (see cli.rs);
@@ -222,11 +289,11 @@ fn handle(mut stream: TcpStream, state: &mut ShellState<'_>) -> std::io::Result<
             &request.target,
             Some(&mut *state.cookbook_cx),
         );
-        return write_cookbook_response(&mut stream, &response);
+        return write_cookbook_response(&mut *stream, &response);
     }
     if let Some(response) = state.atelier.response(&request.method, &request.target) {
         return write_response(
-            &mut stream,
+            &mut *stream,
             response.status,
             status_text(response.status),
             response.content_type,
@@ -235,7 +302,7 @@ fn handle(mut stream: TcpStream, state: &mut ShellState<'_>) -> std::io::Result<
     }
     if request.method != "GET" {
         write_response(
-            &mut stream,
+            &mut *stream,
             405,
             "Method Not Allowed",
             "text/plain; charset=utf-8",
@@ -244,9 +311,9 @@ fn handle(mut stream: TcpStream, state: &mut ShellState<'_>) -> std::io::Result<
         return Ok(());
     }
     match asset_for(&request.target) {
-        Some(asset) => write_response(&mut stream, 200, "OK", asset.content_type, asset.body),
+        Some(asset) => write_response(&mut *stream, 200, "OK", asset.content_type, asset.body),
         None => write_response(
-            &mut stream,
+            &mut *stream,
             404,
             "Not Found",
             "text/plain; charset=utf-8",
@@ -272,7 +339,7 @@ enum ReadOutcome {
 }
 
 /// Read the request line, scan headers for `Content-Length`, and read the body.
-fn read_request(stream: &mut TcpStream) -> std::io::Result<ReadOutcome> {
+fn read_request(stream: &mut dyn Stream) -> std::io::Result<ReadOutcome> {
     let mut reader = BufReader::new(stream);
     read_request_from(&mut reader)
 }

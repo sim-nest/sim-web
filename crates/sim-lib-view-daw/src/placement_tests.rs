@@ -147,6 +147,7 @@ fn test_cx() -> sim_kernel::Cx {
     sim_kernel::Cx::new(
         Arc::new(sim_kernel::NoopEvalPolicy),
         Arc::new(sim_kernel::DefaultFactory),
+        sim_kernel::HandleSeed::new(0x5644_4157),
     )
 }
 

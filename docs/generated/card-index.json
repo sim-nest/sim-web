@@ -1,5 +1,5 @@
 {
-  "card_count": 19,
+  "card_count": 21,
   "cards": [
     {
       "id": "browse/catalog",
@@ -74,6 +74,12 @@
       "summary": "Scientific article values, source lenses, and export descriptors."
     },
     {
+      "id": "cookbook/view/estate",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-view-estate",
+      "summary": "Review reversible estate plans and evidence through the shared Surface codec."
+    },
+    {
       "id": "cookbook/view/interference",
       "kind": "cookbook-recipe",
       "owner": "sim-lib-view-interference",
@@ -84,6 +90,12 @@
       "kind": "cookbook-recipe",
       "owner": "sim-lib-view-math",
       "summary": "Bounded heatmap, plot, matrix, symbolic, and sweep lens descriptors."
+    },
+    {
+      "id": "cookbook/view/search",
+      "kind": "cookbook-recipe",
+      "owner": "sim-lib-view-search",
+      "summary": "Audit provider-neutral search provenance and captured evidence offline."
     },
     {
       "id": "cookbook/view/wasm",

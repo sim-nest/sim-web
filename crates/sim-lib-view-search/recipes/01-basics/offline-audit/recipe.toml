@@ -1,0 +1,11 @@
+schema = "sim.recipe"
+id = "search/offline-audit"
+title = "Review search provenance without network authority"
+purpose = "Audit canonical search provenance and captured evidence without network access."
+summary = "Render a canonical SearchRun, immutable capture, normalized representation, checked selector, policy receipt, and office anchor as an offline audit Scene."
+entry = "README.md"
+
+[[checks]]
+kind = "file-contains"
+path = "README.md"
+contains = "PROVIDER CLAIM"

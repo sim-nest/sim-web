@@ -10,13 +10,17 @@
 | `sim-lib-view-agent` | `workspace` | 0 | 0 |
 | `sim-lib-view-bridge` | `workspace` | 0 | 0 |
 | `sim-lib-view-codec` | `workspace` | 0 | 0 |
+| `sim-lib-view-continuity-phone` | `workspace` | 0 | 0 |
 | `sim-lib-view-daw` | `workspace` | 0 | 0 |
 | `sim-lib-view-device` | `workspace` | 0 | 0 |
 | `sim-lib-view-doc` | `workspace` | 0 | 0 |
+| `sim-lib-view-estate` | `workspace` | 0 | 0 |
 | `sim-lib-view-interference` | `workspace` | 0 | 0 |
 | `sim-lib-view-math` | `workspace` | 0 | 0 |
+| `sim-lib-view-search` | `workspace` | 0 | 0 |
 | `sim-lib-view-spatial` | `workspace` | 0 | 0 |
 | `sim-lib-view-wasm-frame` | `workspace` | 0 | 0 |
+| `sim-lib-view-worktable` | `workspace` | 0 | 0 |
 | `sim-lib-view-wrist` | `workspace` | 0 | 0 |
 | `sim-lib-web-bridge` | `workspace` | 0 | 0 |
 | `sim-lib-web-layout` | `workspace` | 0 | 0 |

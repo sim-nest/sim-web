@@ -412,6 +412,14 @@ fn web_serve_does_not_preload_demo_codecs() {
             dry_run: true,
             ..ServeConfig::default()
         },
+        {
+            let model =
+                std::sync::Arc::new(sim_transport_ports::model::ScriptedStreamPort::new([]));
+            std::sync::Arc::new(crate::ModelShellServices::new(
+                model.services(),
+                Default::default(),
+            ))
+        },
     )
     .unwrap();
     let loaded: Vec<String> = cx
@@ -523,11 +531,19 @@ fn resolve_relative_module_path(from: &str, import: &str) -> Option<String> {
 }
 
 fn cli_cx() -> Cx {
-    Cx::new(Arc::new(NoopEvalPolicy), Arc::new(DefaultFactory))
+    Cx::new(
+        Arc::new(NoopEvalPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0x5745_4254),
+    )
 }
 
 fn cookbook_cx() -> Cx {
-    let (mut cx, seat) = Cx::new_seated(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let (mut cx, seat) = Cx::new_seated(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0x5745_4255),
+    );
     register_core_classes(&mut cx);
     let lisp = LispCodecLib::new(cx.registry_mut().fresh_codec_id()).unwrap();
     cx.load_lib(&lisp).unwrap();
@@ -600,4 +616,31 @@ fn the_shell_supports_reduced_motion_and_keyboard_operation() {
         "applies reduced-motion"
     );
     assert!(js.contains("keydown"), "installs a keyboard spine");
+}
+
+#[test]
+fn host_shell_production_sources_have_no_ambient_os_realization() {
+    let sources = [
+        include_str!("atelier.rs"),
+        include_str!("live.rs"),
+        include_str!("serve.rs"),
+    ]
+    .join("\n");
+    for forbidden in [
+        "std::net",
+        "TcpListener",
+        "TcpStream",
+        "ToSocketAddrs",
+        "/dev/urandom",
+        "Instant::now",
+        "fs::read_to_string",
+        "Command::new",
+    ] {
+        assert!(
+            !sources.contains(forbidden),
+            "web shell production source still realizes {forbidden}"
+        );
+    }
+    assert!(include_str!("../Cargo.toml").contains("sim-transport-ports"));
+    assert!(!include_str!("../Cargo.toml").contains("[[bin]]"));
 }

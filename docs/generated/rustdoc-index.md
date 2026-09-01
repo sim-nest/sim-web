@@ -10,15 +10,19 @@
 | `sim-lib-view-agent` | `workspace` | Agent and topology composer lens plus the live monitor for SIM Web. |
 | `sim-lib-view-bridge` | `workspace` | Reversible BRIDGE packet review surface for SIM Web. |
 | `sim-lib-view-codec` | `workspace` | Codec-aware and Shape-aware lenses for SIM Web. |
+| `sim-lib-view-continuity-phone` | `workspace` | Calm, replayable phone interaction for continuity sessions. |
 | `sim-lib-view-daw` | `workspace` | DAW timeline, mixer, plugin rack, player, piano-roll, and synth lenses for the SIM Web-UI. |
 | `sim-lib-view-device` | `workspace` | Device profiles and timing loops for SIM Web surface capabilities. |
 | `sim-lib-view-doc` | `workspace` | Markup article workspace lens for the SIM Web UI. |
+| `sim-lib-view-estate` | `workspace` | Reversible estate Surface scenes. Rendering is pure; operations compile to exact typed organ calls and never carry shell or provider command text. |
 | `sim-lib-view-interference` | `workspace` | A reversible, evidence-preserving surface over solved interference studies. |
 | `sim-lib-view-math` | `workspace` | Math, plotting, tensor, and symbolic lenses for SIM Web. |
+| `sim-lib-view-search` | `workspace` | An offline, evidence-preserving projection of canonical search records. |
 | `sim-lib-view-spatial` | `workspace` | Spatial glasses surface encoding for SIM Web. |
 | `sim-lib-view-wasm-frame` | `workspace` | Host-side view frame facade for wasm-shaped view data. |
+| `sim-lib-view-worktable` | `workspace` | Rebuildable projection for a reversible expedition product. |
 | `sim-lib-view-wrist` | `workspace` | Wrist-specific glance budgets for SIM Web watch surfaces. |
 | `sim-lib-web-bridge` | `workspace` | Session and transport bridge over realize/EvalFabric for the Intent/Scene bus. |
 | `sim-lib-web-layout` | `workspace` | Workspace value, panes, tabs, docks, and layout persistence. |
-| `sim-web-shell` | `workspace` | sim-web-shell: the binary that serves the SIM WebUI shell. |
+| `sim-web-shell` | `workspace` | sim-web-shell: the host-neutral SIM WebUI shell. |
 | `xtask` | `workspace` | SIM workspace package for xtask. |

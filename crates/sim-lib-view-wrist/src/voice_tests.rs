@@ -5,7 +5,7 @@ use std::sync::{
 
 use sim_kernel::{
     CapabilitySet, Consistency, Cx, DefaultFactory, EagerPolicy, EvalFabric, EvalMode, EvalReply,
-    EvalRequest, Expr, Result, Symbol,
+    EvalRequest, Expr, HandleSeed, Result, Symbol,
 };
 use sim_lib_intent::{Origin, field, intent_kind_of, validate_intent};
 use sim_lib_view_device::{ConsentReceipt, EdgeId};
@@ -31,7 +31,11 @@ fn voice_intent_only_from_model_site_and_consent_gated() {
         7,
     );
     let granted = CapabilitySet::new().grant(watch_mic_capability());
-    let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        HandleSeed::new(1),
+    );
     let voice = cx
         .with_capabilities(granted, |cx| {
             transcribe_via_site(
@@ -76,7 +80,11 @@ fn watch_mic_consent_fails_before_realize() {
     let mic = capture();
     let session = EdgeId::named("trex");
     let granted = CapabilitySet::new().grant(watch_mic_capability());
-    let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        HandleSeed::new(1),
+    );
 
     let missing_visible = ConsentReceipt::new(Vec::new(), 1_000, Vec::new(), session.clone(), 1);
     let denied = cx.with_capabilities(granted.clone(), |cx| {

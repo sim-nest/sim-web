@@ -10,6 +10,8 @@
 pub mod budget;
 pub mod command;
 pub mod consent;
+pub mod continuity_role;
+pub mod expedition;
 pub mod fleet;
 pub mod pacing;
 pub mod voice;
@@ -25,6 +27,14 @@ pub use consent::{
     active_watch_consent_badge_cluster, ingest_worn_expr, require_worn_consent, store_worn_sample,
     sweep_watch_privacy, watch_health_grant, watch_location_grant, watch_vendor_report_grant,
     worn_event_capability,
+};
+pub use continuity_role::{
+    EndpointAction, EndpointCandidate, EndpointProjection, EndpointRole,
+    OptionalEndpointRoleAdapter, RoleAuthority,
+};
+pub use expedition::{
+    Attention, AuthorityIntersection, ContinuityOutcome, DisclosureField, ExpeditionProjection,
+    ExpeditionProjector, SemanticClutch, SurfaceRole,
 };
 pub use fleet::{
     AssignedWornRole, DualWatchRoles, FleetSensorQuorum, FleetSensorSample, FleetWristInput,
@@ -53,6 +63,12 @@ mod command_tests;
 
 #[cfg(test)]
 mod consent_tests;
+
+#[cfg(test)]
+mod continuity_role_tests;
+
+#[cfg(test)]
+mod expedition_tests;
 
 #[cfg(test)]
 mod fleet_tests;

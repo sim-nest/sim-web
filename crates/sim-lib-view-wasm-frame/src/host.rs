@@ -42,7 +42,11 @@ pub struct BrowserHost {
 impl BrowserHost {
     /// Build a host showing `value` through the universal default lens.
     pub fn new(value: Expr) -> Result<Self> {
-        let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+        let mut cx = Cx::new(
+            Arc::new(EagerPolicy),
+            Arc::new(DefaultFactory),
+            sim_kernel::HandleSeed::new(0x5746_524d),
+        );
         let mut registry = LensRegistry::new();
         register_universal_default(&mut registry, false);
         let view_lens = Symbol::new(UNIVERSAL_VIEW_ID);

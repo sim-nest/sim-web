@@ -10,7 +10,11 @@ use crate::SpatialSurfaceCodec;
 
 #[test]
 fn encoders_are_pose_free_and_halo_uses_glance_reducer() {
-    let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0x24cd_ba77_0221_890c),
+    );
     let codec = SpatialSurfaceCodec::new();
     let value = build::map(vec![
         ("title", Expr::String("Daily focus".to_owned())),

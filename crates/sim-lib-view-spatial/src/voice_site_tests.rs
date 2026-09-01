@@ -29,7 +29,11 @@ fn voice_needs_site_and_session_bound_consent() {
 
     let session = EdgeId::named("halo");
     let granted = CapabilitySet::new().grant(glasses_mic_capability());
-    let mut cx = Cx::new(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let mut cx = Cx::new(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0xe537_23bb_c884_d9ba),
+    );
 
     let missing_visible = ConsentReceipt::new(Vec::new(), 1_000, Vec::new(), session.clone(), 1);
     let denied = cx.with_capabilities(granted.clone(), |cx| {

@@ -107,7 +107,11 @@ pub fn interference_study_demo() -> Result<Vec<String>> {
 }
 
 fn recipe_cx() -> Result<Cx> {
-    let (mut cx, seat) = Cx::new_seated(Arc::new(EagerPolicy), Arc::new(DefaultFactory));
+    let (mut cx, seat) = Cx::new_seated(
+        Arc::new(EagerPolicy),
+        Arc::new(DefaultFactory),
+        sim_kernel::HandleSeed::new(0x5649_4557),
+    );
     cx.load_lib(&InterferenceRecordsLib)?;
     cx.load_lib(&InterferenceLib)?;
     seat.grant(&mut cx, sim_kernel::read_construct_capability())?;

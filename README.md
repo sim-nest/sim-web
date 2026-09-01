@@ -4,6 +4,11 @@ sim-web is SIM's browser UI: show any runtime value on a canvas, edit it, and
 commit the change back -- live. The same page holds the cookbook, the Atelier
 cache view, and the live surface.
 
+`sim-lib-view-estate` renders the estate's overview, discovery, plan diff,
+review, events, verification, history, unknown, quarantine, and reconciliation
+scenes. Reverse operations retain the visible plan key and emit typed organ
+calls, never provider command text.
+
 ```bash
 sim webui   # open the URL it prints in a browser
 ```
@@ -98,7 +103,7 @@ ledgered edit to every open surface.
 - `sim-lib-web-layout` -- the workspace value, panes/tabs/splits/docks/overlays,
   the layout engine over that value, and a scene encoder for the arrangement;
   layout is data, so restoring a session is decoding a value.
-- `sim-web-shell` -- the binary that serves the SIM WebUI shell, embedding the
+- `sim-web-shell` -- the host-neutral router for the SIM WebUI shell, embedding the
   browser assets and a live submit/response session bridge over a blocking HTTP
   server, plus the Atelier cache view over the generated Site graph and reports.
 

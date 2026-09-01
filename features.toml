@@ -168,7 +168,6 @@ audiences = ["code", "framework"]
 guidance = "Use this row when adapting a surface to a worn, handheld, desktop, or glasses target."
 claims_anchors = [
   "anchor/crate/sim-lib-view-device",
-  "anchor/crate/sim-lib-view-wrist",
 ]
 claims_surfaces = [
   "site-device/desktop",
@@ -187,6 +186,16 @@ claims_surfaces = [
 claims_specimens = [
   "spec-test/sim-web/crates/sim-lib-view-device/src/profile_tests",
 ]
+
+[[feature]]
+id = "feature/sim-web/body-attention-projection"
+title = "Bounded body attention projection"
+summary = "Arbitrate worn prompts through one visible body-level slot with quiet hours, coalescing, interruption budgets, and explicit evidence."
+owner = "crate/sim-lib-view-device"
+audiences = ["code", "framework"]
+guidance = "Offer only already reduced prompt summaries to AttentionProjector. Present at most its one active prompt, display the returned AttentionEvidence, and treat quiet hours, offline or dropped channels, spent interruption budgets, and manual continuation as normal outcomes rather than transport failures."
+claims_specimens = ["spec-test/sim-web/crates/sim-lib-view-device/src/attention"]
+supports = ["feature/sim-web/device-surfaces"]
 
 [[feature]]
 id = "feature/sim-web/codec-surface-sessions"
@@ -210,6 +219,50 @@ supports = [
 ]
 
 [[feature]]
+id = "feature/sim-web/optional-endpoint-continuity-roles"
+title = "Optional endpoint continuity roles"
+summary = "Project one filtered glance and a bounded semantic action lane through expiring, generation-fenced endpoint roles."
+owner = "crate/sim-lib-view-wrist"
+audiences = ["code", "framework"]
+guidance = "Compose ExpeditionProjector before OptionalEndpointRoleAdapter. It intersects mission, passport, route lease, endpoint grant, disclosure, attention, and visible expedition focus; accepts only clutch-qualified keyboard/touch semantic actions; and returns stops or refusals as ordinary pack outcomes. The endpoint adapter remains optional, retains only its generation fence, accepts no coordinates, sensor frames, raw effects, or pointer commands, and is never required for phone continuation."
+claims_anchors = [
+  "anchor/crate/sim-lib-view-wrist",
+]
+claims_specimens = ["spec-test/sim-web/crates/sim-lib-view-wrist/src/continuity_role_tests"]
+supports = [
+  "feature/sim-web/device-surfaces",
+  "feature/sim-web/continuity-phone-surface",
+]
+
+[[feature]]
+id = "feature/sim-web/continuity-phone-surface"
+title = "Continuity phone surface"
+summary = "Render and control a complete silent-capable phone interaction from the authoritative continuity journal."
+owner = "crate/sim-lib-view-continuity-phone"
+audiences = ["user", "code", "framework"]
+guidance = "Compose this one SurfaceCodec with sim-lib-continuity when a phone needs hold-to-talk, typed fallback, review, replay, placement, and an always-reachable stop. The journal is authoritative; Scenes and audio callbacks are disposable projections, and passive lifecycle events never arm capture."
+claims_anchors = [
+  "anchor/crate/sim-lib-view-continuity-phone",
+]
+claims_surfaces = ["view-edit/sim-lib-view-continuity-phone", "view/sim-lib-view-continuity-phone"]
+claims_specimens = [
+  "spec-test/sim-web/crates/sim-lib-view-continuity-phone/src/tests",
+]
+supports = [
+  "feature/sim-web/device-surfaces",
+  "feature/sim-web/codec-surface-sessions",
+]
+
+[[route]]
+id = "route/operate-continuity-phone-surface"
+task = "Operate a complete continuity session from a phone surface"
+audiences = ["user", "code", "framework"]
+steps = [
+  { feature = "feature/sim-web/continuity-phone-surface", why = "The phone codec projects journal truth and compiles only bounded semantic actions." },
+  { specimen = "spec-test/sim-web/crates/sim-lib-view-continuity-phone/src/tests", why = "The specimen proves silent interaction, stale-safe replay, lifecycle refusal, and an always-reachable stop." },
+]
+
+[[feature]]
 id = "feature/sim-web/server-backed-web-sessions"
 title = "Server-backed web sessions"
 summary = "Connect RemoteTransport to the existing SIM server transport so browser sessions read, commit, drain changes, reconnect, and report revision conflicts through ordinary server eval requests."
@@ -226,15 +279,14 @@ supports = [
 [[feature]]
 id = "feature/sim-web/web-shell-host"
 title = "Web shell host"
-summary = "Serve isolated, bounded, phone-capable browser surfaces through loaded web shell runtime libraries, installable shell assets, and command entry points."
+summary = "Route isolated, bounded, phone-capable browser surfaces through declared shell services and loaded runtime libraries."
 owner = "crate/sim-web-shell"
 audiences = ["user", "code", "framework"]
-guidance = "Use this row when starting the browser shell, browsing a repo, installing the phone profile, or opening the atelier workspace. The live shell host gives each browser an opaque, expiring surface session rather than shared edit state and keeps authored/server data out of Cache Storage. A product supplies a LiveSurfaceFactory when it needs its own SurfaceCodec, RemoteTransport, resource alias, or diminished authority; the shell retains the HTTP lifecycle and the one generic Scene interpreter and Intent emitter."
+guidance = "Use this row to compose shell routing after a platform capsule supplies transport, mounted files, model time, entropy, and external-open services. The live shell gives each browser an opaque, expiring surface session rather than shared edit state and keeps authored/server data out of Cache Storage. A product supplies a LiveSurfaceFactory when it needs its own SurfaceCodec, RemoteTransport, resource alias, or diminished authority; sim-web retains reversible Surface, Scene, Intent, remote-session, and layout policy but owns no native process entry or network realization."
 claims_anchors = [
   "anchor/cli/atelier",
   "anchor/cli/browse",
   "anchor/cli/serve",
-  "anchor/cli/sim-web-shell",
   "anchor/crate/sim-web-shell",
   "anchor/export/sim-web-shell/cli/main/atelier",
   "anchor/export/sim-web-shell/cli/main/browse",
@@ -248,8 +300,11 @@ claims_surfaces = [
   "cli/atelier",
   "cli/browse",
   "cli/serve",
-  "cli/sim-web-shell",
   "view-edit/sim-web-shell",
+]
+supports = [
+  "feature/sim-platform/web-shell-realization",
+  "feature/sim-web/codec-surface-sessions",
 ]
 claims_specimens = [
   "spec-test/sim-web/crates/sim-web-shell/src/tests",
@@ -373,4 +428,71 @@ steps = [
   { feature = "feature/sim-web/web-shell-host", why = "The web shell row owns the serve, browse, and atelier commands." },
   { feature = "feature/sim-web/view-surface", why = "The view row supplies the reversible surfaces shown by the browser host." },
   { specimen = "recipe/sim-web/crates/sim-web-shell/01-basics/open-workspace", why = "The open-workspace recipe is the shortest browser-host example." },
+]
+[[feature]]
+id = "feature/sim-web/estate-surface"
+title = "Reversible estate Surface"
+summary = "Ten estate scenes render the read-only projection and compile stale-safe edits to exact organ calls."
+owner = "crate/sim-lib-view-estate"
+audiences = ["framework"]
+guidance = "Render estate state with EstateSurfaceCodec and preserve the visible plan key when reversing an edit. Never place provider command text in a Scene."
+claims_anchors = ["anchor/crate/sim-lib-view-estate", "anchor/export/sim-lib-view-estate/view-estate"]
+claims_surfaces = ["view-edit/sim-lib-view-estate", "view/sim-lib-view-estate"]
+claims_specimens = ["spec-test/sim-web/crates/sim-lib-view-estate/src/lib"]
+
+[[route]]
+id = "route/review-estate-on-surface"
+task = "Review and operate an estate plan through a device Surface"
+audiences = ["user"]
+steps = [{ feature = "feature/sim-web/estate-surface", why = "Render every authority field and compile only a current content-bound plan operation." }]
+
+[[feature]]
+id = "feature/sim-web/search-audit-surface"
+title = "Offline search provenance audit surface"
+summary = "Project canonical search, ranking, capture, selector, fidelity, policy, and office evidence into an inert, expandable Scene."
+owner = "crate/sim-lib-view-search"
+audiences = ["user", "code", "framework"]
+guidance = "Use the audit surface to review why a result ranked and to trace a checked quotation back through its selector and normalized representation to the immutable raw capture. Provider claims remain visibly unverified, and URI activation is always returned to a policy host as an explicit action."
+claims_anchors = [
+  "anchor/crate/sim-lib-view-search",
+  "anchor/export/sim-lib-view-search/view-search-audit",
+  "anchor/rustdoc/sim-lib-view-search/search_audit_surface_id",
+  "anchor/rustdoc/sim-lib-view-search/render",
+]
+claims_specimens = [
+  "recipe/sim-web/crates/sim-lib-view-search/01-basics/offline-audit",
+  "spec-test/sim-web/crates/sim-lib-view-search/src/tests",
+]
+claims_surfaces = ["view/sim-lib-view-search"]
+supports = [
+  "feature/sim-web/view-surface",
+]
+
+[[route]]
+id = "route/audit-search-provenance"
+task = "Audit a search result from final rank to immutable source evidence"
+audiences = ["user", "code", "framework"]
+steps = [
+  { feature = "feature/sim-web/search-audit-surface", why = "The offline surface distinguishes unverified provider claims from selector-checked quotations and exposes ranking, fetch, robots, fidelity, and policy provenance." },
+  { specimen = "recipe/sim-web/crates/sim-lib-view-search/01-basics/offline-audit", why = "The checked recipe demonstrates a complete audit projection without network authority." },
+]
+
+[[feature]]
+id = "feature/sim-web/reversible-worktable"
+title = "Rebuildable expedition worktable"
+summary = "One disposable projection presents room cards, expedition identity, evidence, objections, pack closure, route/device truth, attention, effect arming, undo, export, and calm comparison evidence."
+owner = "crate/sim-lib-view-worktable"
+audiences = ["user", "code", "framework"]
+guidance = "Compose semantic edits emitted by owning organs; delete and replay the projection freely. Effects remain visibly unavailable, disarmed, or armed. ValueObservation returns insufficient evidence without a human-declared comparison and never scores a person."
+claims_anchors = ["anchor/crate/sim-lib-view-worktable"]
+claims_specimens = ["spec-test/sim-web/crates/sim-lib-view-worktable/src/lib"]
+claims_surfaces = ["view/sim-lib-view-worktable"]
+
+[[route]]
+id = "route/project-reversible-expedition"
+task = "Project a reversible expedition product"
+audiences = ["user", "code", "framework"]
+steps = [
+  { feature = "feature/sim-web/reversible-worktable", why = "Replay owner-authored semantic edits into the disposable worktable without moving domain behavior into the surface." },
+  { specimen = "spec-test/sim-web/crates/sim-lib-view-worktable/src/lib", why = "The dependency-free specimen proves replay, undo, visible arming, manual continuation, and insufficient-evidence behavior." },
 ]
