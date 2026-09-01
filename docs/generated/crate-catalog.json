@@ -1,6 +1,6 @@
 {
   "generator": "xtask crate-catalog v1",
-  "package_count": 18,
+  "package_count": 22,
   "packages": [
     {
       "description": "Intent value model, gesture algebra, and codec:intent.",
@@ -68,6 +68,18 @@
       ]
     },
     {
+      "description": "Replayable phone interaction surface for SIM continuity turns.",
+      "generated_readme": false,
+      "manifest": "crates/sim-lib-view-continuity-phone/Cargo.toml",
+      "name": "sim-lib-view-continuity-phone",
+      "publish": "true",
+      "readme": "crates/sim-lib-view-continuity-phone/README.md",
+      "root": "crates/sim-lib-view-continuity-phone",
+      "target_kinds": [
+        "lib"
+      ]
+    },
+    {
       "description": "DAW timeline, mixer, plugin rack, and synth lenses for SIM Web.",
       "generated_readme": true,
       "manifest": "crates/sim-lib-view-daw/Cargo.toml",
@@ -107,6 +119,18 @@
       ]
     },
     {
+      "description": "Reversible SurfaceCodec scenes for the SIM estate organ.",
+      "generated_readme": false,
+      "manifest": "crates/sim-lib-view-estate/Cargo.toml",
+      "name": "sim-lib-view-estate",
+      "publish": "true",
+      "readme": "crates/sim-lib-view-estate/README.md",
+      "root": "crates/sim-lib-view-estate",
+      "target_kinds": [
+        "lib"
+      ]
+    },
+    {
       "description": "Reversible certified interference-study surface for SIM Web.",
       "generated_readme": false,
       "manifest": "crates/sim-lib-view-interference/Cargo.toml",
@@ -134,6 +158,18 @@
       ]
     },
     {
+      "description": "Offline, evidence-preserving search audit surface for SIM Web.",
+      "generated_readme": false,
+      "manifest": "crates/sim-lib-view-search/Cargo.toml",
+      "name": "sim-lib-view-search",
+      "publish": "true",
+      "readme": "crates/sim-lib-view-search/README.md",
+      "root": "crates/sim-lib-view-search",
+      "target_kinds": [
+        "lib"
+      ]
+    },
+    {
       "description": "Spatial glasses surface encoding over the shared SIM Web Scene and device adapters.",
       "generated_readme": true,
       "manifest": "crates/sim-lib-view-spatial/Cargo.toml",
@@ -156,6 +192,18 @@
       "root": "crates/sim-lib-view-wasm-frame",
       "target_kinds": [
         "custom-build",
+        "lib"
+      ]
+    },
+    {
+      "description": "Rebuildable projection for reversible expedition products.",
+      "generated_readme": false,
+      "manifest": "crates/sim-lib-view-worktable/Cargo.toml",
+      "name": "sim-lib-view-worktable",
+      "publish": "true",
+      "readme": "crates/sim-lib-view-worktable/README.md",
+      "root": "crates/sim-lib-view-worktable",
+      "target_kinds": [
         "lib"
       ]
     },
@@ -212,7 +260,7 @@
       ]
     },
     {
-      "description": "sim-web-shell: the binary that serves the SIM WebUI shell.",
+      "description": "Host-neutral routing and reversible-session library for the SIM WebUI shell.",
       "generated_readme": true,
       "manifest": "crates/sim-web-shell/Cargo.toml",
       "name": "sim-web-shell",
@@ -220,7 +268,6 @@
       "readme": "crates/sim-web-shell/README.md",
       "root": "crates/sim-web-shell",
       "target_kinds": [
-        "bin",
         "lib",
         "test"
       ]
