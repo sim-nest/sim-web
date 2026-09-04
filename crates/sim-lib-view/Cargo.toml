@@ -1,6 +1,6 @@
 [package]
 name = "sim-lib-view"
-version = "0.3.0"
+version = "0.4.0"
 edition = "2024"
 license = "MPL-2.0"
 description = "View/editor codec contracts, Shape-based lens dispatch, lens stack, and the universal default lens for SIM Web."
@@ -10,18 +10,18 @@ repository = "https://github.com/sim-nest/sim-web"
 homepage = "https://github.com/sim-nest/sim-web"
 
 [dependencies]
-sim-citizen = { version = "0.3.0" }
-sim-citizen-derive = { version = "0.3.0" }
-sim-codec = { version = "0.2.0" }
-sim-cookbook = { version = "0.3.0" }
-sim-kernel = { version = "0.3.0" }
-sim-lib-intent = { version = "0.3.0", path = "../sim-lib-intent" }
-sim-lib-scene = { version = "0.3.0", path = "../sim-lib-scene" }
-sim-shape = { version = "0.3.0" }
-sim-value = { version = "0.3.0" }
+sim-citizen = { version = "0.4.0" }
+sim-citizen-derive = { version = "0.4.0" }
+sim-codec = { version = "0.3.0" }
+sim-cookbook = { version = "0.4.0" }
+sim-kernel = { version = "0.4.0" }
+sim-lib-intent = { version = "0.4.0", path = "../sim-lib-intent" }
+sim-lib-scene = { version = "0.4.0", path = "../sim-lib-scene" }
+sim-shape = { version = "0.4.0" }
+sim-value = { version = "0.4.0" }
 
 [build-dependencies]
-sim-cookbook-build = { version = "0.1.0" }
+sim-cookbook-build = { version = "0.2.0" }
 
 [lints]
 workspace = true
