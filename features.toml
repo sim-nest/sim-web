@@ -151,7 +151,7 @@ claims_surfaces = [
   "view-edit/sim-lib-view-interference",
 ]
 claims_specimens = [
-  "recipe/sim-web/crates/sim-lib-view-interference/01-basics/interference-study",
+  "spec-test/sim-web/crates/sim-lib-view-interference/src/tests",
 ]
 supports = [
   "feature/sim-web/heatmap-surface",
@@ -460,7 +460,6 @@ claims_anchors = [
   "anchor/rustdoc/sim-lib-view-search/render",
 ]
 claims_specimens = [
-  "recipe/sim-web/crates/sim-lib-view-search/01-basics/offline-audit",
   "spec-test/sim-web/crates/sim-lib-view-search/src/tests",
 ]
 claims_surfaces = ["view/sim-lib-view-search"]

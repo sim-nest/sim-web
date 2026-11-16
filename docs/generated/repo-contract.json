@@ -130,6 +130,17 @@
   ],
   "citizen_count": 0,
   "citizens": [],
+  "contract_exclusions": [
+    {
+      "class": "focused-test-harness",
+      "consumer": "cargo test --manifest-path crates/sim-lib-view-device/attention-policy-focused/Cargo.toml",
+      "manifests": [
+        "crates/sim-lib-view-device/attention-policy-focused/Cargo.toml"
+      ],
+      "path": "crates/sim-lib-view-device/attention-policy-focused",
+      "reason": "Runs the attention policy tests through their own manifest."
+    }
+  ],
   "generator": "xtask repo-contract v1",
   "group_count": 1,
   "group_order": [
@@ -1377,29 +1388,49 @@
   ],
   "provenance": {
     "api_docs": "target/doc/",
-    "generated_by": "cargo run -p xtask -- simdoc",
-    "generation_timestamp": "2026-07-29T16:37:30+02:00",
+    "execution": {
+      "executable": {
+        "lock_sha256": "de3cf584352514646909797b8454326e8ba4d3d90bf87ed7c3592ae971073678",
+        "package": "simdoc",
+        "source_sha256": "74448e83dac20f9a89947838e92e4421988e2bdf26294362679fca8bfd9b0cbd",
+        "version": "0.1.0"
+      },
+      "operation": "repo-contract --repo .",
+      "resolver": null,
+      "toolchain": {
+        "cargo": {
+          "commit_hash": "30a34c6821b57de0aaec83a901aca39f88f6778c",
+          "release": "1.96.0"
+        },
+        "rustc": {
+          "commit_hash": "ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96",
+          "release": "1.96.0"
+        }
+      }
+    },
+    "generation_timestamp": "2026-09-29T20:01:14+02:00",
     "generator": "xtask repo-contract v1",
-    "git_commit": "fab504a192ca8846bb216519dd0e91c5c2b37c52",
+    "git_commit": "b3e8f011cf1deca675bf20a90e04efefaaf2ece1",
+    "regeneration_command": "cargo run -p xtask -- simdoc",
     "repo": "sim-web",
     "schema": "sim.provenance.v1",
-    "source_commit": "fab504a192ca8846bb216519dd0e91c5c2b37c52",
+    "source_commit": "b3e8f011cf1deca675bf20a90e04efefaaf2ece1",
     "source_remote": "https://github.com/sim-nest/sim-web",
     "validation_commands": [
       "cargo fmt --all --check",
-      "cargo test",
-      "cargo clippy --all-targets -- -D warnings",
-      "cargo doc --no-deps",
-      "cargo run -p xtask -- simdoc --check",
-      "cargo run -p xtask -- check-file-sizes",
-      "cargo run -p xtask -- repo-contract --check --repo .",
-      "cargo run -p xtask -- validation-matrix --check --repo .",
-      "cargo run -p xtask -- crate-catalog --check --repo ."
+      "cargo test --workspace",
+      "cargo clippy --workspace --all-targets -- -D warnings",
+      "cargo doc --workspace --no-deps",
+      "cargo clippy --workspace --all-features --all-targets -- -D warnings",
+      "cargo test --workspace --all-features",
+      "cargo test --manifest-path crates/sim-lib-view-device/attention-policy-focused/Cargo.toml"
     ],
-    "workspace_hash": "b081cdee1987c1be",
+    "workspace_hash": "5c9cac64707597af",
     "workspace_hash_algorithm": "fnv1a64",
-    "workspace_hash_input_count": 330,
+    "workspace_hash_input_count": 333,
     "workspace_hash_inputs": [
+      ".github/workflows/authorship.yml",
+      ".github/workflows/ci.yml",
       "Cargo.toml",
       "crates/sim-lib-intent/Cargo.toml",
       "crates/sim-lib-intent/build.rs",
@@ -1729,7 +1760,8 @@
       "crates/sim-web-shell/src/tests.rs",
       "crates/sim-web-shell/tests/demos.rs",
       "features.toml",
-      "xtask/Cargo.toml"
+      "xtask/Cargo.toml",
+      "xtask/src/main.rs"
     ]
   },
   "recipe_book_count": 19,
