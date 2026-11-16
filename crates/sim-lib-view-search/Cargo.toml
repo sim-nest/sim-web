@@ -8,7 +8,7 @@ publish = true
 repository = "https://github.com/sim-nest/sim-web"
 homepage = "https://github.com/sim-nest/sim-web"
 readme = "README.md"
-include = ["/src/**", "/recipes/**", "/build.rs", "/README.md", "/BROCHURE.md"]
+include = ["src/**", "recipes/**", "/build.rs", "/README.md", "/BROCHURE.md"]
 
 [dependencies]
 sim-kernel = { version = "0.4.0" }

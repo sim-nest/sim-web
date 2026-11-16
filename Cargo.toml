@@ -34,3 +34,18 @@ homepage = "https://github.com/sim-nest/sim-web"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
+
+[workspace.metadata.sim]
+docs-command = "cargo run -p xtask -- simdoc"
+validation-commands = [
+  "cargo fmt --all --check",
+  "cargo test --workspace",
+  "cargo clippy --workspace --all-targets -- -D warnings",
+  "cargo doc --workspace --no-deps",
+  "cargo clippy --workspace --all-features --all-targets -- -D warnings",
+  "cargo test --workspace --all-features",
+  "cargo test --manifest-path crates/sim-lib-view-device/attention-policy-focused/Cargo.toml",
+]
+contract-exclusions = [
+  { path = "crates/sim-lib-view-device/attention-policy-focused", class = "focused-test-harness", consumer = "cargo test --manifest-path crates/sim-lib-view-device/attention-policy-focused/Cargo.toml", reason = "Runs the attention policy tests through their own manifest." },
+]

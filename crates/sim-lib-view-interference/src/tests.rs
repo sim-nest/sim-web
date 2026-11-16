@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 use std::sync::Arc;
 
 use sim_citizen::CitizenRuntime;
@@ -375,3 +380,5 @@ fn number_field(expr: &Expr, field: &str) -> u64 {
     };
     number.canonical.parse().unwrap()
 }
+
+// conformance: interference-surface tests prove Study registration, detector reduction, edit classification, and device budgets.

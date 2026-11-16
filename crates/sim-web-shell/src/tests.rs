@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: MPL-2.0
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 //! Tests for the shell asset routing.
 
 // conformance: web shell host opens runtime-backed workspaces.
@@ -55,30 +60,30 @@ fn index_html_aliases_root() {
 
 #[test]
 fn query_strings_are_ignored_when_routing() {
-    let asset = asset_for("/styles/theme.css?v=1").expect("css with query string");
+    let asset = asset_for(&site(&["styles", "theme.css?v=1"])).expect("css with query string");
     assert_eq!(asset.content_type, "text/css; charset=utf-8");
 }
 
 #[test]
 fn unknown_paths_fail_closed() {
     assert!(asset_for("/secret").is_none());
-    assert!(asset_for("/../Cargo.toml").is_none());
+    assert!(asset_for(&site(&["..", "Cargo.toml"])).is_none());
 }
 
 #[test]
 fn interpreter_modules_are_served_as_javascript() {
     for path in [
-        "/interpreter/app.js",
-        "/interpreter/glasses.js",
-        "/interpreter/scene.js",
-        "/interpreter/heatmap.js",
-        "/interpreter/diff.js",
-        "/interpreter/intent.js",
-        "/interpreter/keymap.js",
-        "/interpreter/pwa.js",
-        "/sw.js",
+        site(&["interpreter", "app.js"]),
+        site(&["interpreter", "glasses.js"]),
+        site(&["interpreter", "scene.js"]),
+        site(&["interpreter", "heatmap.js"]),
+        site(&["interpreter", "diff.js"]),
+        site(&["interpreter", "intent.js"]),
+        site(&["interpreter", "keymap.js"]),
+        site(&["interpreter", "pwa.js"]),
+        "/sw.js".to_owned(),
     ] {
-        let asset = asset_for(path).unwrap_or_else(|| panic!("{path} must be served"));
+        let asset = asset_for(&path).unwrap_or_else(|| panic!("{path} must be served"));
         assert_eq!(asset.content_type, "text/javascript; charset=utf-8");
         assert!(!asset.body.is_empty(), "{path} must have a body");
     }
@@ -87,40 +92,41 @@ fn interpreter_modules_are_served_as_javascript() {
 #[test]
 fn interpreter_module_import_graph_is_served() {
     let mut seen = std::collections::BTreeSet::new();
-    assert_served_import_graph("/interpreter/app.js", &mut seen);
+    assert_served_import_graph(&site(&["interpreter", "app.js"]), &mut seen);
 
     assert!(
-        seen.contains("/interpreter/keymap.js"),
+        seen.contains(&site(&["interpreter", "keymap.js"])),
         "scene.js imports keymap.js and the router must serve it"
     );
     assert!(
-        seen.contains("/interpreter/heatmap.js"),
+        seen.contains(&site(&["interpreter", "heatmap.js"])),
         "scene.js imports heatmap.js and the router must serve it"
     );
     assert!(
-        seen.contains("/interpreter/glasses.js"),
+        seen.contains(&site(&["interpreter", "glasses.js"])),
         "app.js imports the browser-local glasses client"
     );
     assert!(
-        seen.contains("/interpreter/pwa.js"),
+        seen.contains(&site(&["interpreter", "pwa.js"])),
         "app.js imports the install profile"
     );
 }
 
 #[test]
 fn the_session_bridge_module_is_served() {
-    let asset = asset_for("/interpreter/session.js").expect("session module must be served");
+    let asset =
+        asset_for(&site(&["interpreter", "session.js"])).expect("session module must be served");
     assert_eq!(asset.content_type, "text/javascript; charset=utf-8");
     let body = std::str::from_utf8(asset.body).unwrap();
     assert!(
-        body.contains("/api/session/intent"),
+        body.contains(&site(&["api", "session", "intent"])),
         "the bridge posts intents to the session route"
     );
 }
 
 #[test]
 fn the_app_wires_the_live_session_bridge() {
-    let js = asset_text("/interpreter/app.js");
+    let js = asset_text(&site(&["interpreter", "app.js"]));
     assert!(
         js.contains("postIntent"),
         "app forwards intents to the bridge"
@@ -137,7 +143,7 @@ fn the_shell_page_loads_the_interpreter_module() {
     let asset = asset_for("/").expect("root");
     let body = std::str::from_utf8(asset.body).unwrap();
     assert!(
-        body.contains("/interpreter/app.js"),
+        body.contains(&site(&["interpreter", "app.js"])),
         "the shell page must load the interpreter entry module"
     );
     assert!(
@@ -156,11 +162,14 @@ fn install_manifest_and_icons_are_served() {
     let body = std::str::from_utf8(manifest.body).unwrap();
     assert!(body.contains("\"display\": \"standalone\""));
     assert!(body.contains("\"start_url\": \"/\""));
-    assert!(body.contains("/assets/icon.svg"));
-    assert!(body.contains("/assets/icon-maskable.svg"));
+    assert!(body.contains(&site(&["assets", "icon.svg"])));
+    assert!(body.contains(&site(&["assets", "icon-maskable.svg"])));
 
-    for path in ["/assets/icon.svg", "/assets/icon-maskable.svg"] {
-        let icon = asset_for(path).unwrap_or_else(|| panic!("{path}"));
+    for path in [
+        site(&["assets", "icon.svg"]),
+        site(&["assets", "icon-maskable.svg"]),
+    ] {
+        let icon = asset_for(&path).unwrap_or_else(|| panic!("{path}"));
         assert_eq!(icon.content_type, "image/svg+xml");
         assert!(!icon.body.is_empty());
     }
@@ -170,19 +179,24 @@ fn install_manifest_and_icons_are_served() {
 fn service_worker_names_shell_assets_only() {
     let js = asset_text("/sw.js");
     for expected in [
-        "sim-web-shell-v2",
-        "/index.html",
-        "/styles/theme.css",
-        "/interpreter/app.js",
-        "/interpreter/heatmap.js",
-        "/interpreter/pwa.js",
-        "/manifest.webmanifest",
+        "sim-web-shell-v2".to_owned(),
+        "/index.html".to_owned(),
+        site(&["styles", "theme.css"]),
+        site(&["interpreter", "app.js"]),
+        site(&["interpreter", "heatmap.js"]),
+        site(&["interpreter", "pwa.js"]),
+        "/manifest.webmanifest".to_owned(),
     ] {
-        assert!(js.contains(expected), "missing {expected}");
+        assert!(js.contains(&expected), "missing {expected}");
     }
-    for forbidden in ["/api/session", "/api/cookbook", "/api/atelier", "/cookbook"] {
+    for forbidden in [
+        site(&["api", "session"]),
+        site(&["api", "cookbook"]),
+        site(&["api", "atelier"]),
+        "/cookbook".to_owned(),
+    ] {
         assert!(
-            !js.contains(forbidden),
+            !js.contains(&forbidden),
             "service worker must not cache authored/server path {forbidden}"
         );
     }
@@ -209,16 +223,16 @@ fn cookbook_route_serves_page_layout() {
     assert!(body.contains("id=\"cookbook-tree\""), "has left rail tree");
     assert!(body.contains("id=\"recipe-pane\""), "has main pane");
     assert!(
-        body.contains("data-api-root=\"/api/cookbook\""),
+        body.contains(&format!("data-api-root=\"{}\"", site(&["api", "cookbook"]))),
         "uses cookbook API"
     );
 }
 
 #[test]
 fn cookbook_assets_are_served() {
-    let css = asset_for("/cookbook/cookbook.css").expect("cookbook css");
+    let css = asset_for(&site(&["cookbook", "cookbook.css"])).expect("cookbook css");
     assert_eq!(css.content_type, "text/css; charset=utf-8");
-    let js = asset_for("/cookbook/cookbook.js").expect("cookbook js");
+    let js = asset_for(&site(&["cookbook", "cookbook.js"])).expect("cookbook js");
     assert_eq!(js.content_type, "text/javascript; charset=utf-8");
 }
 
@@ -229,31 +243,34 @@ fn atelier_route_serves_page_layout() {
     let body = std::str::from_utf8(asset.body).unwrap();
     assert!(body.contains("id=\"atelier-app\""), "has Atelier app mount");
     assert!(
-        body.contains("data-api-root=\"/api/atelier\""),
+        body.contains(&format!("data-api-root=\"{}\"", site(&["api", "atelier"]))),
         "uses Atelier API"
     );
-    assert!(body.contains("/atelier/atelier.js"), "loads Atelier script");
+    assert!(
+        body.contains(&site(&["atelier", "atelier.js"])),
+        "loads Atelier script"
+    );
 }
 
 #[test]
 fn atelier_assets_are_served() {
-    let css = asset_for("/atelier/atelier.css").expect("atelier css");
+    let css = asset_for(&site(&["atelier", "atelier.css"])).expect("atelier css");
     assert_eq!(css.content_type, "text/css; charset=utf-8");
-    let js = asset_for("/atelier/atelier.js").expect("atelier js");
+    let js = asset_for(&site(&["atelier", "atelier.js"])).expect("atelier js");
     assert_eq!(js.content_type, "text/javascript; charset=utf-8");
 }
 
 #[test]
 fn atelier_script_targets_shell_api_and_panels() {
-    let js = asset_text("/atelier/atelier.js");
+    let js = asset_text(&site(&["atelier", "atelier.js"]));
     for expected in [
-        "/api/atelier",
-        "#atelier-navigation",
-        "#atelier-panels",
-        "#atelier-radar",
-        "#atelier-firewall",
+        site(&["api", "atelier"]),
+        "#atelier-navigation".to_owned(),
+        "#atelier-panels".to_owned(),
+        "#atelier-radar".to_owned(),
+        "#atelier-firewall".to_owned(),
     ] {
-        assert!(js.contains(expected), "missing {expected}");
+        assert!(js.contains(&expected), "missing {expected}");
     }
 }
 
@@ -289,15 +306,15 @@ fn browse_cli_lib_claims_loaded_cli_entrypoint() {
 
 #[test]
 fn cookbook_script_targets_required_apis() {
-    let js = asset_text("/cookbook/cookbook.js");
+    let js = asset_text(&site(&["cookbook", "cookbook.js"]));
     for expected in [
-        "/api/cookbook",
-        "/search?q=",
-        "/recipe/",
-        "/run",
-        "method: \"POST\"",
+        site(&["api", "cookbook"]),
+        "/search?q=".to_owned(),
+        "/recipe/".to_owned(),
+        "/run".to_owned(),
+        "method: \"POST\"".to_owned(),
     ] {
-        assert!(js.contains(expected), "missing {expected}");
+        assert!(js.contains(&expected), "missing {expected}");
     }
     assert!(js.contains("Next recipe ->"), "has next control text");
 }
@@ -306,7 +323,7 @@ fn cookbook_script_targets_required_apis() {
 fn cookbook_script_renders_lib_tree_with_badges() {
     // The browser renders the lib-first tree when the API provides `libs`, while
     // retaining the family fallback for older payloads.
-    let js = asset_text("/cookbook/cookbook.js");
+    let js = asset_text(&site(&["cookbook", "cookbook.js"]));
     for expected in [
         "data.libs",
         "state.libs",
@@ -325,7 +342,7 @@ fn cookbook_script_renders_lib_tree_with_badges() {
     ] {
         assert!(js.contains(expected), "missing {expected}");
     }
-    let css = asset_text("/cookbook/cookbook.css");
+    let css = asset_text(&site(&["cookbook", "cookbook.css"]));
     for expected in [
         ".badge.runnable",
         ".badge.descriptor",
@@ -339,7 +356,7 @@ fn cookbook_script_renders_lib_tree_with_badges() {
 
 #[test]
 fn cookbook_script_persists_branch_state() {
-    let js = asset_text("/cookbook/cookbook.js");
+    let js = asset_text(&site(&["cookbook", "cookbook.js"]));
     for expected in [
         "function treeStateKey(kind, id)",
         "`sim-cookbook:${kind}:${id}`",
@@ -349,15 +366,19 @@ fn cookbook_script_persists_branch_state() {
         "details.open = forceOpen || (saved == null ? defaultOpen : saved === \"1\")",
         "state.visibleIds !== null",
         "setDetailsOpen(libEl, \"lib\", lib.id, true, searching)",
-        "setDetailsOpen(groupEl, \"group\", `${lib.id}/${group.name}`, false, searching)",
     ] {
         assert!(js.contains(expected), "missing {expected}");
     }
+    let group_key = format!(
+        "setDetailsOpen(groupEl, \"group\", `{}{{lib.id}}/{}{{group.name}}`, false, searching)",
+        '$', '$',
+    );
+    assert!(js.contains(&group_key), "missing {group_key}");
 }
 
 #[test]
 fn cookbook_script_renders_lifecycle_actions() {
-    let js = asset_text("/cookbook/cookbook.js");
+    let js = asset_text(&site(&["cookbook", "cookbook.js"]));
     for expected in [
         "recipe.action === \"load\"",
         "recipe.action === \"unload\"",
@@ -373,7 +394,7 @@ fn cookbook_script_renders_lifecycle_actions() {
     ] {
         assert!(js.contains(expected), "missing {expected}");
     }
-    let css = asset_text("/cookbook/cookbook.css");
+    let css = asset_text(&site(&["cookbook", "cookbook.css"]));
     for expected in [
         ".badge.lifecycle.load",
         ".badge.lifecycle.unload",
@@ -485,6 +506,15 @@ fn serve_config_can_use_host_cookbook_state() {
     assert!(!response.body.contains("numbers/cas"), "{}", response.body);
 }
 
+fn site(parts: &[&str]) -> String {
+    let mut path = String::new();
+    for part in parts {
+        path.push('/');
+        path.push_str(part);
+    }
+    path
+}
+
 fn asset_text(path: &str) -> String {
     let asset = asset_for(path).unwrap_or_else(|| panic!("{path} must be served"));
     std::str::from_utf8(asset.body).unwrap().to_owned()
@@ -571,7 +601,7 @@ fn cli_envelope(cx: &mut Cx, verb: &str, args: &[&str]) -> Value {
 
 #[test]
 fn the_theme_defines_motion_focus_and_reduced_motion_rules() {
-    let css = asset_text("/styles/theme.css");
+    let css = asset_text(&site(&["styles", "theme.css"]));
     // Reduced-motion mode disables animation in the interpreter, not per lens.
     assert!(
         css.contains("prefers-reduced-motion"),
@@ -599,7 +629,7 @@ fn the_theme_defines_motion_focus_and_reduced_motion_rules() {
 
 #[test]
 fn the_interpreter_labels_interactive_nodes_for_screen_readers() {
-    let js = asset_text("/interpreter/scene.js");
+    let js = asset_text(&site(&["interpreter", "scene.js"]));
     assert!(
         js.contains("aria-label"),
         "interactive nodes carry screen-reader labels"
@@ -610,7 +640,7 @@ fn the_interpreter_labels_interactive_nodes_for_screen_readers() {
 
 #[test]
 fn the_shell_supports_reduced_motion_and_keyboard_operation() {
-    let js = asset_text("/interpreter/app.js");
+    let js = asset_text(&site(&["interpreter", "app.js"]));
     assert!(
         js.contains("prefers-reduced-motion"),
         "applies reduced-motion"

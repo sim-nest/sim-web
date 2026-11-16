@@ -11,9 +11,9 @@ readme = "README.md"
 keywords = ["interference", "heatmap", "visualization", "simulation"]
 categories = ["science", "visualization"]
 include = [
-  "/src/**",
-  "/examples/**",
-  "/recipes/**",
+  "src/**",
+  "examples/**",
+  "recipes/**",
   "/build.rs",
   "/README.md",
   "/BROCHURE.md",
